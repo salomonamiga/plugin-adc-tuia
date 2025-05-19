@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
   
-classx ADC_Admin {
+class ADC_Admin {
     
     private $plugin_name = 'adc-video-display';
     private $options;
