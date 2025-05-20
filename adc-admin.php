@@ -1,6 +1,6 @@
 <?php
 /**
- * ADC Video Display - Admin Settings !!!!
+ * ADC Video Display - Admin Settings
  * 
  * Handles all admin configuration for the plugin
  */
