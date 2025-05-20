@@ -28,7 +28,6 @@
             this.bindEvents();
             this.initDropdownMenu();
             this.initSearchForm();
-            this.initViewMoreButton();
 
             // Initialize programs menu
             this.initProgramsMenu();
@@ -486,33 +485,6 @@
 
                 // Auto-focus input
                 input.focus();
-            });
-        },
-
-        // Initialize view more button with correct functionality
-        initViewMoreButton: function () {
-            var viewMoreBtn = document.getElementById('adc-view-more-button');
-            var allVideosContainer = document.getElementById('adc-all-videos-container');
-            var relatedVideosGrid = document.querySelector('.adc-related-videos-grid');
-
-            if (!viewMoreBtn || !allVideosContainer) return;
-
-            viewMoreBtn.addEventListener('click', function () {
-                if (allVideosContainer.style.display === 'none' || allVideosContainer.style.display === '') {
-                    // Show all videos
-                    allVideosContainer.style.display = 'block';
-                    if (relatedVideosGrid) {
-                        relatedVideosGrid.style.display = 'none';
-                    }
-                    viewMoreBtn.textContent = 'Ver menos';
-                } else {
-                    // Hide all videos
-                    allVideosContainer.style.display = 'none';
-                    if (relatedVideosGrid) {
-                        relatedVideosGrid.style.display = 'block';
-                    }
-                    viewMoreBtn.textContent = 'Ver más videos';
-                }
             });
         },
 
