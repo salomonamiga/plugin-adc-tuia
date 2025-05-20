@@ -2,6 +2,12 @@
 
 cd /home/customer/www/tuia.tv/public_html/wp-content/plugins/ADC
 
-git add .
-git commit -m "Auto-commit desde servidor $(date +'%d-%m-%Y %H:%M:%S')" >/dev/null 2>&1
-git push origin main >/dev/null 2>&1
+# Agregar todos los cambios (modificados, nuevos y eliminados)
+git add -A
+
+# Hacer commit solo si hay cambios pendientes
+if ! git diff --cached --quiet; then
+  git commit -m "Auto commit $(date '+%Y-%m-%d %H:%M:%S')"
+  git push github main
+fi
+
