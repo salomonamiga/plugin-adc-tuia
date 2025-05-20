@@ -329,7 +329,8 @@ class ADC_Video_Display {
      * Display categories grid
      */
     private function display_categories_grid() {
-        $programs = $this->api->get_programs();
+        // Usar el nuevo método que respeta el orden personalizado
+        $programs = $this->api->get_programs_with_custom_order();
         
         if (empty($programs)) {
             return '<div class="adc-error">No se encontraron programas disponibles.</div>';
@@ -553,40 +554,7 @@ class ADC_Video_Display {
         
         $output .= '</div></div>';
         
-        // View more button (conditional based on admin setting)
-        $show_view_more = isset($this->options['show_view_more']) ? $this->options['show_view_more'] : '1';
-        
-        if ($show_view_more == '1' && count($materials) > 9) { // If there are more than 8 related + 1 current
-            $output .= '<div class="adc-view-more-container">';
-            $output .= '<button class="adc-view-more-button" id="adc-view-more-button">Ver más videos</button>';
-            $output .= '</div>';
-            
-            // Hidden container for all videos
-            $output .= '<div id="adc-all-videos-container" style="display: none;">';
-            $output .= '<div class="adc-videos-grid"><div class="adc-videos-row">';
-            
-            foreach ($materials as $material) {
-                if ($material['id'] == $video['id']) continue;
-                
-                $material_slug = $this->slugify($material['title']);
-                
-                $output .= '<div class="adc-video-item adc-related-video-item">';
-                $output .= '<a href="?categoria=' . esc_attr($category_slug) . '&video=' . esc_attr($material_slug) . '" class="adc-video-link">';
-                $output .= '<div class="adc-video-thumbnail">';
-                $output .= '<img src="' . esc_url($this->api->get_thumbnail_url($material['id'])) . '" alt="' . esc_attr($material['title']) . '">';
-                $output .= '<div class="adc-video-play-icon"></div>';
-                $output .= '</div>';
-                
-                $output .= '<div class="adc-video-info">';
-                $output .= '<h3 class="adc-video-title">' . esc_html($material['title']) . '</h3>';
-                $output .= '<span class="adc-video-duration">Duración: ' . esc_html($material['duration']) . '</span>';
-                $output .= '</div>';
-                $output .= '</a>';
-                $output .= '</div>';
-            }
-            
-            $output .= '</div></div></div>';
-        }
+        // Se eliminó el botón "Ver más videos" tal como se solicitó
         
         // Configuration for JavaScript
         $autoplay = isset($this->options['enable_autoplay']) ? $this->options['enable_autoplay'] : '1';

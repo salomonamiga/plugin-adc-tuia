@@ -224,6 +224,46 @@ class ADC_API {
     }
     
     /**
+     * Get all programs with custom order for home display
+     */
+    public function get_programs_with_custom_order() {
+        $programs = $this->get_programs();
+        
+        // Get custom order from WordPress option
+        $order = get_option('adc_programs_order', array());
+        
+        if (!empty($order)) {
+            // Create a lookup array with program IDs as keys and sort order as values
+            $order_lookup = array();
+            foreach ($order as $index => $program_id) {
+                $order_lookup[$program_id] = $index;
+            }
+            
+            // Sort the programs based on the custom order
+            usort($programs, function($a, $b) use ($order_lookup) {
+                // If both programs have custom order
+                if (isset($order_lookup[$a['id']]) && isset($order_lookup[$b['id']])) {
+                    return $order_lookup[$a['id']] - $order_lookup[$b['id']];
+                }
+                // If only first program has custom order, it comes first
+                elseif (isset($order_lookup[$a['id']])) {
+                    return -1;
+                }
+                // If only second program has custom order, it comes first
+                elseif (isset($order_lookup[$b['id']])) {
+                    return 1;
+                }
+                // If neither has custom order, use alphabetical order as fallback
+                else {
+                    return strcmp($a['name'], $b['name']);
+                }
+            });
+        }
+        
+        return $programs;
+    }
+    
+    /**
      * Get current section
      */
     public function get_section() {
