@@ -20,6 +20,123 @@ class ADC_Admin {
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'init_settings'));
         add_action('admin_notices', array($this, 'admin_notices'));
+        
+        // Add scripts and styles for admin
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
+        
+        // AJAX handler for program ordering
+        add_action('wp_ajax_adc_update_program_order', array($this, 'ajax_update_program_order'));
+    }
+    
+    /**
+     * Enqueue admin scripts and styles
+     */
+    public function enqueue_admin_scripts($hook) {
+        // Only load on our settings page or program order page
+        if ($hook != 'toplevel_page_' . $this->plugin_name && $hook != 'adc-videos_page_' . $this->plugin_name . '-order') {
+            return;
+        }
+        
+        // Enqueue jQuery UI for sortable
+        wp_enqueue_script('jquery-ui-sortable');
+        
+        // Add inline styles for program ordering
+        wp_add_inline_style('wp-admin', '
+            .programs-order-list {
+                margin: 20px 0;
+                padding: 0;
+                width: 100%;
+                max-width: 800px;
+            }
+            .program-item {
+                display: flex;
+                align-items: center;
+                background: #fff;
+                padding: 10px 15px;
+                margin-bottom: 8px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                cursor: move;
+                transition: all 0.2s;
+            }
+            .program-item:hover {
+                background: #f9f9f9;
+                border-color: #999;
+            }
+            .program-handle {
+                margin-right: 15px;
+                color: #aaa;
+                cursor: move;
+            }
+            .program-thumbnail {
+                width: 40px;
+                height: 40px;
+                object-fit: cover;
+                border-radius: 4px;
+                margin-right: 15px;
+            }
+            .program-thumbnail-placeholder {
+                width: 40px;
+                height: 40px;
+                background: #eee;
+                border-radius: 4px;
+                margin-right: 15px;
+            }
+            .program-name {
+                font-weight: 500;
+                flex-grow: 1;
+            }
+            .program-id {
+                color: #999;
+                font-size: 12px;
+                margin-left: 10px;
+            }
+            #order-save-status {
+                display: flex;
+                align-items: center;
+                margin: 20px 0;
+            }
+            #order-save-status.hidden {
+                display: none;
+            }
+            #order-save-status .message {
+                margin-left: 10px;
+            }
+            #order-save-status.success .message {
+                color: green;
+            }
+            #order-save-status.error .message {
+                color: red;
+            }
+        ');
+    }
+    
+    /**
+     * AJAX handler to update program order
+     */
+    public function ajax_update_program_order() {
+        // Check nonce for security
+        check_ajax_referer('adc_admin_nonce', 'nonce');
+        
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+        
+        // Get program order
+        $program_order = isset($_POST['program_order']) ? $_POST['program_order'] : array();
+        
+        // Sanitize - ensure we only have integers
+        $sanitized_order = array();
+        foreach ($program_order as $position => $program_id) {
+            $sanitized_order[] = intval($program_id);
+        }
+        
+        // Update option
+        update_option('adc_programs_order', $sanitized_order);
+        
+        wp_send_json_success('Order updated successfully');
     }
     
     /**
@@ -34,6 +151,16 @@ class ADC_Admin {
             array($this, 'display_settings_page'),
             'dashicons-video-alt3',
             30
+        );
+        
+        // Add submenu for program ordering
+        add_submenu_page(
+            $this->plugin_name,
+            'Ordenar Programas',
+            'Ordenar Programas',
+            'manage_options',
+            $this->plugin_name . '-order',
+            array($this, 'display_program_order_page')
         );
     }
     
@@ -113,15 +240,6 @@ class ADC_Admin {
             'autoplay_countdown',
             'Segundos para Autoplay',
             array($this, 'autoplay_countdown_callback'),
-            $this->plugin_name,
-            'display_settings'
-        );
-        
-        // Show view more button
-        add_settings_field(
-            'show_view_more',
-            'Mostrar botón "Ver más"',
-            array($this, 'show_view_more_callback'),
             $this->plugin_name,
             'display_settings'
         );
@@ -213,7 +331,7 @@ class ADC_Admin {
             'advanced_settings'
         );
     }
-    
+
     /**
      * API Settings section description
      */
@@ -546,7 +664,7 @@ class ADC_Admin {
      * Display admin notices
      */
     public function admin_notices() {
-        if (!isset($_GET['page']) || $_GET['page'] !== $this->plugin_name) {
+        if (!isset($_GET['page']) || ($_GET['page'] !== $this->plugin_name && $_GET['page'] !== $this->plugin_name . '-order')) {
             return;
         }
         
@@ -557,8 +675,16 @@ class ADC_Admin {
             </div>
             <?php
         }
+        
+        if (isset($_GET['order-updated']) && $_GET['order-updated']) {
+            ?>
+            <div class="notice notice-success is-dismissible">
+                <p>¡Orden de programas actualizado exitosamente!</p>
+            </div>
+            <?php
+        }
     }
-    
+
     /**
      * Display the settings page
      */
@@ -605,7 +731,7 @@ class ADC_Admin {
                 </ul>
                 
                 <h3>URLs del Sistema:</h3>
-                <p>Este sitio está configurado para la sección: <strong><?php echo ($this->options['section'] == '5') ? 'IA' : 'Kids'; ?></strong></p>
+                <p>Este sitio está configurado para la sección: <strong><?php echo (isset($this->options['section']) && $this->options['section'] == '5') ? 'IA' : 'Kids'; ?></strong></p>
                 <ul>
                     <li>Listado de programas: <code>/?</code></li>
                     <li>Ver programa: <code>/?categoria=nombre-programa</code></li>
@@ -660,25 +786,136 @@ class ADC_Admin {
                         </tbody>
                     </table>
                 <?php endif; ?>
-                
-                <h3>Configuración Avanzada:</h3>
-                <p>Para desarrolladores que necesiten personalización adicional:</p>
-                <ul>
-                    <li>Los estilos de botones pueden cambiarse en <code>style.css</code> (buscar comentarios con "CAMBIAR AQUÍ")</li>
-                    <li>Los colores de las temporadas y líneas están marcados con comentarios</li>
-                    <li>El badge diagonal de temporada puede personalizarse en la clase <code>.adc-season-badge</code></li>
-                    <li>El modo debug muestra información adicional en la consola del navegador</li>
-                </ul>
-                
-                <h3>Cambios Recientes:</h3>
-                <ul>
-                    <li>URLs simplificadas sin prefijo "ia_"</li>
-                    <li>Botón "Volver al programa" en página de video individual</li>
-                    <li>Badge diagonal para indicar cambio de temporada</li>
-                    <li>Opción para mostrar/ocultar botón "Ver más videos"</li>
-                    <li>Eliminada línea inferior del título en sección de programa</li>
-                </ul>
             </div>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Display the program order page
+     */
+    public function display_program_order_page() {
+        // Include the necessary API class
+        $api = new ADC_API();
+        $programs = $api->get_programs();
+        
+        // Get saved order
+        $saved_order = get_option('adc_programs_order', array());
+        
+        // If we have a saved order, reorder the programs array
+        if (!empty($saved_order)) {
+            // Create a lookup array for quick access
+            $programs_lookup = array();
+            foreach ($programs as $program) {
+                $programs_lookup[$program['id']] = $program;
+            }
+            
+            // Create a new ordered array
+            $ordered_programs = array();
+            
+            // First add all programs that are in the saved order
+            foreach ($saved_order as $program_id) {
+                if (isset($programs_lookup[$program_id])) {
+                    $ordered_programs[] = $programs_lookup[$program_id];
+                    unset($programs_lookup[$program_id]);
+                }
+            }
+            
+            // Then add any remaining programs
+            foreach ($programs_lookup as $program) {
+                $ordered_programs[] = $program;
+            }
+            
+            // Replace the original array
+            $programs = $ordered_programs;
+        }
+        
+        ?>
+        <div class="wrap">
+            <h1>Ordenar Programas</h1>
+            
+            <div class="notice notice-info">
+                <p>Arrastra y suelta los programas para cambiar su orden de visualización en la página principal. El orden se guardará automáticamente.</p>
+            </div>
+            
+            <?php if (empty($programs)): ?>
+                <div class="notice notice-error">
+                    <p>No se pudieron cargar los programas. Verifica la conexión a la API.</p>
+                </div>
+            <?php else: ?>
+                <div id="program-order-container">
+                    <ul id="sortable-programs" class="programs-order-list">
+                        <?php foreach ($programs as $program): ?>
+                            <li class="program-item" data-id="<?php echo esc_attr($program['id']); ?>">
+                                <div class="program-handle dashicons dashicons-move"></div>
+                                <?php if (isset($program['cover'])): ?>
+                                    <img src="<?php echo esc_url($program['cover']); ?>" 
+                                         alt="<?php echo esc_attr($program['name']); ?>" 
+                                         class="program-thumbnail">
+                                <?php else: ?>
+                                    <div class="program-thumbnail-placeholder"></div>
+                                <?php endif; ?>
+                                <span class="program-name"><?php echo esc_html($program['name']); ?></span>
+                                <span class="program-id">(ID: <?php echo esc_html($program['id']); ?>)</span>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+                
+                <div id="order-save-status" class="hidden">
+                    <div class="spinner is-active"></div>
+                    <span class="message">Guardando...</span>
+                </div>
+                
+                <script>
+                jQuery(document).ready(function($) {
+                    // Initialize sortable
+                    $('#sortable-programs').sortable({
+                        handle: '.program-handle',
+                        update: function(event, ui) {
+                            // Show saving indicator
+                            $('#order-save-status').removeClass('hidden').removeClass('success').removeClass('error');
+                            $('#order-save-status .message').text('Guardando...');
+                            
+                            // Get the new order
+                            var programOrder = [];
+                            $('.program-item').each(function() {
+                                programOrder.push($(this).data('id'));
+                            });
+                            
+                            // Save the new order via AJAX
+                            $.ajax({
+                                url: ajaxurl,
+                                type: 'POST',
+                                data: {
+                                    action: 'adc_update_program_order',
+                                    program_order: programOrder,
+                                    nonce: '<?php echo wp_create_nonce('adc_admin_nonce'); ?>'
+                                },
+                                success: function(response) {
+                                    if (response.success) {
+                                        $('#order-save-status').addClass('success');
+                                        $('#order-save-status .message').text('¡Orden guardado exitosamente!');
+                                        
+                                        // Hide message after a delay
+                                        setTimeout(function() {
+                                            $('#order-save-status').addClass('hidden');
+                                        }, 3000);
+                                    } else {
+                                        $('#order-save-status').addClass('error');
+                                        $('#order-save-status .message').text('Error al guardar orden.');
+                                    }
+                                },
+                                error: function() {
+                                    $('#order-save-status').addClass('error');
+                                    $('#order-save-status .message').text('Error al guardar orden.');
+                                }
+                            });
+                        }
+                    });
+                });
+                </script>
+            <?php endif; ?>
         </div>
         <?php
     }
