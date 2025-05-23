@@ -449,7 +449,17 @@ class ADC_Video_Display {
         
         // Video.js
         $output .= '<link href="https://unpkg.com/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">';
-        $output .= '<script src="https://unpkg.com/video.js@8.10.0/dist/video.min.js"></script>';
+$output .= '<script src="https://unpkg.com/video.js@8.10.0/dist/video.min.js"></script>';
+
+// Cargar nuestro CSS DESPUÉS del CDN para que tenga prioridad
+$output .= '<style>
+/* OVERRIDE CRÍTICO - Debe ir después del CDN */
+.video-js .vjs-play-control .vjs-icon-placeholder:before { color: #6EC1E4 !important; }
+.video-js .vjs-progress-holder .vjs-play-progress { background: #6EC1E4 !important; }
+.vjs-play-progress { background: #6EC1E4 !important; background-color: #6EC1E4 !important; }
+.video-js .vjs-big-play-button .vjs-icon-placeholder:before { color: #6EC1E4 !important; }
+.video-js .vjs-control .vjs-icon-placeholder:before { color: #6EC1E4 !important; }
+</style>';
         
         // Player with proper aspect ratio
         $output .= '<div class="adc-video-player" style="position:relative; padding-top:56.25%;">';

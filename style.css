@@ -426,6 +426,36 @@
    Video.js Player Styles - Color Principal
    =================================== */
 
+/* OVERRIDE COMPLETO DEL CDN DE VIDEO.JS */
+.video-js .vjs-big-play-button .vjs-icon-placeholder:before,
+.vjs-icon-play:before {
+    content: "\f101" !important;
+    font-family: VideoJS !important;
+    color: #6EC1E4 !important;
+}
+
+.video-js .vjs-play-control .vjs-icon-placeholder:before,
+.vjs-icon-pause:before {
+    color: #6EC1E4 !important;
+}
+
+/* Forzar todos los iconos de controles */
+.video-js .vjs-control .vjs-icon-placeholder:before {
+    color: #6EC1E4 !important;
+}
+
+/* Override del progreso con !important absoluto */
+.video-js .vjs-progress-holder .vjs-play-progress {
+    background: #6EC1E4 !important;
+    background-color: #6EC1E4 !important;
+}
+
+/* Selector directo para la barra rosa */
+.vjs-play-progress {
+    background: #6EC1E4 !important;
+    background-color: #6EC1E4 !important;
+}   
+
 /* Control bar background and buttons */
 .video-js .vjs-control-bar {
     background: rgba(0, 0, 0, 0.7);
@@ -563,6 +593,36 @@
 .video-js .vjs-play-progress[style*="width"] {
     background: #6EC1E4 !important;
     background-color: #6EC1E4 !important;
+}
+
+/* FUERZA BRUTA - Anular Video.js completamente */
+.video-js .vjs-play-control .vjs-icon-placeholder:before,
+.video-js .vjs-button .vjs-icon-placeholder:before,
+.video-js .vjs-button > .vjs-icon-placeholder:before {
+    color: #6EC1E4 !important;
+    font-family: VideoJS !important;
+}
+
+/* Anular específicamente el color del botón de play */
+.video-js .vjs-big-play-button .vjs-icon-placeholder:before,
+.video-js .vjs-play-control .vjs-icon-placeholder:before {
+    color: #6EC1E4 !important;
+}
+
+/* Anular colores de progreso con máxima especificidad */
+.video-js.vjs-default-skin .vjs-progress-holder .vjs-play-progress,
+.video-js.vjs-default-skin .vjs-progress-holder .vjs-play-progress:before,
+.video-js.vjs-default-skin .vjs-slider-bar,
+.video-js.vjs-default-skin .vjs-slider-bar:before {
+    background-color: #6EC1E4 !important;
+    background: #6EC1E4 !important;
+}
+
+/* Selectores ultra-específicos para el rosa */
+.vjs-default-skin .vjs-progress-holder .vjs-play-progress,
+.vjs-default-skin .vjs-slider-bar {
+    background-color: #6EC1E4 !important;
+    background: #6EC1E4 !important;
 }
 
 /* ===================================
