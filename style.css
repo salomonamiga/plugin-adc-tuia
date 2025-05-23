@@ -1053,8 +1053,7 @@
     
     /* CAMBIO MÓVIL: Player más grande con borde en color principal */
     .adc-video-player {
-        margin-left: -25%;
-        margin-right: -25%;
+
         border: 3px solid #6EC1E4;
         border-radius: 12px;
         box-shadow: 0 8px 25px rgba(110, 193, 228, 0.3);
