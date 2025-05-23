@@ -373,6 +373,34 @@
             });
 
             this.player = player;
+
+            // Forzar colores del player con eventos - VERSIÓN AGRESIVA
+            var self = this;
+            player.on('timeupdate', function () {
+                // Todos los elementos de progreso
+                var progressElements = player.el().querySelectorAll('.vjs-play-progress, .vjs-slider-bar, .vjs-volume-level');
+                progressElements.forEach(function (element) {
+                    element.style.backgroundColor = '#6EC1E4';
+                    element.style.background = '#6EC1E4';
+                });
+            });
+
+            player.on('volumechange', function () {
+                var progressElements = player.el().querySelectorAll('.vjs-play-progress, .vjs-slider-bar, .vjs-volume-level');
+                progressElements.forEach(function (element) {
+                    element.style.backgroundColor = '#6EC1E4';
+                    element.style.background = '#6EC1E4';
+                });
+            });
+
+            // Forzar también en mousemove
+            player.on('mousemove', function () {
+                var progressElements = player.el().querySelectorAll('.vjs-play-progress, .vjs-slider-bar, .vjs-volume-level');
+                progressElements.forEach(function (element) {
+                    element.style.backgroundColor = '#6EC1E4';
+                    element.style.background = '#6EC1E4';
+                });
+            });
         },
 
         // Función para quitar el autofocus de los campos de búsqueda
@@ -440,19 +468,6 @@
 
             rewindBtn.innerHTML = '<span>⏪ 10s</span>';
             forwardBtn.innerHTML = '<span>10s ⏩</span>';
-            // Forzar colores del player cada segundo
-            setInterval(function () {
-                var playProgress = player.el().querySelector('.vjs-play-progress');
-                if (playProgress) {
-                    playProgress.style.backgroundColor = '#6EC1E4';
-                    playProgress.style.background = '#6EC1E4';
-                }
-                var volumeLevel = player.el().querySelector('.vjs-volume-level');
-                if (volumeLevel) {
-                    volumeLevel.style.backgroundColor = '#6EC1E4';
-                    volumeLevel.style.background = '#6EC1E4';
-                }
-            }, 1000);
         },
 
         // Handle video ended event
