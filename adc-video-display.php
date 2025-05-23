@@ -46,58 +46,6 @@ class ADC_Video_Display {
         
         // Handle custom URLs
         add_filter('request', array($this, 'handle_custom_urls'));
-        
-        // Add head scripts
-        add_action('wp_head', array($this, 'add_head_scripts'));
-    }
-    
-    /**
-     * Add custom scripts to head
-     */
-    public function add_head_scripts() {
-        ?>
-        <script>
-        // Cleanup function for search results
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if we're on a search page
-            if (window.location.search.indexOf('adc_search=') !== -1) {
-                // Set timeout to allow all content to load
-                setTimeout(function() {
-                    // Look for duplicated search result containers
-                    var searchContainers = document.querySelectorAll('.adc-search-results-container');
-                    if (searchContainers.length > 1) {
-                        // Keep only the first one
-                        for (var i = 1; i < searchContainers.length; i++) {
-                            if (searchContainers[i].parentNode) {
-                                searchContainers[i].parentNode.removeChild(searchContainers[i]);
-                            }
-                        }
-                    }
-                    
-                    // Asegurarse de que solo hay un título de recomendaciones
-                    var recommendedTitles = document.querySelectorAll('.adc-recommended-title');
-                    if (recommendedTitles.length > 1) {
-                        for (var j = 1; j < recommendedTitles.length; j++) {
-                            if (recommendedTitles[j].parentNode) {
-                                recommendedTitles[j].parentNode.removeChild(recommendedTitles[j]);
-                            }
-                        }
-                    }
-                    
-                    // Eliminar mensajes redundantes "No se encontraron resultados"
-                    var noResultsElements = document.querySelectorAll('.adc-search-no-results');
-                    if (noResultsElements.length > 0) {
-                        for (var k = 0; k < noResultsElements.length; k++) {
-                            if (noResultsElements[k].parentNode) {
-                                noResultsElements[k].parentNode.removeChild(noResultsElements[k]);
-                            }
-                        }
-                    }
-                }, 500);
-            }
-        });
-        </script>
-        <?php
     }
     
     /**
@@ -554,91 +502,91 @@ class ADC_Video_Display {
         
         $output .= '</div></div>';
         
-        // Se eliminó el botón "Ver más videos" tal como se solicitó
-        
-        // Configuration for JavaScript
+        // Configuration for JavaScript (SOLO lo que necesita datos PHP dinámicos)
         $autoplay = isset($this->options['enable_autoplay']) ? $this->options['enable_autoplay'] : '1';
         $countdown = isset($this->options['autoplay_countdown']) ? $this->options['autoplay_countdown'] : '5';
         
-        // Add inline script for autoplay functionality
+        // Add inline script SOLO para configuración específica del video que usa datos PHP
         if ($next_url && $autoplay == '1') {
             $output .= '<script>
             document.addEventListener("DOMContentLoaded", function() {
-                var player = videojs("adc-player");
-                var overlay = document.getElementById("adc-next-overlay");
-                var countdownEl = document.getElementById("adc-countdown");
-                var cancelBtn = document.getElementById("adc-cancel-autoplay");
-                var interval = null;
-                var seconds = ' . intval($countdown) . ';
-                var cancelled = false;
-                
-                player.ready(function() {
-                    player.volume(0.5);
+                if (typeof videojs !== "undefined" && document.getElementById("adc-player")) {
+                    var player = videojs("adc-player");
+                    var overlay = document.getElementById("adc-next-overlay");
+                    var countdownEl = document.getElementById("adc-countdown");
+                    var cancelBtn = document.getElementById("adc-cancel-autoplay");
+                    var interval = null;
+                    var seconds = ' . intval($countdown) . ';
+                    var cancelled = false;
                     
-                    // Add custom buttons
-                    var Button = videojs.getComponent("Button");
-                    
-                    var rewindButton = videojs.extend(Button, {
-                        constructor: function() {
-                            Button.apply(this, arguments);
-                            this.controlText("Rewind 10 seconds");
-                            this.addClass("vjs-rewind-button");
-                            this.el().innerHTML = "⏪ 10s";
-                        },
-                        handleClick: function() {
-                            player.currentTime(player.currentTime() - 10);
-                        }
-                    });
-                    videojs.registerComponent("RewindButton", rewindButton);
-                    player.getChild("controlBar").addChild("RewindButton", {}, 0);
-                    
-                    var forwardButton = videojs.extend(Button, {
-                        constructor: function() {
-                            Button.apply(this, arguments);
-                            this.controlText("Forward 10 seconds");
-                            this.addClass("vjs-forward-button");
-                            this.el().innerHTML = "10s ⏩";
-                        },
-                        handleClick: function() {
-                            player.currentTime(player.currentTime() + 10);
-                        }
-                    });
-                    videojs.registerComponent("ForwardButton", forwardButton);
-                    player.getChild("controlBar").addChild("ForwardButton", {}, 2);
-                });
-                
-                player.on("ended", function() {
-                    if (!overlay || cancelled) return;
-                    
-                    // Exit fullscreen if active
-                    if (player.isFullscreen()) {
-                        player.exitFullscreen();
-                    }
-                    
-                    // Show overlay after small delay to ensure fullscreen exit
-                    setTimeout(function() {
-                        overlay.style.display = "block";
-                        seconds = ' . intval($countdown) . ';
-                        countdownEl.textContent = seconds;
-                        interval = setInterval(function() {
-                            seconds--;
-                            countdownEl.textContent = seconds;
-                            if (seconds <= 0 && !cancelled) {
-                                clearInterval(interval);
-                                window.location.href = "' . $next_url . '";
+                    player.ready(function() {
+                        player.volume(0.5);
+                        
+                        // Add custom buttons
+                        var Button = videojs.getComponent("Button");
+                        
+                        var rewindButton = videojs.extend(Button, {
+                            constructor: function() {
+                                Button.apply(this, arguments);
+                                this.controlText("Rewind 10 seconds");
+                                this.addClass("vjs-rewind-button");
+                                this.el().innerHTML = "⏪ 10s";
+                            },
+                            handleClick: function() {
+                                player.currentTime(player.currentTime() - 10);
                             }
-                        }, 1000);
-                    }, 300);
-                });
-                
-                if (cancelBtn) {
-                    cancelBtn.addEventListener("click", function() {
-                        cancelled = true;
-                        if (overlay) {
-                            overlay.innerHTML = \'<p style="color:#aaa">Autoplay cancelado</p>\';
-                        }
-                        clearInterval(interval);
+                        });
+                        videojs.registerComponent("RewindButton", rewindButton);
+                        player.getChild("controlBar").addChild("RewindButton", {}, 0);
+                        
+                        var forwardButton = videojs.extend(Button, {
+                            constructor: function() {
+                                Button.apply(this, arguments);
+                                this.controlText("Forward 10 seconds");
+                                this.addClass("vjs-forward-button");
+                                this.el().innerHTML = "10s ⏩";
+                            },
+                            handleClick: function() {
+                                player.currentTime(player.currentTime() + 10);
+                            }
+                        });
+                        videojs.registerComponent("ForwardButton", forwardButton);
+                        player.getChild("controlBar").addChild("ForwardButton", {}, 2);
                     });
+                    
+                    player.on("ended", function() {
+                        if (!overlay || cancelled) return;
+                        
+                        // Exit fullscreen if active
+                        if (player.isFullscreen()) {
+                            player.exitFullscreen();
+                        }
+                        
+                        // Show overlay after small delay to ensure fullscreen exit
+                        setTimeout(function() {
+                            overlay.style.display = "block";
+                            seconds = ' . intval($countdown) . ';
+                            countdownEl.textContent = seconds;
+                            interval = setInterval(function() {
+                                seconds--;
+                                countdownEl.textContent = seconds;
+                                if (seconds <= 0 && !cancelled) {
+                                    clearInterval(interval);
+                                    window.location.href = "' . $next_url . '";
+                                }
+                            }, 1000);
+                        }, 300);
+                    });
+                    
+                    if (cancelBtn) {
+                        cancelBtn.addEventListener("click", function() {
+                            cancelled = true;
+                            if (overlay) {
+                                overlay.innerHTML = \'<p style="color:#aaa">Autoplay cancelado</p>\';
+                            }
+                            clearInterval(interval);
+                        });
+                    }
                 }
             });
             </script>';

@@ -40,75 +40,13 @@ class ADC_Admin {
         // Enqueue jQuery UI for sortable
         wp_enqueue_script('jquery-ui-sortable');
         
-        // Add inline styles for program ordering
-        wp_add_inline_style('wp-admin', '
-            .programs-order-list {
-                margin: 20px 0;
-                padding: 0;
-                width: 100%;
-                max-width: 800px;
-            }
-            .program-item {
-                display: flex;
-                align-items: center;
-                background: #fff;
-                padding: 10px 15px;
-                margin-bottom: 8px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                cursor: move;
-                transition: all 0.2s;
-            }
-            .program-item:hover {
-                background: #f9f9f9;
-                border-color: #999;
-            }
-            .program-handle {
-                margin-right: 15px;
-                color: #aaa;
-                cursor: move;
-            }
-            .program-thumbnail {
-                width: 40px;
-                height: 40px;
-                object-fit: cover;
-                border-radius: 4px;
-                margin-right: 15px;
-            }
-            .program-thumbnail-placeholder {
-                width: 40px;
-                height: 40px;
-                background: #eee;
-                border-radius: 4px;
-                margin-right: 15px;
-            }
-            .program-name {
-                font-weight: 500;
-                flex-grow: 1;
-            }
-            .program-id {
-                color: #999;
-                font-size: 12px;
-                margin-left: 10px;
-            }
-            #order-save-status {
-                display: flex;
-                align-items: center;
-                margin: 20px 0;
-            }
-            #order-save-status.hidden {
-                display: none;
-            }
-            #order-save-status .message {
-                margin-left: 10px;
-            }
-            #order-save-status.success .message {
-                color: green;
-            }
-            #order-save-status.error .message {
-                color: red;
-            }
-        ');
+        // Enqueue our consolidated CSS for admin styles
+        wp_enqueue_style(
+            'adc-admin-style',
+            ADC_PLUGIN_URL . 'style.css',
+            array(),
+            time()
+        );
     }
     
     /**

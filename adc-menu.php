@@ -66,35 +66,6 @@ class ADC_Menu {
         $output .= '</div>';
         $output .= '</div>';
         
-        // Add inline JavaScript for dropdown functionality
-        $output .= '<script>
-        (function() {
-            var dropdown = document.querySelector(".adc-dropdown-menu");
-            var button = dropdown.querySelector(".adc-dropdown-toggle");
-            var content = dropdown.querySelector(".adc-dropdown-content");
-            
-            button.addEventListener("click", function(e) {
-                e.preventDefault();
-                dropdown.classList.toggle("active");
-            });
-            
-            // Close dropdown when clicking outside
-            document.addEventListener("click", function(e) {
-                if (!dropdown.contains(e.target)) {
-                    dropdown.classList.remove("active");
-                }
-            });
-            
-            // Close dropdown when selecting an option
-            var links = content.querySelectorAll("a");
-            links.forEach(function(link) {
-                link.addEventListener("click", function() {
-                    dropdown.classList.remove("active");
-                });
-            });
-        })();
-        </script>';
-        
         return $output;
     }
     
@@ -143,49 +114,6 @@ class ADC_Menu {
             
             $menu_item .= '</ul>';
             $menu_item .= '</li>';
-            
-            // Add JavaScript to populate the menu
-            $menu_item .= '<script>
-            document.addEventListener("DOMContentLoaded", function() {
-                // Only run if we have the submenu
-                var submenu = document.getElementById("adc-programs-submenu-wp");
-                if (!submenu) return;
-                
-                // Fetch programs
-                var xhr = new XMLHttpRequest();
-                xhr.open("POST", "' . admin_url('admin-ajax.php') . '", true);
-                xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                
-                xhr.onload = function() {
-                    if (xhr.status === 200) {
-                        var response = JSON.parse(xhr.responseText);
-                        if (response.success && response.data) {
-                            submenu.innerHTML = "";
-                            
-                            response.data.forEach(function(program) {
-                                var li = document.createElement("li");
-                                var a = document.createElement("a");
-                                
-                                // Create slug
-                                var slug = program.name.toLowerCase()
-                                    .replace(/[^a-z0-9]+/g, "-")
-                                    .replace(/(^-|-$)/g, "");
-                                
-                                // Use simplified URL for IA site
-                                a.href = "' . home_url('/') . '?categoria=" + slug;
-                                
-                                a.textContent = program.name;
-                                li.appendChild(a);
-                                submenu.appendChild(li);
-                            });
-                        }
-                    }
-                };
-                
-                var params = "action=adc_get_programs_menu&nonce=' . wp_create_nonce('adc_nonce') . '";
-                xhr.send(params);
-            });
-            </script>';
             
             $items .= $menu_item;
         }

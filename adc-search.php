@@ -27,22 +27,8 @@ class ADC_Search {
         add_action('wp_ajax_adc_search_videos', array($this, 'ajax_search_videos'));
         add_action('wp_ajax_nopriv_adc_search_videos', array($this, 'ajax_search_videos'));
         
-        // Add search form to ElementorPro locations
-        add_action('elementor/theme/after_do_header', array($this, 'inject_search_form'));
-        
-        // Add inline script for responsive search
-        add_action('wp_footer', array($this, 'add_inline_search_script'));
-        
         // Override the main content for search results - without affecting layout
         add_filter('the_content', array($this, 'show_search_results'));
-    }
-    
-    /**
-     * Inject search form directly into the header
-     */
-    public function inject_search_form() {
-        // No inyectar el formulario automáticamente para evitar duplicados
-        return;
     }
     
     /**
@@ -61,95 +47,6 @@ class ADC_Search {
         }
         
         return $content;
-    }
-    
-    /**
-     * Render inline search form
-     */
-    private function render_inline_search_form() {
-        $form = '<form class="adc-inline-search-form" action="' . esc_url(home_url('/')) . '" method="get">';
-        $form .= '<input type="text" name="adc_search" placeholder="Buscar..." class="adc-inline-search-input">';
-        $form .= '<button type="submit" class="adc-inline-search-button"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></button>';
-        $form .= '</form>';
-        
-        return $form;
-    }
-    
-    /**
-     * Add inline script for responsive search (ahora solo script, sin CSS)
-     */
-    public function add_inline_search_script() {
-        ?>
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Aseguramos que los títulos de búsqueda tengan el estilo correcto
-            var searchTitles = document.querySelectorAll('.adc-search-results-title, .adc-recommended-title');
-            if (searchTitles.length) {
-                searchTitles.forEach(function(title) {
-                    if (title.classList.contains('adc-recommended-title')) {
-                        title.style.color = '#6EC1E4';
-                    } else {
-                        title.style.color = '#6EC1E4';
-                    }
-                });
-            }
-            
-            // Buscar elementos BUSCADOR y reemplazarlos con formulario de búsqueda
-            document.querySelectorAll('a').forEach(function(link) {
-                if (link.textContent.trim() === 'BUSCADOR') {
-                    var searchContainer = document.createElement('div');
-                    searchContainer.className = 'adc-menu-search-container';
-                    searchContainer.innerHTML = `
-                        <form class="adc-inline-search-form" action="<?php echo esc_url(home_url('/')); ?>" method="get">
-                            <input type="text" name="adc_search" placeholder="Buscar..." class="adc-inline-search-input">
-                            <button type="submit" class="adc-inline-search-button">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="11" cy="11" r="8"></circle>
-                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                </svg>
-                            </button>
-                        </form>
-                    `;
-                    
-                    // Reemplazar el elemento del menú
-                    var menuItem = link.closest('li');
-                    if (menuItem) {
-                        menuItem.innerHTML = '';
-                        menuItem.appendChild(searchContainer);
-                        menuItem.style.display = 'flex';
-                        menuItem.style.alignItems = 'center';
-                        menuItem.style.marginLeft = '40px'; // Agregar margen al elemento de menú
-                    }
-                }
-            });
-            
-            // Eliminar posibles búsquedas duplicadas
-            var searchContainers = document.querySelectorAll('.adc-search-results-container');
-            if (searchContainers.length > 1) {
-                for (var i = 1; i < searchContainers.length; i++) {
-                    searchContainers[i].remove();
-                }
-            }
-            
-            // Aplicar estilos adicionales para forzar la apariencia correcta
-            document.querySelectorAll('.adc-inline-search-form').forEach(function(form) {
-                form.style.background = 'transparent';
-                form.style.border = '1px solid #ffffff';
-                
-                var input = form.querySelector('.adc-inline-search-input');
-                if (input) {
-                    input.style.width = '150px';
-                    input.style.transition = 'color 0.3s ease';
-                }
-                
-                var button = form.querySelector('.adc-inline-search-button');
-                if (button) {
-                    button.style.color = '#ffffff';
-                }
-            });
-        });
-        </script>
-        <?php
     }
     
     /**
