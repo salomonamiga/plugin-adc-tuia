@@ -48,7 +48,7 @@
         cleanupDuplicatedResults: function () {
             // Check if we're on a search page
             if (window.location.search.indexOf('adc_search=') !== -1) {
-                setTimeout(function() {
+                setTimeout(function () {
                     // Look for duplicated search result containers
                     var searchContainers = document.querySelectorAll('.adc-search-results-container');
                     if (searchContainers.length > 1) {
@@ -59,7 +59,7 @@
                             }
                         }
                     }
-                    
+
                     // Asegurarse de que solo hay un título de recomendaciones
                     var recommendedTitles = document.querySelectorAll('.adc-recommended-title');
                     if (recommendedTitles.length > 1) {
@@ -69,7 +69,7 @@
                             }
                         }
                     }
-                    
+
                     // Eliminar mensajes redundantes "No se encontraron resultados"
                     var noResultsElements = document.querySelectorAll('.adc-search-no-results');
                     if (noResultsElements.length > 0) {
@@ -84,36 +84,36 @@
         },
 
         // Initialize search replacements - consolidated from adc-search.php
-        initSearchReplacements: function() {
+        initSearchReplacements: function () {
             var self = this;
-            
+
             // Asegurar que los títulos de búsqueda tengan el estilo correcto
             var searchTitles = document.querySelectorAll('.adc-search-results-title, .adc-recommended-title');
             if (searchTitles.length) {
-                searchTitles.forEach(function(title) {
+                searchTitles.forEach(function (title) {
                     title.style.color = '#6EC1E4';
                 });
             }
-            
+
             // Buscar elementos BUSCADOR y reemplazarlos con formulario de búsqueda
-            document.querySelectorAll('a').forEach(function(link) {
+            document.querySelectorAll('a').forEach(function (link) {
                 if (link.textContent.trim() === 'BUSCADOR') {
                     var searchContainer = document.createElement('div');
                     searchContainer.className = 'adc-menu-search-container';
-                    
+
                     var homeUrl = window.location.origin + '/';
-                    
-                    searchContainer.innerHTML = 
+
+                    searchContainer.innerHTML =
                         '<form class="adc-inline-search-form" action="' + homeUrl + '" method="get">' +
-                            '<input type="text" name="adc_search" placeholder="Buscar..." class="adc-inline-search-input">' +
-                            '<button type="submit" class="adc-inline-search-button">' +
-                                '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-                                    '<circle cx="11" cy="11" r="8"></circle>' +
-                                    '<line x1="21" y1="21" x2="16.65" y2="16.65"></line>' +
-                                '</svg>' +
-                            '</button>' +
+                        '<input type="text" name="adc_search" placeholder="Buscar..." class="adc-inline-search-input">' +
+                        '<button type="submit" class="adc-inline-search-button">' +
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                        '<circle cx="11" cy="11" r="8"></circle>' +
+                        '<line x1="21" y1="21" x2="16.65" y2="16.65"></line>' +
+                        '</svg>' +
+                        '</button>' +
                         '</form>';
-                    
+
                     // Reemplazar el elemento del menú
                     var menuItem = link.closest('li');
                     if (menuItem) {
@@ -125,7 +125,7 @@
                     }
                 }
             });
-            
+
             // Eliminar posibles búsquedas duplicadas
             var searchContainers = document.querySelectorAll('.adc-search-results-container');
             if (searchContainers.length > 1) {
@@ -198,7 +198,7 @@
                     if (!isVisible && $dropdown.find('.adc-loading, .adc-error').length) {
                         var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
                         var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
-                        
+
                         $.ajax({
                             url: ajaxUrl,
                             type: 'POST',
@@ -440,6 +440,19 @@
 
             rewindBtn.innerHTML = '<span>⏪ 10s</span>';
             forwardBtn.innerHTML = '<span>10s ⏩</span>';
+            // Forzar colores del player cada segundo
+            setInterval(function () {
+                var playProgress = player.el().querySelector('.vjs-play-progress');
+                if (playProgress) {
+                    playProgress.style.backgroundColor = '#6EC1E4';
+                    playProgress.style.background = '#6EC1E4';
+                }
+                var volumeLevel = player.el().querySelector('.vjs-volume-level');
+                if (volumeLevel) {
+                    volumeLevel.style.backgroundColor = '#6EC1E4';
+                    volumeLevel.style.background = '#6EC1E4';
+                }
+            }, 1000);
         },
 
         // Handle video ended event
