@@ -1047,6 +1047,7 @@
     /* Smaller titles on mobile */
     .adc-video-main-title {
         font-size: 22px;
+        text-align: left;
     }
     
     .adc-category-title {
