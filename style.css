@@ -425,35 +425,37 @@
 /* ===================================
    Video.js Player Styles - Color Principal
    =================================== */
-   
+
 /* Control bar background and buttons */
 .video-js .vjs-control-bar {
     background: rgba(0, 0, 0, 0.7);
 }
 
-/* Play button and controls color */
-.video-js .vjs-big-play-button,
-.video-js .vjs-play-control,
-.video-js .vjs-volume-control,
-.video-js .vjs-mute-control,
-.video-js .vjs-fullscreen-control,
-.video-js .vjs-rewind-button,
-.video-js .vjs-forward-button {
-    color: #6EC1E4 !important;
-}
-
-/* Big play button background */
+/* Big play button */
 .video-js .vjs-big-play-button {
-    background-color: rgba(110, 193, 228, 0.8) !important;
+    background-color: rgba(0, 0, 0, 0.8) !important;
     border-color: #6EC1E4 !important;
 }
 
 .video-js .vjs-big-play-button:hover {
-    background-color: rgba(110, 193, 228, 1) !important;
+    background-color: #6EC1E4 !important;
+    border-color: #6EC1E4 !important;
+}
+
+.video-js .vjs-big-play-button:hover .vjs-icon-placeholder:before {
+    color: #000000 !important;
 }
 
 /* Progress bar color */
 .video-js .vjs-progress-control .vjs-progress-holder .vjs-play-progress {
+    background-color: #6EC1E4 !important;
+}
+
+.video-js .vjs-progress-holder .vjs-play-progress,
+.video-js .vjs-progress-holder .vjs-play-progress:before,
+.vjs-slider-bar,
+.vjs-slider-bar:before {
+    background: #6EC1E4 !important;
     background-color: #6EC1E4 !important;
 }
 
@@ -464,6 +466,22 @@
 /* Volume bar color */
 .video-js .vjs-volume-control .vjs-volume-bar .vjs-volume-level {
     background-color: #6EC1E4 !important;
+}
+
+/* All control bar buttons */
+.video-js .vjs-button > .vjs-icon-placeholder:before,
+.video-js .vjs-time-control,
+.video-js .vjs-current-time,
+.video-js .vjs-duration,
+.video-js .vjs-remaining-time {
+    color: #6EC1E4 !important;
+}
+
+/* Specific control buttons */
+.video-js .vjs-play-control .vjs-icon-placeholder:before,
+.video-js .vjs-mute-control .vjs-icon-placeholder:before,
+.video-js .vjs-fullscreen-control .vjs-icon-placeholder:before {
+    color: #6EC1E4 !important;
 }
 
 /* Custom buttons styling */
