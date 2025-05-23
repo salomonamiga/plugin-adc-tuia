@@ -39,31 +39,98 @@
             this.cleanupDuplicatedResults();
 
             this.removeSearchAutofocus();
+
+            // Initialize search replacements
+            this.initSearchReplacements();
         },
 
         // Cleanup duplicated search results
         cleanupDuplicatedResults: function () {
             // Check if we're on a search page
             if (window.location.search.indexOf('adc_search=') !== -1) {
-                // Look for duplicated search result containers
-                var searchContainers = document.querySelectorAll('.adc-search-results-container');
-                if (searchContainers.length > 1) {
-                    // Keep only the first one
-                    for (var i = 1; i < searchContainers.length; i++) {
-                        if (searchContainers[i].parentNode) {
-                            searchContainers[i].parentNode.removeChild(searchContainers[i]);
+                setTimeout(function() {
+                    // Look for duplicated search result containers
+                    var searchContainers = document.querySelectorAll('.adc-search-results-container');
+                    if (searchContainers.length > 1) {
+                        // Keep only the first one
+                        for (var i = 1; i < searchContainers.length; i++) {
+                            if (searchContainers[i].parentNode) {
+                                searchContainers[i].parentNode.removeChild(searchContainers[i]);
+                            }
                         }
+                    }
+                    
+                    // Asegurarse de que solo hay un título de recomendaciones
+                    var recommendedTitles = document.querySelectorAll('.adc-recommended-title');
+                    if (recommendedTitles.length > 1) {
+                        for (var j = 1; j < recommendedTitles.length; j++) {
+                            if (recommendedTitles[j].parentNode) {
+                                recommendedTitles[j].parentNode.removeChild(recommendedTitles[j]);
+                            }
+                        }
+                    }
+                    
+                    // Eliminar mensajes redundantes "No se encontraron resultados"
+                    var noResultsElements = document.querySelectorAll('.adc-search-no-results');
+                    if (noResultsElements.length > 0) {
+                        for (var k = 0; k < noResultsElements.length; k++) {
+                            if (noResultsElements[k].parentNode) {
+                                noResultsElements[k].parentNode.removeChild(noResultsElements[k]);
+                            }
+                        }
+                    }
+                }, 500);
+            }
+        },
+
+        // Initialize search replacements - consolidated from adc-search.php
+        initSearchReplacements: function() {
+            var self = this;
+            
+            // Asegurar que los títulos de búsqueda tengan el estilo correcto
+            var searchTitles = document.querySelectorAll('.adc-search-results-title, .adc-recommended-title');
+            if (searchTitles.length) {
+                searchTitles.forEach(function(title) {
+                    title.style.color = '#6EC1E4';
+                });
+            }
+            
+            // Buscar elementos BUSCADOR y reemplazarlos con formulario de búsqueda
+            document.querySelectorAll('a').forEach(function(link) {
+                if (link.textContent.trim() === 'BUSCADOR') {
+                    var searchContainer = document.createElement('div');
+                    searchContainer.className = 'adc-menu-search-container';
+                    
+                    var homeUrl = window.location.origin + '/';
+                    
+                    searchContainer.innerHTML = 
+                        '<form class="adc-inline-search-form" action="' + homeUrl + '" method="get">' +
+                            '<input type="text" name="adc_search" placeholder="Buscar..." class="adc-inline-search-input">' +
+                            '<button type="submit" class="adc-inline-search-button">' +
+                                '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                                    '<circle cx="11" cy="11" r="8"></circle>' +
+                                    '<line x1="21" y1="21" x2="16.65" y2="16.65"></line>' +
+                                '</svg>' +
+                            '</button>' +
+                        '</form>';
+                    
+                    // Reemplazar el elemento del menú
+                    var menuItem = link.closest('li');
+                    if (menuItem) {
+                        menuItem.innerHTML = '';
+                        menuItem.appendChild(searchContainer);
+                        menuItem.style.display = 'flex';
+                        menuItem.style.alignItems = 'center';
+                        menuItem.style.marginLeft = '40px';
                     }
                 }
-
-                // Look for duplicated "No se encontraron resultados"
-                var noResultsElements = document.querySelectorAll('.adc-search-no-results');
-                if (noResultsElements.length > 1) {
-                    for (var j = 1; j < noResultsElements.length; j++) {
-                        if (noResultsElements[j].parentNode) {
-                            noResultsElements[j].parentNode.removeChild(noResultsElements[j]);
-                        }
-                    }
+            });
+            
+            // Eliminar posibles búsquedas duplicadas
+            var searchContainers = document.querySelectorAll('.adc-search-results-container');
+            if (searchContainers.length > 1) {
+                for (var i = 1; i < searchContainers.length; i++) {
+                    searchContainers[i].remove();
                 }
             }
         },
@@ -91,23 +158,11 @@
                 // Asegurarnos que el elemento padre tenga posición relativa
                 $parentLi.css({
                     'position': 'relative',
-                    'z-index': '999' // Asegurarse que está por encima de otros elementos
+                    'z-index': '999'
                 });
 
                 // Crear el dropdown
                 var $dropdown = $('<div class="adc-wp-programs-dropdown"></div>');
-                $dropdown.css({
-                    'position': 'absolute',
-                    'top': '100%',
-                    'left': '0',
-                    'z-index': '9999',
-                    'width': '250px',
-                    'background-color': '#000000',
-                    'border-top': '2px solid #6EC1E4',
-                    'box-shadow': '0 15px 25px rgba(0, 0, 0, 0.3)',
-                    'display': 'none'
-                });
-
                 $parentLi.append($dropdown);
                 $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
 
@@ -141,12 +196,15 @@
 
                     // Cargar programas si aún no se han cargado
                     if (!isVisible && $dropdown.find('.adc-loading, .adc-error').length) {
+                        var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
+                        var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
+                        
                         $.ajax({
-                            url: adc_config.ajax_url,
+                            url: ajaxUrl,
                             type: 'POST',
                             data: {
                                 action: 'adc_get_programs_menu',
-                                nonce: adc_config.nonce
+                                nonce: nonce
                             },
                             success: function (response) {
                                 if (response.success && response.data) {
@@ -154,7 +212,6 @@
 
                                     $.each(response.data, function (i, program) {
                                         var slug = slugify(program.name);
-
                                         html += '<a href="/?categoria=' + slug + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important;">' + program.name + '</a>';
                                     });
 
@@ -482,9 +539,6 @@
                         input.focus();
                     }
                 });
-
-                // Auto-focus input
-                input.focus();
             });
         },
 
@@ -597,14 +651,16 @@
         // AJAX Search functionality
         performSearch: function (query) {
             var self = this;
+            var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
+            var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
 
             $.ajax({
-                url: adc_config.ajax_url,
+                url: ajaxUrl,
                 type: 'POST',
                 data: {
                     action: 'adc_search',
                     search: query,
-                    nonce: adc_config.nonce
+                    nonce: nonce
                 },
                 success: function (response) {
                     if (response.success) {
