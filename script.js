@@ -373,28 +373,6 @@
             });
 
             this.player = player;
-
-            // SOLUCIÓN DEFINITIVA - Fuerza total con JavaScript
-var self = this;
-
-// Forzar colores cada 100ms (muy agresivo)
-setInterval(function() {
-    var playerEl = player.el();
-    if (playerEl) {
-        // Forzar TODOS los elementos de progreso
-        var elements = playerEl.querySelectorAll('.vjs-play-progress, .vjs-slider-bar, .vjs-volume-level');
-        elements.forEach(function(el) {
-            el.style.setProperty('background', '#6EC1E4', 'important');
-            el.style.setProperty('background-color', '#6EC1E4', 'important');
-        });
-        
-        // Forzar iconos
-        var icons = playerEl.querySelectorAll('.vjs-icon-placeholder');
-        icons.forEach(function(icon) {
-            icon.style.setProperty('color', '#6EC1E4', 'important');
-        });
-    }
-}, 100);
         },
 
         // Función para quitar el autofocus de los campos de búsqueda

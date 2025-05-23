@@ -426,36 +426,6 @@
    Video.js Player Styles - Color Principal
    =================================== */
 
-/* OVERRIDE COMPLETO DEL CDN DE VIDEO.JS */
-.video-js .vjs-big-play-button .vjs-icon-placeholder:before,
-.vjs-icon-play:before {
-    content: "\f101" !important;
-    font-family: VideoJS !important;
-    color: #6EC1E4 !important;
-}
-
-.video-js .vjs-play-control .vjs-icon-placeholder:before,
-.vjs-icon-pause:before {
-    color: #6EC1E4 !important;
-}
-
-/* Forzar todos los iconos de controles */
-.video-js .vjs-control .vjs-icon-placeholder:before {
-    color: #6EC1E4 !important;
-}
-
-/* Override del progreso con !important absoluto */
-.video-js .vjs-progress-holder .vjs-play-progress {
-    background: #6EC1E4 !important;
-    background-color: #6EC1E4 !important;
-}
-
-/* Selector directo para la barra rosa */
-.vjs-play-progress {
-    background: #6EC1E4 !important;
-    background-color: #6EC1E4 !important;
-}   
-
 /* Control bar background and buttons */
 .video-js .vjs-control-bar {
     background: rgba(0, 0, 0, 0.7);
@@ -539,90 +509,6 @@
 .video-js .vjs-loading-spinner {
     border-top-color: #6EC1E4 !important;
     border-right-color: #6EC1E4 !important;
-}
-
-/* Forzar eliminación completa del color rosa */
-.video-js .vjs-progress-holder .vjs-play-progress,
-.video-js .vjs-progress-holder .vjs-play-progress:before,
-.video-js .vjs-progress-holder .vjs-play-progress:after,
-.video-js .vjs-slider-bar,
-.video-js .vjs-slider-bar:before,
-.video-js .vjs-slider-bar:after,
-.video-js .vjs-volume-bar .vjs-volume-level,
-.video-js .vjs-volume-bar .vjs-volume-level:before,
-.video-js .vjs-volume-bar .vjs-volume-level:after {
-    background: #6EC1E4 !important;
-    background-color: #6EC1E4 !important;
-    color: #6EC1E4 !important;
-}
-
-/* Selector específico para eliminar el rosa completamente */
-.video-js .vjs-slider:focus .vjs-slider-bar:before,
-.video-js .vjs-slider:focus .vjs-slider-bar,
-.video-js .vjs-progress-control:hover .vjs-progress-holder .vjs-play-progress {
-    background-color: #6EC1E4 !important;
-}
-
-/* ELIMINACIÓN TOTAL DEL COLOR ROSA - MÁXIMA PRIORIDAD */
-.video-js * {
-    accent-color: #6EC1E4 !important;
-}
-
-.video-js *[style*="background"],
-.video-js *[style*="background-color"] {
-    background: #6EC1E4 !important;
-    background-color: #6EC1E4 !important;
-}
-
-/* Anular TODOS los colores rosa de Video.js */
-.video-js .vjs-progress-control .vjs-progress-holder .vjs-play-progress,
-.video-js .vjs-progress-control .vjs-progress-holder .vjs-play-progress *,
-.video-js .vjs-volume-bar .vjs-volume-level,
-.video-js .vjs-volume-bar .vjs-volume-level * {
-    background: #6EC1E4 !important;
-    background-color: #6EC1E4 !important;
-    border-color: #6EC1E4 !important;
-}
-
-/* Forzar override de cualquier estilo inline */
-.video-js [style*="rgb(204"] {
-    background-color: #6EC1E4 !important;
-}
-
-/* ÚLTIMA OPCIÓN - Forzar con JavaScript */
-.video-js .vjs-play-progress[style*="width"] {
-    background: #6EC1E4 !important;
-    background-color: #6EC1E4 !important;
-}
-
-/* FUERZA BRUTA - Anular Video.js completamente */
-.video-js .vjs-play-control .vjs-icon-placeholder:before,
-.video-js .vjs-button .vjs-icon-placeholder:before,
-.video-js .vjs-button > .vjs-icon-placeholder:before {
-    color: #6EC1E4 !important;
-    font-family: VideoJS !important;
-}
-
-/* Anular específicamente el color del botón de play */
-.video-js .vjs-big-play-button .vjs-icon-placeholder:before,
-.video-js .vjs-play-control .vjs-icon-placeholder:before {
-    color: #6EC1E4 !important;
-}
-
-/* Anular colores de progreso con máxima especificidad */
-.video-js.vjs-default-skin .vjs-progress-holder .vjs-play-progress,
-.video-js.vjs-default-skin .vjs-progress-holder .vjs-play-progress:before,
-.video-js.vjs-default-skin .vjs-slider-bar,
-.video-js.vjs-default-skin .vjs-slider-bar:before {
-    background-color: #6EC1E4 !important;
-    background: #6EC1E4 !important;
-}
-
-/* Selectores ultra-específicos para el rosa */
-.vjs-default-skin .vjs-progress-holder .vjs-play-progress,
-.vjs-default-skin .vjs-slider-bar {
-    background-color: #6EC1E4 !important;
-    background: #6EC1E4 !important;
 }
 
 /* ===================================
