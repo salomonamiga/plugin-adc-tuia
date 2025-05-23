@@ -1088,10 +1088,22 @@
     .adc-video-player {
         margin-right: -25px;
         margin-left: -25px;
-        padding-top: 95.25%;
+        padding-top: 65.25%;
         border: 3px solid #6EC1E4;
         border-radius: 12px;
         box-shadow: 0 8px 25px rgba(110, 193, 228, 0.3);
+    }
+
+    /* Asegurar que el video cubra todo el contenedor en móvil */
+    .adc-video-player video {
+        object-fit: cover !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    /* También aplicar a la capa del video.js */
+    .adc-video-player .video-js video {
+        object-fit: cover !important;
     }
 
     /* Smaller buttons on mobile */
