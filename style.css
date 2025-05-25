@@ -734,8 +734,13 @@
     overflow: hidden;
     border: 1px solid #4a4949 !important;
     transition: all 0.3s ease;
-    margin-left: 15px;
-    width: 250px;
+}
+
+@media (max-width: 768px) {
+    .adc-inline-search-form {
+        margin-left: 40px;
+        width: 250px;
+    }
 }
 
 .adc-inline-search-form:focus-within {
@@ -751,7 +756,8 @@
     color: #ffffff;
     height: 36px;
     padding: 0 15px;
-    width: 200px;
+    width: 100%;
+    flex: 1;
     font-size: 14px;
     transition: color 0.3s ease;
     box-shadow: none !important;

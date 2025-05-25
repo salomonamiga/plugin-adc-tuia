@@ -690,12 +690,15 @@
                         e.preventDefault();
                         break;
                     case 32: // Spacebar
-                        if (self.player.paused()) {
-                            self.player.play();
-                        } else {
-                            self.player.pause();
+                        // Solo aplicar si no estamos en un input
+                        if (!$(e.target).is('input, textarea')) {
+                            if (self.player.paused()) {
+                                self.player.play();
+                            } else {
+                                self.player.pause();
+                            }
+                            e.preventDefault();
                         }
-                        e.preventDefault();
                         break;
                     case 27: // Escape
                         // Close all dropdowns and overlays when pressing Escape
