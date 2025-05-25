@@ -48,7 +48,7 @@
         cleanupDuplicatedResults: function () {
             // Check if we're on a search page
             if (window.location.search.indexOf('adc_search=') !== -1) {
-                setTimeout(function() {
+                setTimeout(function () {
                     // Look for duplicated search result containers
                     var searchContainers = document.querySelectorAll('.adc-search-results-container');
                     if (searchContainers.length > 1) {
@@ -59,7 +59,7 @@
                             }
                         }
                     }
-                    
+
                     // Asegurarse de que solo hay un título de recomendaciones
                     var recommendedTitles = document.querySelectorAll('.adc-recommended-title');
                     if (recommendedTitles.length > 1) {
@@ -69,7 +69,7 @@
                             }
                         }
                     }
-                    
+
                     // Eliminar mensajes redundantes "No se encontraron resultados"
                     var noResultsElements = document.querySelectorAll('.adc-search-no-results');
                     if (noResultsElements.length > 0) {
@@ -84,36 +84,36 @@
         },
 
         // Initialize search replacements - consolidated from adc-search.php
-        initSearchReplacements: function() {
+        initSearchReplacements: function () {
             var self = this;
-            
+
             // Asegurar que los títulos de búsqueda tengan el estilo correcto
             var searchTitles = document.querySelectorAll('.adc-search-results-title, .adc-recommended-title');
             if (searchTitles.length) {
-                searchTitles.forEach(function(title) {
+                searchTitles.forEach(function (title) {
                     title.style.color = '#6EC1E4';
                 });
             }
-            
+
             // Buscar elementos BUSCADOR y reemplazarlos con formulario de búsqueda
-            document.querySelectorAll('a').forEach(function(link) {
+            document.querySelectorAll('a').forEach(function (link) {
                 if (link.textContent.trim() === 'BUSCADOR') {
                     var searchContainer = document.createElement('div');
                     searchContainer.className = 'adc-menu-search-container';
-                    
+
                     var homeUrl = window.location.origin + '/';
-                    
-                    searchContainer.innerHTML = 
+
+                    searchContainer.innerHTML =
                         '<form class="adc-inline-search-form" action="' + homeUrl + '" method="get">' +
-                            '<input type="text" name="adc_search" placeholder="Buscar..." class="adc-inline-search-input">' +
-                            '<button type="submit" class="adc-inline-search-button">' +
-                                '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-                                    '<circle cx="11" cy="11" r="8"></circle>' +
-                                    '<line x1="21" y1="21" x2="16.65" y2="16.65"></line>' +
-                                '</svg>' +
-                            '</button>' +
+                        '<input type="text" name="adc_search" placeholder="Buscar..." class="adc-inline-search-input">' +
+                        '<button type="submit" class="adc-inline-search-button">' +
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                        '<circle cx="11" cy="11" r="8"></circle>' +
+                        '<line x1="21" y1="21" x2="16.65" y2="16.65"></line>' +
+                        '</svg>' +
+                        '</button>' +
                         '</form>';
-                    
+
                     // Reemplazar el elemento del menú
                     var menuItem = link.closest('li');
                     if (menuItem) {
@@ -125,7 +125,7 @@
                     }
                 }
             });
-            
+
             // Eliminar posibles búsquedas duplicadas
             var searchContainers = document.querySelectorAll('.adc-search-results-container');
             if (searchContainers.length > 1) {
@@ -198,7 +198,7 @@
                     if (!isVisible && $dropdown.find('.adc-loading, .adc-error').length) {
                         var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
                         var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
-                        
+
                         $.ajax({
                             url: ajaxUrl,
                             type: 'POST',
@@ -820,3 +820,121 @@ function slugify(text) {
         .replace(/^-+/, '')              // Eliminar guiones del inicio
         .replace(/-+$/, '');             // Eliminar guiones del final
 }
+
+// SIMPLE FIX: Mobile Programs Dropdown
+jQuery(document).ready(function ($) {
+
+    // Buscar PROGRAMAS en menús móviles cada 2 segundos
+    setInterval(function () {
+
+        // Buscar en todo tipo de menús móviles
+        $('nav a, .menu a, .mobile-menu a, [class*="menu"] a, [class*="nav"] a').each(function () {
+            var $link = $(this);
+            var text = $link.text().trim().toUpperCase();
+
+            // Si encuentra PROGRAMAS y no está ya conectado
+            if (text === 'PROGRAMAS' && !$link.data('mobile-connected')) {
+
+                console.log('🎯 PROGRAMAS encontrado en móvil:', $link);
+
+                // Marcar como conectado
+                $link.data('mobile-connected', true);
+
+                // Agregar flecha si no la tiene
+                if (!$link.find('.mobile-arrow').length) {
+                    $link.append('<span class="mobile-arrow" style="margin-left:8px; color:#6EC1E4;">▾</span>');
+                }
+
+                // Crear dropdown container
+                var $parent = $link.closest('li, div, span');
+                if (!$parent.length) $parent = $link.parent();
+
+                var $dropdown = $('<div class="mobile-programs-list"></div>');
+                $dropdown.css({
+                    'display': 'none',
+                    'background': 'rgba(0,0,0,0.9)',
+                    'margin': '10px 0',
+                    'border-radius': '8px',
+                    'border': '1px solid #6EC1E4',
+                    'overflow': 'hidden'
+                });
+
+                $parent.append($dropdown);
+
+                // Manejar click
+                $link.off('click.mobile').on('click.mobile', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    var $arrow = $link.find('.mobile-arrow');
+
+                    // Toggle dropdown
+                    if ($dropdown.is(':visible')) {
+                        $dropdown.slideUp(200);
+                        $arrow.css('transform', 'rotate(0deg)');
+                    } else {
+                        // Cerrar otros
+                        $('.mobile-programs-list').slideUp(200);
+                        $('.mobile-arrow').css('transform', 'rotate(0deg)');
+
+                        // Abrir este
+                        $dropdown.slideDown(200);
+                        $arrow.css('transform', 'rotate(180deg)');
+
+                        // Cargar programas si está vacío
+                        if ($dropdown.is(':empty')) {
+                            $dropdown.html('<div style="padding:15px; text-align:center; color:#6EC1E4;">Cargando...</div>');
+
+                            // AJAX call
+                            $.ajax({
+                                url: typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php',
+                                type: 'POST',
+                                data: {
+                                    action: 'adc_get_programs_menu',
+                                    nonce: typeof adc_config !== 'undefined' ? adc_config.nonce : ''
+                                },
+                                success: function (response) {
+                                    if (response.success && response.data) {
+                                        var html = '';
+                                        $.each(response.data, function (i, program) {
+                                            var slug = slugify(program.name);
+                                            html += '<a href="/?categoria=' + slug + '" style="display:block; padding:12px 16px; color:#6EC1E4; text-decoration:none; border-bottom:1px solid rgba(110,193,228,0.2); font-size:16px;">' + program.name + '</a>';
+                                        });
+                                        $dropdown.html(html);
+
+                                        // Hover effects
+                                        $dropdown.find('a').hover(
+                                            function () { $(this).css({ 'background': 'rgba(110,193,228,0.1)', 'color': '#fff' }); },
+                                            function () { $(this).css({ 'background': 'transparent', 'color': '#6EC1E4' }); }
+                                        );
+                                    } else {
+                                        $dropdown.html('<div style="padding:15px; text-align:center; color:#ff6b6b;">Error</div>');
+                                    }
+                                },
+                                error: function () {
+                                    $dropdown.html('<div style="padding:15px; text-align:center; color:#ff6b6b;">Error al cargar</div>');
+                                }
+                            });
+                        }
+                    }
+                });
+
+                // Estilo de la flecha
+                $link.find('.mobile-arrow').css({
+                    'transition': 'transform 0.3s ease',
+                    'display': 'inline-block'
+                });
+            }
+        });
+
+    }, 2000); // Buscar cada 2 segundos
+
+    // Cerrar al tocar fuera
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('[data-mobile-connected="true"], .mobile-programs-list').length) {
+            $('.mobile-programs-list').slideUp(200);
+            $('.mobile-arrow').css('transform', 'rotate(0deg)');
+        }
+    });
+
+});
