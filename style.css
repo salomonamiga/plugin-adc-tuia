@@ -717,13 +717,20 @@
 .menu-item-search-inline {
     display: flex;
     align-items: center;
-    margin-left: 15px !important;
+    margin-left: 40px !important;
 }
 
 /* Formulario de búsqueda en el menú */
 .adc-menu-search-container {
     display: flex;
     align-items: center;
+}
+
+/* Espaciado específico para el contenedor de búsqueda SOLO en desktop */
+@media (min-width: 769px) {
+    .adc-menu-search-container {
+        margin-left: 40px;
+    }
 }
 
 .adc-inline-search-form {
@@ -738,7 +745,7 @@
 
 @media (max-width: 768px) {
     .adc-inline-search-form {
-        margin-left: 40px;
+        margin-left: 15px;
         width: 250px;
     }
 }
