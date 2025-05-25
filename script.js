@@ -135,15 +135,36 @@
             }
         },
 
-        // Función initProgramsMenu completamente refactorizada
+        // Función initProgramsMenu - Solución completa para desktop y móvil
         initProgramsMenu: function () {
-            console.log('Inicializando menú PROGRAMAS - Versión unificada');
+            console.log('Inicializando menú PROGRAMAS - Versión completa');
             var self = this;
 
             // Limpiar eventos anteriores para evitar duplicaciones
             $(document).off('click.programs-menu');
+            $(document).off('click.programs-menu-outside');
+            $(document).off('keydown.programs-menu');
             $('.dropdown-arrow').remove();
             $('.adc-wp-programs-dropdown').remove();
+
+            // Función para verificar si un elemento está correctamente configurado
+            function isProperlyConfigured($programasLink) {
+                var $dropdown = $programasLink.data('dropdown');
+                var $arrow = $programasLink.data('arrow');
+
+                // Verificar que existen y están en el DOM
+                if (!$dropdown || !$arrow) {
+                    return false;
+                }
+
+                // Verificar que los elementos están realmente en el DOM
+                if (!$.contains(document, $dropdown[0]) || !$.contains(document, $arrow[0])) {
+                    console.log('⚠️ Referencias rotas detectadas, necesita reconfiguración');
+                    return false;
+                }
+
+                return true;
+            }
 
             // Función para configurar un elemento PROGRAMAS
             function setupProgramsElement($programasLink) {
@@ -154,10 +175,10 @@
                     $parentLi = $programasLink.parent();
                 }
 
-                // Si ya tiene dropdown, no hacer nada
-                if ($parentLi.find('.adc-wp-programs-dropdown').length) {
-                    return;
-                }
+                // Limpiar configuración anterior si existe
+                $parentLi.find('.adc-wp-programs-dropdown').remove();
+                $programasLink.find('.dropdown-arrow').remove();
+                $programasLink.removeData('dropdown arrow programs-configured');
 
                 // Configurar el contenedor padre
                 $parentLi.css({
@@ -171,13 +192,14 @@
                 $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
                 $dropdown.hide(); // Ocultar inicialmente
 
-                // Añadir flecha
-                var $arrow = $('<span class="dropdown-arrow">▾</span>');
+                // Añadir flecha CON TODOS LOS ESTILOS ORIGINALES
+                var $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block;">▾</span>');
                 $programasLink.append($arrow);
 
                 // Guardar referencias en el elemento para fácil acceso
                 $programasLink.data('dropdown', $dropdown);
                 $programasLink.data('arrow', $arrow);
+                $programasLink.data('programs-configured', true);
 
                 console.log('✅ Elemento PROGRAMAS configurado correctamente');
             }
@@ -185,6 +207,7 @@
             // Función para cargar programas en el dropdown
             function loadPrograms($dropdown) {
                 if ($dropdown.data('programs-loaded')) {
+                    console.log('Programas ya cargados, saltando...');
                     return; // Ya están cargados
                 }
 
@@ -206,14 +229,15 @@
 
                             $.each(response.data, function (i, program) {
                                 var slug = slugify(program.name);
-                                html += '<a href="/?categoria=' + slug + '" class="dropdown-program-link">' + program.name + '</a>';
+                                // ESTILOS MEJORADOS CON SOPORTE PARA 2 LÍNEAS
+                                html += '<a href="/?categoria=' + slug + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important; white-space:normal !important; word-wrap:break-word !important; max-width:300px !important; overflow-wrap:break-word !important;">' + program.name + '</a>';
                             });
 
                             $dropdown.html(html);
                             $dropdown.data('programs-loaded', true);
                             console.log('✅ Programas cargados:', response.data.length);
 
-                            // Efectos hover
+                            // Efectos hover IGUALES A LOS ORIGINALES
                             $dropdown.find('a').hover(
                                 function () {
                                     $(this).css({
@@ -232,12 +256,12 @@
                             );
                         } else {
                             console.log('❌ Error en respuesta API');
-                            $dropdown.html('<div class="adc-error">No hay programas disponibles</div>');
+                            $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">No hay programas disponibles</div>');
                         }
                     },
                     error: function () {
                         console.log('❌ Error AJAX');
-                        $dropdown.html('<div class="adc-error">Error al cargar programas</div>');
+                        $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">Error al cargar programas</div>');
                     }
                 });
             }
@@ -256,24 +280,30 @@
                 $('.adc-wp-programs-dropdown').not($dropdown).slideUp(200);
                 $('.dropdown-arrow').not($arrow).css('transform', 'rotate(0deg)');
 
+                // Verificar si el dropdown está visible ANTES de cambiarlo (LÓGICA ORIGINAL)
+                var isVisible = $dropdown.is(':visible');
+
                 // Toggle del dropdown actual
-                if ($dropdown.is(':visible')) {
-                    // Cerrar
-                    $dropdown.slideUp(200);
+                $dropdown.slideToggle(200);
+
+                // Actualizar flecha al abrir/cerrar (LÓGICA ORIGINAL CORREGIDA)
+                if (isVisible) {
+                    // Si ya estaba visible, lo estamos cerrando
                     $arrow.css('transform', 'rotate(0deg)');
                     console.log('🔽 Dropdown cerrado');
                 } else {
-                    // Abrir
-                    $dropdown.slideDown(200);
+                    // Si estaba oculto, lo estamos abriendo
                     $arrow.css('transform', 'rotate(180deg)');
                     console.log('🔼 Dropdown abierto');
 
-                    // Cargar programas si no están cargados
-                    loadPrograms($dropdown);
+                    // Cargar programas si no están cargados (CONDICIÓN ORIGINAL)
+                    if ($dropdown.find('.adc-loading, .adc-error').length) {
+                        loadPrograms($dropdown);
+                    }
                 }
             }
 
-            // Configurar elementos existentes
+            // Configurar elementos existentes al inicializar
             $('a:contains("PROGRAMAS"), .adc_programs_menu_text').each(function () {
                 setupProgramsElement($(this));
             });
@@ -287,20 +317,18 @@
 
                 var $this = $(this);
 
-                // Si no está configurado, configurarlo ahora
-                if (!$this.data('dropdown')) {
+                // SOLUCIÓN MÓVIL: Verificar si está correctamente configurado o necesita reconfiguración
+                if (!$this.data('programs-configured') || !isProperlyConfigured($this)) {
+                    console.log('🔄 Reconfigurando elemento (móvil o referencias rotas)');
                     setupProgramsElement($this);
                 }
 
                 toggleDropdown($this);
             });
 
-            // Cerrar dropdowns al hacer click fuera
+            // Cerrar dropdowns al hacer click fuera (IGUAL AL ORIGINAL)
             $(document).on('click.programs-menu-outside', function (e) {
-                var $target = $(e.target);
-
-                // No cerrar si el click es dentro del dropdown o en el trigger
-                if (!$target.closest('.adc-wp-programs-dropdown, a:contains("PROGRAMAS"), .adc_programs_menu_text').length) {
+                if (!$(e.target).closest('.adc-wp-programs-dropdown, a:contains("PROGRAMAS"), .adc_programs_menu_text').length) {
                     $('.adc-wp-programs-dropdown').slideUp(200);
                     $('.dropdown-arrow').css('transform', 'rotate(0deg)');
                 }
@@ -314,7 +342,30 @@
                 }
             });
 
-            console.log('✅ Menú PROGRAMAS inicializado correctamente');
+            // SOLUCIÓN MÓVIL ADICIONAL: Reconfigurar cuando el menú de Elementor se abre
+            // Detectar cambios en el DOM que puedan afectar nuestros elementos
+            var observer = new MutationObserver(function (mutations) {
+                mutations.forEach(function (mutation) {
+                    if (mutation.type === 'childList') {
+                        // Buscar elementos PROGRAMAS que puedan haberse añadido/modificado
+                        $(mutation.addedNodes).find('a:contains("PROGRAMAS"), .adc_programs_menu_text').each(function () {
+                            var $this = $(this);
+                            if (!$this.data('programs-configured') || !isProperlyConfigured($this)) {
+                                console.log('🆕 Nuevo elemento PROGRAMAS detectado por MutationObserver');
+                                setupProgramsElement($this);
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Observar cambios en el body
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+
+            console.log('✅ Menú PROGRAMAS inicializado correctamente con soluciones para desktop y móvil');
         },
 
         // Initialize search icon with improved functionality
