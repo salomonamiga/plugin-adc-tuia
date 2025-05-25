@@ -135,23 +135,41 @@
             }
         },
 
-        // Función initProgramsMenu completa con chevron moderno y flecha corregida
+        // Función initProgramsMenu CORREGIDA - Con más debugging
         initProgramsMenu: function () {
-            console.log('Inicializando menú PROGRAMAS');
+            var self = this;
+            console.log('🚀 Iniciando initProgramsMenu...');
+
+            // Verificar si jQuery está disponible
+            if (typeof $ === 'undefined') {
+                console.error('❌ jQuery no está disponible');
+                return;
+            }
 
             // Encontrar todos los elementos PROGRAMAS (menu y shortcode)
-            $('a:contains("PROGRAMAS"), .adc_programs_menu_text').each(function () {
+            var $programasElements = $('a:contains("PROGRAMAS"), .adc_programs_menu_text');
+            console.log('🔍 Elementos PROGRAMAS encontrados:', $programasElements.length);
+
+            $programasElements.each(function (index) {
                 var $programasLink = $(this);
-                console.log('Elemento PROGRAMAS encontrado:', $programasLink.text());
+                console.log('📍 Procesando elemento #' + index + ':', $programasLink.text().trim());
+
+                // Si ya está inicializado, salir
+                if ($programasLink.data('adc-programs-initialized')) {
+                    console.log('⚠️ Elemento ya inicializado, saltando...');
+                    return;
+                }
 
                 // Para menús de Elementor, necesitamos ir un nivel más arriba
                 var $parentLi = $programasLink.closest('li');
                 if (!$parentLi.length) {
                     $parentLi = $programasLink.parent();
                 }
+                console.log('📦 Elemento padre encontrado:', $parentLi.length > 0 ? 'SÍ' : 'NO');
 
                 // Si ya tiene un dropdown, no hacemos nada
                 if ($parentLi.find('.adc-wp-programs-dropdown').length) {
+                    console.log('⚠️ Ya tiene dropdown, saltando...');
                     return;
                 }
 
@@ -165,81 +183,107 @@
                 var $dropdown = $('<div class="adc-wp-programs-dropdown"></div>');
                 $parentLi.append($dropdown);
                 $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
+                console.log('✅ Dropdown creado y agregado');
 
                 // Chevron moderno para sitio de IA
                 var $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block;">▾</span>');
                 $programasLink.append($arrow);
+                console.log('✅ Flecha agregada');
 
-                // Manejar el clic (CORREGIDO)
-                $programasLink.on('click', function (e) {
+                // HANDLER ÚNICO para desktop y móvil
+                $programasLink.off('click.adc-programs').on('click.adc-programs', function (e) {
                     e.preventDefault();
                     e.stopPropagation();
 
+                    console.log('🖱️ CLICK DETECTADO EN PROGRAMAS!');
+
                     // Cerrar otros dropdowns si están abiertos
-                    $('.adc-wp-programs-dropdown').not($dropdown).hide();
+                    $('.adc-wp-programs-dropdown').not($dropdown).slideUp(200);
                     $('.dropdown-arrow').not($arrow).css('transform', 'rotate(0deg)');
 
-                    // Verificar si el dropdown está visible ANTES de cambiarlo
-                    var isVisible = $dropdown.is(':visible');
-
                     // Toggle del dropdown actual
-                    $dropdown.slideToggle(200);
-
-                    // Actualizar flecha al abrir/cerrar (CORREGIDO)
+                    var isVisible = $dropdown.is(':visible');
+                    console.log('👁️ Dropdown visible antes del toggle:', isVisible);
+                    
                     if (isVisible) {
-                        // Si ya estaba visible, lo estamos cerrando
+                        // Cerrar
+                        $dropdown.slideUp(200);
                         $arrow.css('transform', 'rotate(0deg)');
+                        console.log('🔒 Cerrando dropdown');
                     } else {
-                        // Si estaba oculto, lo estamos abriendo
+                        // Abrir
+                        $dropdown.slideDown(200);
                         $arrow.css('transform', 'rotate(180deg)');
-                    }
-
-                    // Cargar programas si aún no se han cargado
-                    if (!isVisible && $dropdown.find('.adc-loading, .adc-error').length) {
-                        var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
-                        var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
+                        console.log('🔓 Abriendo dropdown');
                         
-                        $.ajax({
-                            url: ajaxUrl,
-                            type: 'POST',
-                            data: {
-                                action: 'adc_get_programs_menu',
-                                nonce: nonce
-                            },
-                            success: function (response) {
-                                if (response.success && response.data) {
-                                    var html = '';
-
-                                    $.each(response.data, function (i, program) {
-                                        var slug = slugify(program.name);
-                                        html += '<a href="/?categoria=' + slug + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important;">' + program.name + '</a>';
-                                    });
-
-                                    $dropdown.html(html);
-
-                                    // Agregar efectos hover a los enlaces
-                                    $dropdown.find('a').hover(
-                                        function () { $(this).css({ 'background-color': 'rgba(110, 193, 228, 0.1)', 'color': '#FFFFFF', 'padding-left': '25px' }); },
-                                        function () { $(this).css({ 'background-color': 'transparent', 'color': '#6EC1E4', 'padding-left': '20px' }); }
-                                    );
-                                } else {
-                                    $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">No hay programas disponibles</div>');
-                                }
-                            },
-                            error: function () {
-                                $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">Error al cargar programas</div>');
-                            }
-                        });
+                        // Cargar programas si aún no se han cargado
+                        self.loadProgramsData($dropdown);
                     }
                 });
+
+                console.log('✅ Event handler agregado');
+
+                // Marcar como inicializado
+                $programasLink.data('adc-programs-initialized', true);
+                console.log('✅ Elemento marcado como inicializado');
             });
 
-            // Cerrar al hacer clic fuera
-            $(document).on('click', function (e) {
+            // Cerrar al hacer clic fuera (ÚNICO HANDLER)
+            $(document).off('click.adc-programs-outside').on('click.adc-programs-outside', function (e) {
                 if (!$(e.target).closest('.adc-wp-programs-dropdown, a:contains("PROGRAMAS"), .adc_programs_menu_text').length) {
                     $('.adc-wp-programs-dropdown').slideUp(200);
-                    // Resetear todas las flechas
                     $('.dropdown-arrow').css('transform', 'rotate(0deg)');
+                    console.log('🚪 Cerrando dropdowns por click fuera');
+                }
+            });
+
+            console.log('🏁 initProgramsMenu completado');
+        },
+
+        // Función separada para cargar datos de programas
+        loadProgramsData: function($dropdown) {
+            // Solo cargar si tiene el mensaje de loading
+            if (!$dropdown.find('.adc-loading, .adc-error').length) {
+                return;
+            }
+
+            console.log('📡 Cargando programas desde API...');
+            
+            var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
+            var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
+            
+            $.ajax({
+                url: ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'adc_get_programs_menu',
+                    nonce: nonce
+                },
+                success: function (response) {
+                    if (response.success && response.data) {
+                        var html = '';
+
+                        $.each(response.data, function (i, program) {
+                            var slug = slugify(program.name);
+                            html += '<a href="/?categoria=' + slug + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important;">' + program.name + '</a>';
+                        });
+
+                        $dropdown.html(html);
+                        console.log('✅ Programas reales cargados:', response.data.length);
+
+                        // Agregar efectos hover a los enlaces
+                        $dropdown.find('a').hover(
+                            function () { $(this).css({ 'background-color': 'rgba(110, 193, 228, 0.1)', 'color': '#FFFFFF', 'padding-left': '25px' }); },
+                            function () { $(this).css({ 'background-color': 'transparent', 'color': '#6EC1E4', 'padding-left': '20px' }); }
+                        );
+                    } else {
+                        console.log('❌ Error en respuesta API');
+                        $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">No hay programas disponibles</div>');
+                    }
+                },
+                error: function () {
+                    console.log('❌ Error AJAX');
+                    $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">Error al cargar programas</div>');
                 }
             });
         },
@@ -343,36 +387,41 @@
             }).appendTo('head');
         },
 
-        // Initialize video player
+        // Initialize video player - SIMPLIFIED VERSION
         initPlayer: function () {
             if (typeof videojs === 'undefined' || !document.getElementById('adc-player')) {
                 return;
             }
 
             var self = this;
-            var player = videojs('adc-player', {
-                controls: true,
-                preload: 'auto',
-                fluid: true,
-                responsive: true
-            });
+            
+            try {
+                var player = videojs('adc-player', {
+                    controls: true,
+                    preload: 'auto',
+                    fluid: true,
+                    responsive: true
+                });
 
-            player.ready(function () {
-                // Set initial volume
-                player.volume(self.config.playerVolume);
+                player.ready(function () {
+                    // Set initial volume
+                    player.volume(self.config.playerVolume);
 
-                // Add custom buttons
-                self.addCustomButtons(player);
+                    // Skip custom buttons for now to avoid videojs.extend issues
+                    console.log('Video player initialized without custom buttons');
 
-                // Handle ended event for autoplay
-                if (self.config.autoplayEnabled) {
-                    player.on('ended', function () {
-                        self.handleVideoEnded();
-                    });
-                }
-            });
+                    // Handle ended event for autoplay
+                    if (self.config.autoplayEnabled) {
+                        player.on('ended', function () {
+                            self.handleVideoEnded();
+                        });
+                    }
+                });
 
-            this.player = player;
+                this.player = player;
+            } catch (error) {
+                console.log('Error initializing video player:', error);
+            }
         },
 
         // Función para quitar el autofocus de los campos de búsqueda
@@ -388,59 +437,7 @@
             }, 100);
         },
 
-        // Add custom buttons to player
-        addCustomButtons: function (player) {
-            var Button = videojs.getComponent('Button');
-
-            // Rewind button
-            var RewindButton = videojs.extend(Button, {
-                constructor: function () {
-                    Button.apply(this, arguments);
-                    this.controlText('Retroceder 10 segundos');
-                    this.addClass('vjs-rewind-button');
-                },
-                handleClick: function () {
-                    player.currentTime(Math.max(0, player.currentTime() - 10));
-                }
-            });
-
-            // Add icon to rewind button
-            RewindButton.prototype.buildCSSClass = function () {
-                return 'vjs-rewind-button vjs-control vjs-button';
-            };
-
-            // Create rewind button element
-            videojs.registerComponent('RewindButton', RewindButton);
-            player.controlBar.addChild('RewindButton', {}, 0);
-
-            // Forward button
-            var ForwardButton = videojs.extend(Button, {
-                constructor: function () {
-                    Button.apply(this, arguments);
-                    this.controlText('Adelantar 10 segundos');
-                    this.addClass('vjs-forward-button');
-                },
-                handleClick: function () {
-                    player.currentTime(Math.min(player.duration(), player.currentTime() + 10));
-                }
-            });
-
-            // Add icon to forward button
-            ForwardButton.prototype.buildCSSClass = function () {
-                return 'vjs-forward-button vjs-control vjs-button';
-            };
-
-            // Create forward button element
-            videojs.registerComponent('ForwardButton', ForwardButton);
-            player.controlBar.addChild('ForwardButton', {}, 2);
-
-            // Style the buttons
-            var rewindBtn = player.controlBar.getChild('RewindButton').el();
-            var forwardBtn = player.controlBar.getChild('ForwardButton').el();
-
-            rewindBtn.innerHTML = '<span>⏪ 10s</span>';
-            forwardBtn.innerHTML = '<span>10s ⏩</span>';
-        },
+        // REMOVED CUSTOM BUTTONS FUNCTION TEMPORARILY
 
         // Handle video ended event
         handleVideoEnded: function () {
@@ -820,79 +817,3 @@ function slugify(text) {
         .replace(/^-+/, '')              // Eliminar guiones del inicio
         .replace(/-+$/, '');             // Eliminar guiones del final
 }
-
-// FIX FINAL PARA MOBILE DROPDOWN - CON API REAL
-jQuery(document).ready(function($) {
-    
-    setTimeout(function() {
-        var $dropdown = $('.adc-wp-programs-dropdown');
-        var $programasLink = $('a:contains("PROGRAMAS")');
-        
-        console.log('🎯 Configurando dropdown móvil con API real');
-        
-        // 1. OCULTAR dropdown inicialmente
-        $dropdown.hide();
-        
-        // 2. CARGAR programas de la API REAL
-        if ($dropdown.find('.adc-loading').length) {
-            console.log('📡 Cargando programas desde API...');
-            
-            var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
-            var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
-            
-            $.ajax({
-                url: ajaxUrl,
-                type: 'POST',
-                data: {
-                    action: 'adc_get_programs_menu',
-                    nonce: nonce
-                },
-                success: function(response) {
-                    if (response.success && response.data) {
-                        var html = '';
-                        
-                        $.each(response.data, function(i, program) {
-                            var slug = slugify(program.name);
-                            html += '<a href="/?categoria=' + slug + '" style="display:block; padding:15px 20px; color:#6EC1E4; text-decoration:none; border-bottom:1px solid rgba(110,193,228,0.2); font-size:16px;">' + program.name + '</a>';
-                        });
-                        
-                        $dropdown.html(html);
-                        console.log('✅ Programas reales cargados:', response.data.length);
-                        
-                        // Efectos hover
-                        $dropdown.find('a').hover(
-                            function() { $(this).css({'background': 'rgba(110,193,228,0.2)', 'color': '#fff'}); },
-                            function() { $(this).css({'background': 'transparent', 'color': '#6EC1E4'}); }
-                        );
-                    } else {
-                        console.log('❌ Error en respuesta API');
-                        $dropdown.html('<div style="padding:15px; text-align:center; color:#ff6b6b;">Error al cargar programas</div>');
-                    }
-                },
-                error: function() {
-                    console.log('❌ Error AJAX');
-                    $dropdown.html('<div style="padding:15px; text-align:center; color:#ff6b6b;">Error de conexión</div>');
-                }
-            });
-        }
-        
-        // 3. RECONECTAR el click para toggle
-        $programasLink.off('click.mobile').on('click.mobile', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            console.log('🖱️ Click en PROGRAMAS móvil detectado');
-            
-            var $arrow = $(this).find('.dropdown-arrow');
-            
-            if ($dropdown.is(':visible')) {
-                $dropdown.slideUp(200);
-                $arrow.css('transform', 'rotate(0deg)');
-            } else {
-                $dropdown.slideDown(200);
-                $arrow.css('transform', 'rotate(180deg)');
-            }
-        });
-        
-    }, 2000);
-});
