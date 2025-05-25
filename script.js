@@ -1,6 +1,6 @@
 /**
  * ADC Video Display - Frontend JavaScript
- * Version: 2.0
+ * Version: 2.0 - SIMPLE FIX
  */
 
 (function ($) {
@@ -29,7 +29,7 @@
             this.initDropdownMenu();
             this.initSearchForm();
 
-            // Initialize programs menu
+            // Initialize programs menu - SIMPLE VERSION
             this.initProgramsMenu();
 
             // Initialize search icon
@@ -83,7 +83,7 @@
             }
         },
 
-        // Initialize search replacements - consolidated from adc-search.php
+        // Initialize search replacements
         initSearchReplacements: function() {
             var self = this;
             
@@ -135,161 +135,90 @@
             }
         },
 
-        // Función initProgramsMenu CORREGIDA - Eventos nativos + touch
+        // SIMPLE FIX: Solo agregar dropdown sin tocar el diseño
         initProgramsMenu: function () {
             var self = this;
-            console.log('🚀 Iniciando initProgramsMenu...');
+            console.log('🔧 SIMPLE FIX: Inicializando menú PROGRAMAS...');
 
-            // Verificar si jQuery está disponible
-            if (typeof $ === 'undefined') {
-                console.error('❌ jQuery no está disponible');
-                return;
-            }
-
-            // Encontrar todos los elementos PROGRAMAS (menu y shortcode)
-            var $programasElements = $('a:contains("PROGRAMAS"), .adc_programs_menu_text');
-            console.log('🔍 Elementos PROGRAMAS encontrados:', $programasElements.length);
-
-            $programasElements.each(function (index) {
-                var $programasLink = $(this);
-                console.log('📍 Procesando elemento #' + index + ':', $programasLink.text().trim());
-
-                // Si ya está inicializado, salir
-                if ($programasLink.data('adc-programs-initialized')) {
-                    console.log('⚠️ Elemento ya inicializado, saltando...');
-                    return;
-                }
-
-                // Para menús de Elementor, necesitamos ir un nivel más arriba
-                var $parentLi = $programasLink.closest('li');
-                if (!$parentLi.length) {
-                    $parentLi = $programasLink.parent();
-                }
-                console.log('📦 Elemento padre encontrado:', $parentLi.length > 0 ? 'SÍ' : 'NO');
-
-                // Si ya tiene un dropdown, no hacemos nada
-                if ($parentLi.find('.adc-wp-programs-dropdown').length) {
-                    console.log('⚠️ Ya tiene dropdown, saltando...');
-                    return;
-                }
-
-                // Asegurarnos que el elemento padre tenga posición relativa
-                $parentLi.css({
-                    'position': 'relative',
-                    'z-index': '999'
-                });
-
-                // Crear el dropdown
-                var $dropdown = $('<div class="adc-wp-programs-dropdown"></div>');
-                $parentLi.append($dropdown);
-                $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
-                console.log('✅ Dropdown creado y agregado');
-
-                // Chevron moderno para sitio de IA
-                var $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block;">▾</span>');
-                $programasLink.append($arrow);
-                console.log('✅ Flecha agregada');
-
-                // ESTRATEGIA AGRESIVA: Eventos nativos + captura + bubbling
-                var linkElement = $programasLink[0];
-                var parentElement = $parentLi[0];
-
-                // Función toggle reutilizable
-                var toggleFunction = function(e) {
-                    if (e) {
+            // Esperar un poco para que el DOM esté listo
+            setTimeout(function() {
+                // Encontrar elementos PROGRAMAS
+                $('a:contains("PROGRAMAS")').each(function () {
+                    var $programasLink = $(this);
+                    var $parentLi = $programasLink.closest('li');
+                    
+                    // Si ya está procesado, salir
+                    if ($parentLi.hasClass('adc-programs-processed')) {
+                        return;
+                    }
+                    
+                    console.log('📍 Procesando PROGRAMAS:', $programasLink.text());
+                    
+                    // Marcar como procesado
+                    $parentLi.addClass('adc-programs-processed');
+                    
+                    // Solo agregar posición relativa
+                    $parentLi.css('position', 'relative');
+                    
+                    // Agregar flecha SI NO EXISTE
+                    if (!$programasLink.find('.adc-arrow').length) {
+                        $programasLink.append('<span class="adc-arrow" style="color:#6EC1E4; margin-left:5px;">▾</span>');
+                    }
+                    
+                    // Crear dropdown SI NO EXISTE
+                    if (!$parentLi.find('.adc-simple-dropdown').length) {
+                        var $dropdown = $('<div class="adc-simple-dropdown" style="display:none; position:absolute; top:100%; left:0; z-index:9999; width:250px; background:#000; border:2px solid #6EC1E4; border-radius:4px;"><div style="padding:15px; color:#6EC1E4; text-align:center;">Cargando...</div></div>');
+                        $parentLi.append($dropdown);
+                    }
+                    
+                    // Handler de click SIMPLE
+                    $programasLink.off('click.simple').on('click.simple', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
-                        e.stopImmediatePropagation();
-                    }
-                    console.log('🖱️ TOGGLE FUNCTION EJECUTADA!');
-                    self.toggleProgramsDropdown($dropdown, $arrow);
-                };
-
-                // 1. Eventos jQuery tradicionales
-                $programasLink.off('.adc-programs').on('click.adc-programs touchstart.adc-programs', toggleFunction);
-                $parentLi.off('.adc-programs-parent').on('click.adc-programs-parent touchstart.adc-programs-parent', function(e) {
-                    if ($(e.target).text().includes('PROGRAMAS')) {
-                        toggleFunction(e);
+                        
+                        console.log('🖱️ CLICK SIMPLE DETECTADO!');
+                        
+                        var $dropdown = $parentLi.find('.adc-simple-dropdown');
+                        var $arrow = $programasLink.find('.adc-arrow');
+                        
+                        // Cerrar otros
+                        $('.adc-simple-dropdown').not($dropdown).slideUp(200);
+                        $('.adc-arrow').not($arrow).css('transform', 'rotate(0deg)');
+                        
+                        // Toggle
+                        if ($dropdown.is(':visible')) {
+                            $dropdown.slideUp(200);
+                            $arrow.css('transform', 'rotate(0deg)');
+                            console.log('🔒 Cerrando');
+                        } else {
+                            $dropdown.slideDown(200);
+                            $arrow.css('transform', 'rotate(180deg)');
+                            console.log('🔓 Abriendo');
+                            self.loadSimplePrograms($dropdown);
+                        }
+                    });
+                    
+                    console.log('✅ PROGRAMAS procesado');
+                });
+                
+                // Click fuera para cerrar
+                $(document).off('click.simple-outside').on('click.simple-outside', function(e) {
+                    if (!$(e.target).closest('.adc-simple-dropdown, a:contains("PROGRAMAS")').length) {
+                        $('.adc-simple-dropdown').slideUp(200);
+                        $('.adc-arrow').css('transform', 'rotate(0deg)');
                     }
                 });
-
-                // 2. Eventos nativos con captura (más agresivos)
-                if (linkElement) {
-                    linkElement.addEventListener('click', toggleFunction, true); // Captura
-                    linkElement.addEventListener('touchstart', toggleFunction, true);
-                    linkElement.addEventListener('mousedown', toggleFunction, true);
-                    console.log('✅ Event listeners nativos agregados al link');
-                }
-
-                if (parentElement) {
-                    parentElement.addEventListener('click', function(e) {
-                        if (e.target.textContent.includes('PROGRAMAS')) {
-                            toggleFunction(e);
-                        }
-                    }, true);
-                    console.log('✅ Event listeners nativos agregados al parent');
-                }
-
-                // 3. MutationObserver para detectar cambios dinámicos
-                if (window.MutationObserver) {
-                    var observer = new MutationObserver(function(mutations) {
-                        mutations.forEach(function(mutation) {
-                            if (mutation.type === 'childList') {
-                                console.log('🔄 DOM cambió, re-verificando handlers...');
-                            }
-                        });
-                    });
-                    observer.observe(parentElement, { childList: true, subtree: true });
-                }
-
-                // 4. ÚLTIMO RECURSO: Polling para detectar clicks
-                var clickDetector = setInterval(function() {
-                    var $currentElement = $programasLink;
-                    if ($currentElement.is(':hover') || $currentElement.is(':active') || $currentElement.is(':focus')) {
-                        console.log('🖱️ ESTADO DE INTERACCIÓN DETECTADO!');
-                        // Solo ejecutar si no se ha ejecutado recientemente
-                        if (!$currentElement.data('recent-toggle')) {
-                            $currentElement.data('recent-toggle', true);
-                            setTimeout(function() {
-                                $currentElement.removeData('recent-toggle');
-                            }, 1000);
-                            toggleFunction();
-                        }
-                    }
-                }, 100);
-
-                // Limpiar polling después de 30 segundos
-                setTimeout(function() {
-                    clearInterval(clickDetector);
-                }, 30000);
-
-                console.log('✅ Múltiples estrategias de event handling implementadas');
-
-                // Marcar como inicializado
-                $programasLink.data('adc-programs-initialized', true);
-                console.log('✅ Elemento marcado como inicializado');
-            });
-
-            // Cerrar al hacer clic fuera (ÚNICO HANDLER)
-            $(document).off('click.adc-programs-outside').on('click.adc-programs-outside', function (e) {
-                if (!$(e.target).closest('.adc-wp-programs-dropdown, a:contains("PROGRAMAS"), .adc_programs_menu_text').length) {
-                    $('.adc-wp-programs-dropdown').slideUp(200);
-                    $('.dropdown-arrow').css('transform', 'rotate(0deg)');
-                    console.log('🚪 Cerrando dropdowns por click fuera');
-                }
-            });
-
-            console.log('🏁 initProgramsMenu completado');
+                
+            }, 1000);
         },
 
-        // Función separada para cargar datos de programas
-        loadProgramsData: function($dropdown) {
-            // Solo cargar si tiene el mensaje de loading
-            if (!$dropdown.find('.adc-loading, .adc-error').length) {
+        // Cargar programas simple
+        loadSimplePrograms: function($dropdown) {
+            if (!$dropdown.find('div').text().includes('Cargando')) {
                 return;
             }
-
-            console.log('📡 Cargando programas desde API...');
+            
+            console.log('📡 Cargando programas...');
             
             var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
             var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
@@ -304,47 +233,34 @@
                 success: function (response) {
                     if (response.success && response.data) {
                         var html = '';
-
                         $.each(response.data, function (i, program) {
                             var slug = slugify(program.name);
-                            html += '<a href="/?categoria=' + slug + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important;">' + program.name + '</a>';
+                            html += '<a href="/?categoria=' + slug + '" style="display:block; padding:12px 16px; color:#6EC1E4; text-decoration:none; border-bottom:1px solid rgba(110,193,228,0.1); font-size:14px;" onmouseover="this.style.backgroundColor=\'rgba(110,193,228,0.1)\'; this.style.color=\'#fff\';" onmouseout="this.style.backgroundColor=\'transparent\'; this.style.color=\'#6EC1E4\';">' + program.name + '</a>';
                         });
-
                         $dropdown.html(html);
-                        console.log('✅ Programas reales cargados:', response.data.length);
-
-                        // Agregar efectos hover a los enlaces
-                        $dropdown.find('a').hover(
-                            function () { $(this).css({ 'background-color': 'rgba(110, 193, 228, 0.1)', 'color': '#FFFFFF', 'padding-left': '25px' }); },
-                            function () { $(this).css({ 'background-color': 'transparent', 'color': '#6EC1E4', 'padding-left': '20px' }); }
-                        );
+                        console.log('✅ Programas cargados:', response.data.length);
                     } else {
-                        console.log('❌ Error en respuesta API');
-                        $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">No hay programas disponibles</div>');
+                        $dropdown.html('<div style="padding:15px; color:#ff6b6b; text-align:center;">Error</div>');
                     }
                 },
                 error: function () {
-                    console.log('❌ Error AJAX');
-                    $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">Error al cargar programas</div>');
+                    $dropdown.html('<div style="padding:15px; color:#ff6b6b; text-align:center;">Error de conexión</div>');
                 }
             });
         },
 
-        // Initialize search icon with improved functionality
+        // Initialize search icon
         initSearchIcon: function () {
             console.log('Inicializando icono de búsqueda');
 
-            // Buscar elementos "BUSCADOR" o íconos de búsqueda y reemplazarlos
             $('a:contains("BUSCADOR"), a:contains("Buscar"), a.search-toggle, .search-toggle, .search-icon, .fa-search').each(function () {
                 var $searchLink = $(this);
                 console.log('Elemento BUSCADOR encontrado');
 
-                // No continuar si ya está inicializado
                 if ($searchLink.data('search-initialized')) {
                     return;
                 }
 
-                // Agregar clase para el ícono
                 $searchLink.addClass('adc-search-menu-trigger');
 
                 var $parentLi = $searchLink.closest('li');
@@ -352,17 +268,14 @@
                     $parentLi = $searchLink.parent();
                 }
 
-                // Crear el formulario de búsqueda con el diseño mejorado
                 var $searchContainer = $('<div class="adc-menu-search-container"></div>');
                 var $searchForm = $('<form class="adc-inline-search-form" action="' + window.location.origin + '/" method="get"></form>');
                 var $searchInput = $('<input type="text" name="adc_search" placeholder="Buscar..." class="adc-inline-search-input">');
-                // Lupa de color blanco
                 var $searchButton = $('<button type="submit" class="adc-inline-search-button" style="background:transparent !important; border:none !important; color:#ffffff !important; box-shadow:none !important; outline:none !important;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></button>');
 
                 $searchForm.append($searchInput).append($searchButton);
                 $searchContainer.append($searchForm);
 
-                // Aplicar estilos directamente con jQuery
                 $searchForm.css({
                     'background': 'transparent',
                     'border': '1px solid #ffffff'
@@ -377,7 +290,6 @@
                     'color': '#ffffff'
                 });
 
-                // Agregar eventos de hover para el botón
                 $searchButton.hover(
                     function () {
                         $(this).css({
@@ -396,7 +308,6 @@
                     }
                 );
 
-                // Reemplazar el enlace con el formulario
                 if ($parentLi.length) {
                     $parentLi.html('').append($searchContainer);
                     $parentLi.css({
@@ -407,18 +318,16 @@
                     $searchLink.replaceWith($searchContainer);
                 }
 
-                // Marcar como inicializado
                 $searchLink.data('search-initialized', true);
             });
 
-            // Asegurar Font Awesome
             this.ensureFontAwesomeLoaded();
         },
 
         // Ensure Font Awesome is loaded
         ensureFontAwesomeLoaded: function () {
             if ($('link[href*="font-awesome"]').length) {
-                return; // Ya está cargado
+                return;
             }
 
             $('<link>').attr({
@@ -429,7 +338,7 @@
             }).appendTo('head');
         },
 
-        // Initialize video player - SIMPLIFIED VERSION
+        // Initialize video player - SIMPLIFIED
         initPlayer: function () {
             if (typeof videojs === 'undefined' || !document.getElementById('adc-player')) {
                 return;
@@ -446,13 +355,9 @@
                 });
 
                 player.ready(function () {
-                    // Set initial volume
                     player.volume(self.config.playerVolume);
-
-                    // Skip custom buttons for now to avoid videojs.extend issues
                     console.log('Video player initialized without custom buttons');
 
-                    // Handle ended event for autoplay
                     if (self.config.autoplayEnabled) {
                         player.on('ended', function () {
                             self.handleVideoEnded();
@@ -466,11 +371,8 @@
             }
         },
 
-        // Función para quitar el autofocus de los campos de búsqueda
         removeSearchAutofocus: function () {
-            // Ejecutar con un pequeño retraso para asegurar que se ejecute después de otros scripts
             setTimeout(function () {
-                // Encontrar todos los inputs de búsqueda y quitar el foco
                 document.querySelectorAll('.adc-inline-search-input').forEach(function (input) {
                     if (document.activeElement === input) {
                         input.blur();
@@ -479,9 +381,6 @@
             }, 100);
         },
 
-        // REMOVED CUSTOM BUTTONS FUNCTION TEMPORARILY
-
-        // Handle video ended event
         handleVideoEnded: function () {
             var nextUrl = this.getNextVideoUrl();
             if (!nextUrl) return;
@@ -492,10 +391,8 @@
 
             if (!overlay || !countdownEl) return;
 
-            // Show overlay
             overlay.style.display = 'block';
 
-            // Start countdown
             var seconds = this.config.autoplayCountdown;
             countdownEl.textContent = seconds;
 
@@ -510,14 +407,12 @@
             }, 1000);
         },
 
-        // Get next video URL
         getNextVideoUrl: function () {
             var nextBtn = document.querySelector('.adc-next-button-container a');
             if (nextBtn) {
                 return nextBtn.href;
             }
 
-            // Fallback: check in overlay
             var overlayLink = document.querySelector('#adc-next-overlay a');
             if (overlayLink && overlayLink.href !== '#') {
                 return overlayLink.href;
@@ -526,7 +421,6 @@
             return null;
         },
 
-        // Cancel autoplay
         cancelAutoplay: function () {
             if (this.countdownInterval) {
                 clearInterval(this.countdownInterval);
@@ -538,7 +432,6 @@
             }
         },
 
-        // Initialize dropdown menu
         initDropdownMenu: function () {
             var dropdowns = document.querySelectorAll('.adc-dropdown-menu');
 
@@ -554,7 +447,6 @@
                     dropdown.classList.toggle('active');
                 });
 
-                // Close when clicking outside
                 document.addEventListener('click', function (e) {
                     if (!dropdown.contains(e.target)) {
                         dropdown.classList.remove('active');
@@ -563,7 +455,6 @@
             });
         },
 
-        // Initialize search form with improved functionality
         initSearchForm: function () {
             var forms = document.querySelectorAll('.adc-search-form, .adc-inline-search-form');
 
@@ -571,7 +462,6 @@
                 var input = form.querySelector('input[name="adc_search"]');
                 if (!input) return;
 
-                // Prevent empty searches
                 form.addEventListener('submit', function (e) {
                     if (input.value.trim() === '') {
                         e.preventDefault();
@@ -581,30 +471,27 @@
             });
         },
 
-        // Bind events
         bindEvents: function () {
             var self = this;
 
-            // Cancel autoplay button
             $(document).on('click', '#adc-cancel-autoplay', function (e) {
                 e.preventDefault();
                 self.cancelAutoplay();
             });
 
-            // Keyboard shortcuts
             $(document).on('keydown', function (e) {
                 if (!self.player) return;
 
                 switch (e.keyCode) {
-                    case 37: // Left arrow
+                    case 37:
                         self.player.currentTime(self.player.currentTime() - 10);
                         e.preventDefault();
                         break;
-                    case 39: // Right arrow
+                    case 39:
                         self.player.currentTime(self.player.currentTime() + 10);
                         e.preventDefault();
                         break;
-                    case 32: // Spacebar
+                    case 32:
                         if (self.player.paused()) {
                             self.player.play();
                         } else {
@@ -612,10 +499,9 @@
                         }
                         e.preventDefault();
                         break;
-                    case 27: // Escape
-                        // Close all dropdowns and overlays when pressing Escape
-                        $('.adc-wp-programs-dropdown').slideUp(200);
-                        $('.dropdown-arrow').css('transform', 'rotate(0deg)');
+                    case 27:
+                        $('.adc-simple-dropdown').slideUp(200);
+                        $('.adc-arrow').css('transform', 'rotate(0deg)');
                         if (self.countdownInterval) {
                             self.cancelAutoplay();
                         }
@@ -623,7 +509,6 @@
                 }
             });
 
-            // Close search function
             $(document).on('keydown', function (e) {
                 if (e.key === 'Escape') {
                     var searchBox = document.getElementById('adc-search-box');
@@ -631,13 +516,11 @@
                         searchBox.style.display = 'none';
                     }
 
-                    // También cerrar otros elementos
-                    $('.adc-wp-programs-dropdown').slideUp(200);
+                    $('.adc-simple-dropdown').slideUp(200);
                     $('.adc-search-popup').fadeOut(200);
                 }
             });
 
-            // Smooth scroll for navigation
             $('.adc-nav-item').on('click', function (e) {
                 var href = this.getAttribute('href');
                 if (href && href.startsWith('#')) {
@@ -651,11 +534,9 @@
                 }
             });
 
-            // Lazy load images
             this.initLazyLoad();
         },
 
-        // Initialize lazy loading for thumbnails
         initLazyLoad: function () {
             if ('IntersectionObserver' in window) {
                 var imageObserver = new IntersectionObserver(function (entries, observer) {
@@ -676,7 +557,6 @@
                     imageObserver.observe(img);
                 });
             } else {
-                // Fallback for older browsers
                 var lazyImages = document.querySelectorAll('img.lazy');
                 lazyImages.forEach(function (img) {
                     if (img.dataset.src) {
@@ -687,7 +567,6 @@
             }
         },
 
-        // AJAX Search functionality
         performSearch: function (query) {
             var self = this;
             var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
@@ -712,13 +591,10 @@
             });
         },
 
-        // Display search results
         displaySearchResults: function (results) {
-            // This would be implemented based on your UI requirements
             console.log('Search results:', results);
         },
 
-        // Analytics tracking (if needed)
         trackEvent: function (category, action, label) {
             if (typeof gtag !== 'undefined') {
                 gtag('event', action, {
@@ -728,16 +604,13 @@
             }
         },
 
-        // Utility functions
         utils: {
-            // Format duration from seconds to MM:SS
             formatDuration: function (seconds) {
                 var minutes = Math.floor(seconds / 60);
                 var remainingSeconds = seconds % 60;
                 return minutes + ':' + (remainingSeconds < 10 ? '0' : '') + remainingSeconds;
             },
 
-            // Debounce function
             debounce: function (func, wait) {
                 var timeout;
                 return function () {
@@ -749,7 +622,6 @@
                 };
             },
 
-            // Get URL parameter
             getUrlParam: function (param) {
                 var urlParams = new URLSearchParams(window.location.search);
                 return urlParams.get(param);
@@ -757,13 +629,11 @@
         }
     };
 
-    // Inicializar inmediatamente para evitar problemas con temas o plugins que retrasen el ready
+    // Initialize
     var initADCMenu = function () {
-        // Initialize ADC Video when DOM is ready
         if (document.readyState === "interactive" || document.readyState === "complete") {
             console.log('ADC Menu: Inicializando...');
 
-            // Get configuration
             var config = {};
             if (typeof adc_config !== 'undefined') {
                 config = {
@@ -771,7 +641,6 @@
                     autoplayCountdown: parseInt(adc_config.countdown) || 5
                 };
             } else {
-                // Fallback si no existe adc_config
                 window.adc_config = {
                     ajax_url: '/wp-admin/admin-ajax.php',
                     nonce: '',
@@ -780,18 +649,14 @@
                 };
             }
 
-            // Initialize ADC Video
             ADCVideo.init(config);
         } else {
-            // Reintentar si el DOM no está listo
             setTimeout(initADCMenu, 50);
         }
     };
 
-    // Iniciar cuanto antes
     initADCMenu();
 
-    // Iniciar también en el documento ready normal para compatibilidad
     $(document).ready(function () {
         if (!window.ADCVideoInitialized) {
             var config = {};
@@ -830,16 +695,14 @@ document.addEventListener('keydown', function (e) {
             searchBox.style.display = 'none';
         }
 
-        // También cerrar otros elementos
-        jQuery('.adc-wp-programs-dropdown').slideUp(200);
-        jQuery('.dropdown-arrow').css('transform', 'rotate(0deg)');
+        jQuery('.adc-simple-dropdown').slideUp(200);
+        jQuery('.adc-arrow').css('transform', 'rotate(0deg)');
         jQuery('.adc-search-popup').fadeOut(200);
     }
 });
 
-// Función para convertir textos a slugs (URLs amigables)
+// Función para convertir textos a slugs
 function slugify(text) {
-    // Primera conversión: eliminar acentos
     var from = "áàäâéèëêíìïîóòöôúùüûñç·/_,:;";
     var to = "aaaaeeeeiiiioooouuuunc------";
 
@@ -847,15 +710,14 @@ function slugify(text) {
         text = text.replace(new RegExp(from.charAt(i), 'g'), to.charAt(i));
     }
 
-    // Normalizar a ASCII
     return text
-        .toString()                      // Convertir a string
-        .toLowerCase()                   // Convertir a minúsculas
-        .trim()                          // Eliminar espacios al inicio y final
-        .replace(/\s+/g, '-')            // Reemplazar espacios con guiones
-        .replace(/&/g, '-y-')            // Reemplazar & con 'y'
-        .replace(/[^\w\-]+/g, '')        // Eliminar todos los caracteres no-alfanuméricos
-        .replace(/\-\-+/g, '-')          // Reemplazar múltiples guiones con uno solo
-        .replace(/^-+/, '')              // Eliminar guiones del inicio
-        .replace(/-+$/, '');             // Eliminar guiones del final
+        .toString()
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/&/g, '-y-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '');
 }
