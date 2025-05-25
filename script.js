@@ -821,40 +821,78 @@ function slugify(text) {
         .replace(/-+$/, '');             // Eliminar guiones del final
 }
 
-// OCULTAR DROPDOWN INMEDIATAMENTE Y CARGAR PROGRAMAS
+// FIX FINAL PARA MOBILE DROPDOWN - CON API REAL
 jQuery(document).ready(function($) {
-    
-    // OCULTAR INMEDIATAMENTE al cargar la página
-    $('.adc-wp-programs-dropdown').hide();
     
     setTimeout(function() {
         var $dropdown = $('.adc-wp-programs-dropdown');
+        var $programasLink = $('a:contains("PROGRAMAS")');
         
+        console.log('🎯 Configurando dropdown móvil con API real');
+        
+        // 1. OCULTAR dropdown inicialmente
+        $dropdown.hide();
+        
+        // 2. CARGAR programas de la API REAL
         if ($dropdown.find('.adc-loading').length) {
-            console.log('🔧 Cargando programas...');
+            console.log('📡 Cargando programas desde API...');
             
-            var programs = [
-                {name: 'La Perasha en la More', slug: 'la-perasha-en-la-more'},
-                {name: 'Dinim', slug: 'dinim'},
-                {name: 'Filosofía Judía', slug: 'filosofia-judia'},
-                {name: 'Halajá', slug: 'halaja'},
-                {name: 'Hassidut', slug: 'hassidut'},
-                {name: 'Mishná', slug: 'mishna'},
-                {name: 'Talmud', slug: 'talmud'}
-            ];
+            var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
+            var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
             
-            var html = '';
-            programs.forEach(function(program) {
-                html += '<a href="/?categoria=' + program.slug + '" style="display:block; padding:15px 20px; color:#6EC1E4; text-decoration:none; border-bottom:1px solid rgba(110,193,228,0.2); font-size:16px;">' + program.name + '</a>';
+            $.ajax({
+                url: ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'adc_get_programs_menu',
+                    nonce: nonce
+                },
+                success: function(response) {
+                    if (response.success && response.data) {
+                        var html = '';
+                        
+                        $.each(response.data, function(i, program) {
+                            var slug = slugify(program.name);
+                            html += '<a href="/?categoria=' + slug + '" style="display:block; padding:15px 20px; color:#6EC1E4; text-decoration:none; border-bottom:1px solid rgba(110,193,228,0.2); font-size:16px;">' + program.name + '</a>';
+                        });
+                        
+                        $dropdown.html(html);
+                        console.log('✅ Programas reales cargados:', response.data.length);
+                        
+                        // Efectos hover
+                        $dropdown.find('a').hover(
+                            function() { $(this).css({'background': 'rgba(110,193,228,0.2)', 'color': '#fff'}); },
+                            function() { $(this).css({'background': 'transparent', 'color': '#6EC1E4'}); }
+                        );
+                    } else {
+                        console.log('❌ Error en respuesta API');
+                        $dropdown.html('<div style="padding:15px; text-align:center; color:#ff6b6b;">Error al cargar programas</div>');
+                    }
+                },
+                error: function() {
+                    console.log('❌ Error AJAX');
+                    $dropdown.html('<div style="padding:15px; text-align:center; color:#ff6b6b;">Error de conexión</div>');
+                }
             });
-            
-            $dropdown.html(html);
-            console.log('✅ Programas cargados');
-            
-            $dropdown.find('a').hover(
-                function() { $(this).css({'background': 'rgba(110,193,228,0.2)', 'color': '#fff'}); },
-                function() { $(this).css({'background': 'transparent', 'color': '#6EC1E4'}); }
-            );
         }
-    }, 1000);
+        
+        // 3. RECONECTAR el click para toggle
+        $programasLink.off('click.mobile').on('click.mobile', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('🖱️ Click en PROGRAMAS móvil detectado');
+            
+            var $arrow = $(this).find('.dropdown-arrow');
+            
+            if ($dropdown.is(':visible')) {
+                $dropdown.slideUp(200);
+                $arrow.css('transform', 'rotate(0deg)');
+            } else {
+                $dropdown.slideDown(200);
+                $arrow.css('transform', 'rotate(180deg)');
+            }
+        });
+        
+    }, 2000);
 });
