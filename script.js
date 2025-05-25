@@ -135,7 +135,7 @@
             }
         },
 
-        // Función initProgramsMenu CORREGIDA - Con más debugging
+        // Función initProgramsMenu CORREGIDA - Eventos nativos + touch
         initProgramsMenu: function () {
             var self = this;
             console.log('🚀 Iniciando initProgramsMenu...');
@@ -190,38 +190,80 @@
                 $programasLink.append($arrow);
                 console.log('✅ Flecha agregada');
 
-                // HANDLER ÚNICO para desktop y móvil
-                $programasLink.off('click.adc-programs').on('click.adc-programs', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
+                // ESTRATEGIA AGRESIVA: Eventos nativos + captura + bubbling
+                var linkElement = $programasLink[0];
+                var parentElement = $parentLi[0];
 
-                    console.log('🖱️ CLICK DETECTADO EN PROGRAMAS!');
+                // Función toggle reutilizable
+                var toggleFunction = function(e) {
+                    if (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                    }
+                    console.log('🖱️ TOGGLE FUNCTION EJECUTADA!');
+                    self.toggleProgramsDropdown($dropdown, $arrow);
+                };
 
-                    // Cerrar otros dropdowns si están abiertos
-                    $('.adc-wp-programs-dropdown').not($dropdown).slideUp(200);
-                    $('.dropdown-arrow').not($arrow).css('transform', 'rotate(0deg)');
-
-                    // Toggle del dropdown actual
-                    var isVisible = $dropdown.is(':visible');
-                    console.log('👁️ Dropdown visible antes del toggle:', isVisible);
-                    
-                    if (isVisible) {
-                        // Cerrar
-                        $dropdown.slideUp(200);
-                        $arrow.css('transform', 'rotate(0deg)');
-                        console.log('🔒 Cerrando dropdown');
-                    } else {
-                        // Abrir
-                        $dropdown.slideDown(200);
-                        $arrow.css('transform', 'rotate(180deg)');
-                        console.log('🔓 Abriendo dropdown');
-                        
-                        // Cargar programas si aún no se han cargado
-                        self.loadProgramsData($dropdown);
+                // 1. Eventos jQuery tradicionales
+                $programasLink.off('.adc-programs').on('click.adc-programs touchstart.adc-programs', toggleFunction);
+                $parentLi.off('.adc-programs-parent').on('click.adc-programs-parent touchstart.adc-programs-parent', function(e) {
+                    if ($(e.target).text().includes('PROGRAMAS')) {
+                        toggleFunction(e);
                     }
                 });
 
-                console.log('✅ Event handler agregado');
+                // 2. Eventos nativos con captura (más agresivos)
+                if (linkElement) {
+                    linkElement.addEventListener('click', toggleFunction, true); // Captura
+                    linkElement.addEventListener('touchstart', toggleFunction, true);
+                    linkElement.addEventListener('mousedown', toggleFunction, true);
+                    console.log('✅ Event listeners nativos agregados al link');
+                }
+
+                if (parentElement) {
+                    parentElement.addEventListener('click', function(e) {
+                        if (e.target.textContent.includes('PROGRAMAS')) {
+                            toggleFunction(e);
+                        }
+                    }, true);
+                    console.log('✅ Event listeners nativos agregados al parent');
+                }
+
+                // 3. MutationObserver para detectar cambios dinámicos
+                if (window.MutationObserver) {
+                    var observer = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            if (mutation.type === 'childList') {
+                                console.log('🔄 DOM cambió, re-verificando handlers...');
+                            }
+                        });
+                    });
+                    observer.observe(parentElement, { childList: true, subtree: true });
+                }
+
+                // 4. ÚLTIMO RECURSO: Polling para detectar clicks
+                var clickDetector = setInterval(function() {
+                    var $currentElement = $programasLink;
+                    if ($currentElement.is(':hover') || $currentElement.is(':active') || $currentElement.is(':focus')) {
+                        console.log('🖱️ ESTADO DE INTERACCIÓN DETECTADO!');
+                        // Solo ejecutar si no se ha ejecutado recientemente
+                        if (!$currentElement.data('recent-toggle')) {
+                            $currentElement.data('recent-toggle', true);
+                            setTimeout(function() {
+                                $currentElement.removeData('recent-toggle');
+                            }, 1000);
+                            toggleFunction();
+                        }
+                    }
+                }, 100);
+
+                // Limpiar polling después de 30 segundos
+                setTimeout(function() {
+                    clearInterval(clickDetector);
+                }, 30000);
+
+                console.log('✅ Múltiples estrategias de event handling implementadas');
 
                 // Marcar como inicializado
                 $programasLink.data('adc-programs-initialized', true);
