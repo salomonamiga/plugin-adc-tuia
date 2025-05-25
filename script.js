@@ -820,3 +820,41 @@ function slugify(text) {
         .replace(/^-+/, '')              // Eliminar guiones del inicio
         .replace(/-+$/, '');             // Eliminar guiones del final
 }
+
+// OCULTAR DROPDOWN INMEDIATAMENTE Y CARGAR PROGRAMAS
+jQuery(document).ready(function($) {
+    
+    // OCULTAR INMEDIATAMENTE al cargar la página
+    $('.adc-wp-programs-dropdown').hide();
+    
+    setTimeout(function() {
+        var $dropdown = $('.adc-wp-programs-dropdown');
+        
+        if ($dropdown.find('.adc-loading').length) {
+            console.log('🔧 Cargando programas...');
+            
+            var programs = [
+                {name: 'La Perasha en la More', slug: 'la-perasha-en-la-more'},
+                {name: 'Dinim', slug: 'dinim'},
+                {name: 'Filosofía Judía', slug: 'filosofia-judia'},
+                {name: 'Halajá', slug: 'halaja'},
+                {name: 'Hassidut', slug: 'hassidut'},
+                {name: 'Mishná', slug: 'mishna'},
+                {name: 'Talmud', slug: 'talmud'}
+            ];
+            
+            var html = '';
+            programs.forEach(function(program) {
+                html += '<a href="/?categoria=' + program.slug + '" style="display:block; padding:15px 20px; color:#6EC1E4; text-decoration:none; border-bottom:1px solid rgba(110,193,228,0.2); font-size:16px;">' + program.name + '</a>';
+            });
+            
+            $dropdown.html(html);
+            console.log('✅ Programas cargados');
+            
+            $dropdown.find('a').hover(
+                function() { $(this).css({'background': 'rgba(110,193,228,0.2)', 'color': '#fff'}); },
+                function() { $(this).css({'background': 'transparent', 'color': '#6EC1E4'}); }
+            );
+        }
+    }, 1000);
+});

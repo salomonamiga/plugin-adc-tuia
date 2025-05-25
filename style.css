@@ -1219,3 +1219,42 @@
         font-size: 16px !important;
     }
 }
+
+/* FORZAR VISIBILIDAD TOTAL DEL DROPDOWN */
+@media (max-width: 768px) {
+    .adc-wp-programs-dropdown {
+        background: rgba(0, 0, 0, 0.95) !important;
+        border: 2px solid #6EC1E4 !important;
+        border-radius: 8px !important;
+        padding: 5px !important;
+        margin: 10px 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    
+    .adc-wp-programs-dropdown a {
+        color: #6EC1E4 !important;
+        padding: 12px 15px !important;
+        font-size: 16px !important;
+        font-weight: 500 !important;
+        border-bottom: 1px solid rgba(110, 193, 228, 0.3) !important;
+    }
+}
+
+/* OCULTAR DROPDOWN POR DEFECTO EN MÓVIL */
+@media (max-width: 768px) {
+    .adc-wp-programs-dropdown {
+        display: none !important;
+    }
+    
+    /* Mostrar solo cuando tenga la clase 'active' o esté siendo mostrado por JavaScript */
+    .adc-wp-programs-dropdown.show,
+    .adc-wp-programs-dropdown[style*="display: block"] {
+        display: block !important;
+        background: rgba(0, 0, 0, 0.95) !important;
+        border: 2px solid #6EC1E4 !important;
+        border-radius: 8px !important;
+        padding: 5px !important;
+        margin: 10px 0 !important;
+    }
+}
