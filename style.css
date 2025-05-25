@@ -1193,3 +1193,49 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* MOBILE DROPDOWN FIX - Agrega al final de style.css */
+
+/* Asegurar que el dropdown sea visible en móvil */
+@media (max-width: 768px) {
+    .adc-wp-programs-dropdown {
+        position: static !important;
+        width: 100% !important;
+        background-color: rgba(0, 0, 0, 0.95) !important;
+        border: 2px solid #6EC1E4 !important;
+        border-radius: 8px !important;
+        margin: 10px 0 !important;
+        z-index: 99999 !important;
+        display: block !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5) !important;
+    }
+    
+    .adc-wp-programs-dropdown a {
+        display: block !important;
+        padding: 15px 20px !important;
+        color: #6EC1E4 !important;
+        text-decoration: none !important;
+        border-bottom: 1px solid rgba(110, 193, 228, 0.2) !important;
+        font-size: 16px !important;
+        font-weight: 500 !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    .adc-wp-programs-dropdown a:last-child {
+        border-bottom: none !important;
+    }
+    
+    .adc-wp-programs-dropdown a:hover {
+        background-color: rgba(110, 193, 228, 0.2) !important;
+        color: #FFFFFF !important;
+        padding-left: 25px !important;
+    }
+}
+
+/* Forzar visibilidad para elementos Elementor */
+.elementor-nav-menu__container .adc-wp-programs-dropdown {
+    position: relative !important;
+    transform: none !important;
+    top: auto !important;
+    left: auto !important;
+}
