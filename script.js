@@ -821,26 +821,25 @@ function slugify(text) {
         .replace(/-+$/, '');             // Eliminar guiones del final
 }
 
-// CORREGIR ERROR 403 - Reemplaza el código anterior con este
+// SIMPLE TOGGLE FIX - Reemplaza todo el código anterior con este
 jQuery(document).ready(function($) {
     
-    // Forzar carga después de 3 segundos
+    // Esperar a que se cargue todo
     setTimeout(function() {
         
         var $dropdown = $('.adc-wp-programs-dropdown');
+        var $programasLink = $('a:contains("PROGRAMAS")');
         
+        console.log('🎯 Inicializando toggle móvil');
+        
+        // OCULTAR el dropdown inicialmente
+        $dropdown.hide();
+        
+        // Cargar programas si están vacíos
         if ($dropdown.find('.adc-loading').length) {
-            console.log('🔧 Forzando carga de programas...');
             
-            // Limpiar y cargar programas manualmente
-            $dropdown.html('<div style="padding:15px; text-align:center; color:#6EC1E4;">Cargando programas...</div>');
-            
-            // Obtener nonce correctamente
             var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
             var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
-            
-            console.log('🔑 Usando nonce:', nonce);
-            console.log('📡 URL AJAX:', ajaxUrl);
             
             $.ajax({
                 url: ajaxUrl,
@@ -850,44 +849,58 @@ jQuery(document).ready(function($) {
                     nonce: nonce
                 },
                 success: function(response) {
-                    console.log('📡 Respuesta AJAX:', response);
-                    
                     if (response.success && response.data) {
                         var html = '';
                         
                         $.each(response.data, function(i, program) {
                             var slug = slugify(program.name);
-                            html += '<a href="/?categoria=' + slug + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important;">' + program.name + '</a>';
+                            html += '<a href="/?categoria=' + slug + '" style="display:block; padding:15px 20px; color:#6EC1E4; text-decoration:none; border-bottom:1px solid rgba(110,193,228,0.2); font-size:16px;">' + program.name + '</a>';
                         });
                         
                         $dropdown.html(html);
-                        console.log('✅ Programas cargados exitosamente');
+                        console.log('✅ Programas cargados');
                         
-                        // Efectos hover
+                        // Hover effects
                         $dropdown.find('a').hover(
-                            function() { $(this).css({'background-color': 'rgba(110, 193, 228, 0.1)', 'color': '#FFFFFF', 'padding-left': '25px'}); },
-                            function() { $(this).css({'background-color': 'transparent', 'color': '#6EC1E4', 'padding-left': '20px'}); }
+                            function() { $(this).css({'background': 'rgba(110,193,228,0.2)', 'color': '#fff'}); },
+                            function() { $(this).css({'background': 'transparent', 'color': '#6EC1E4'}); }
                         );
-                        
-                    } else {
-                        console.log('❌ Error en respuesta:', response);
-                        $dropdown.html('<div style="padding:20px; color:red; text-align:center;">Error: No hay programas disponibles</div>');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.log('❌ Error AJAX:', xhr.status, error);
-                    console.log('❌ Respuesta completa:', xhr.responseText);
-                    
-                    // Si es error 403, mostrar mensaje específico
-                    if (xhr.status === 403) {
-                        $dropdown.html('<div style="padding:20px; color:orange; text-align:center;">Error 403: Problema de permisos</div>');
-                    } else {
-                        $dropdown.html('<div style="padding:20px; color:red; text-align:center;">Error de conexión: ' + error + '</div>');
                     }
                 }
             });
         }
         
-    }, 3000);
+        // MANEJAR CLICK para toggle
+        $programasLink.off('click.mobile-toggle').on('click.mobile-toggle', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('🖱️ Click en PROGRAMAS detectado');
+            
+            var $arrow = $(this).find('.dropdown-arrow');
+            
+            // Toggle del dropdown
+            if ($dropdown.is(':visible')) {
+                // Cerrar
+                $dropdown.slideUp(200);
+                $arrow.css('transform', 'rotate(0deg)');
+                console.log('📤 Cerrando dropdown');
+            } else {
+                // Abrir
+                $dropdown.slideDown(200);
+                $arrow.css('transform', 'rotate(180deg)');
+                console.log('📥 Abriendo dropdown');
+            }
+        });
+        
+        // Cerrar al tocar fuera
+        $(document).on('click.mobile-close', function(e) {
+            if (!$(e.target).closest('.adc-wp-programs-dropdown, a:contains("PROGRAMAS")').length) {
+                $dropdown.slideUp(200);
+                $programasLink.find('.dropdown-arrow').css('transform', 'rotate(0deg)');
+            }
+        });
+        
+    }, 2000);
     
 });
