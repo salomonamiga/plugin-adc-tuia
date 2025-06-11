@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ADC Video Display
  * Description: Muestra videos desde el sistema ADC en WordPress
- * Version: 2.0
+ * Version: 2.1
  * Author: TuTorah Development Team
  */
 
@@ -104,18 +104,6 @@ class ADC_Video_Display {
     }
     
     /**
-     * Convert title to slug
-     */
-    private function slugify($text) {
-        $text = preg_replace('~[^\pL\d]+~u', '-', $text);
-        $text = trim($text, '-');
-        $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
-        $text = strtolower($text);
-        $text = preg_replace('~[^-\w]+~', '', $text);
-        return $text;
-    }
-
-    /**
      * Main shortcode handler
      */
     public function display_content($atts) {
@@ -123,10 +111,6 @@ class ADC_Video_Display {
         if (!$this->api->is_configured()) {
             return '<div class="adc-error">El plugin ADC Video Display no está configurado. Por favor configura la API en el panel de administración.</div>';
         }
-        
-        // Get current parameters
-        $section = $this->api->get_section();
-        $section_name = $this->api->get_section_name();
         
         // Check for search results
         if (isset($_GET['adc_search'])) {
@@ -146,7 +130,6 @@ class ADC_Video_Display {
         }
         
         // Determine what to display based on URL parameters
-        // Since this site is IA exclusive, we'll use simplified URLs
         $category_slug = isset($_GET['categoria']) ? sanitize_text_field($_GET['categoria']) : '';
         $video_slug = isset($_GET['video']) ? sanitize_text_field($_GET['video']) : '';
         
@@ -175,24 +158,16 @@ class ADC_Video_Display {
         $output = '<div class="adc-search-results-container">';
         
         if (empty($results)) {
-            // Mostrar solo un mensaje para resultados vacíos
             $output .= '<h2 class="adc-recommended-title">No encontramos lo que buscabas, pero quizás te interesen estos videos:</h2>';
-            
-            // Agregar vídeos recomendados
             $output .= $this->get_recommended_videos();
         } else {
-            // Mostrar el título de resultados encontrados
             $output .= '<h1 class="adc-search-results-title">Resultados de búsqueda para: "' . esc_html($search_term) . '"</h1>';
-            
-            // Display results in grid
             $output .= '<div class="adc-recommended-videos">';
             
             foreach ($results as $video) {
                 $category_slug = $this->slugify($video['category']);
                 $video_slug = $this->slugify($video['title']);
-                
                 $url = '?categoria=' . $category_slug . '&video=' . $video_slug;
-                
                 $output .= $this->render_video_card($video, $url);
             }
             
@@ -200,7 +175,6 @@ class ADC_Video_Display {
         }
         
         $output .= '</div>';
-        
         return $output;
     }
     
@@ -208,7 +182,6 @@ class ADC_Video_Display {
      * Get recommended videos for empty search results
      */
     private function get_recommended_videos() {
-        // Get all programs
         $programs = $this->api->get_programs();
         
         if (empty($programs)) {
@@ -240,14 +213,11 @@ class ADC_Video_Display {
         foreach ($recommended_videos as $video) {
             $program_slug = $this->slugify($video['category']);
             $video_slug = $this->slugify($video['title']);
-            
             $url = '?categoria=' . $program_slug . '&video=' . $video_slug;
-            
             $output .= $this->render_video_card($video, $url);
         }
         
         $output .= '</div>';
-        
         return $output;
     }
     
@@ -274,43 +244,107 @@ class ADC_Video_Display {
     }
     
     /**
-     * Display categories grid
+     * Display categories grid with coming soon functionality
      */
     private function display_categories_grid() {
-        // Usar el nuevo método que respeta el orden personalizado
+        // Get regular programs with custom order
         $programs = $this->api->get_programs_with_custom_order();
         
-        if (empty($programs)) {
+        // Get coming soon programs
+        $coming_soon_programs = $this->get_coming_soon_programs();
+        
+        // Merge programs with coming soon at the end
+        $all_programs = array_merge($programs, $coming_soon_programs);
+        
+        if (empty($all_programs)) {
             return '<div class="adc-error">No se encontraron programas disponibles.</div>';
         }
         
-        $section = $this->api->get_section();
-        $section_name = $this->api->get_section_name();
-        
         $output = '<div class="adc-categories-grid">';
-        
         $output .= '<div class="adc-categories-row">';
         
-        foreach ($programs as $program) {
-            $slug = $this->slugify($program['name']);
-            
-            $output .= '<div class="adc-category-card-wrapper">';
-            $output .= '<a class="adc-category-card" href="?categoria=' . esc_attr($slug) . '">';
-            
-            $output .= '<div class="adc-category-image-circle">';
-            if (isset($program['cover'])) {
-                $output .= '<img src="' . esc_url($program['cover']) . '" alt="' . esc_attr($program['name']) . '">';
-            } else {
-                $output .= '<img src="' . ADC_PLUGIN_URL . 'assets/img/no-cover.jpg" alt="' . esc_attr($program['name']) . '">';
-            }
-            $output .= '</div>';
-            
-            $output .= '<div class="adc-category-name">' . esc_html($program['name']) . '</div>';
-            $output .= '</a>';
-            $output .= '</div>';
+        foreach ($all_programs as $program) {
+            $output .= $this->render_category_card($program);
         }
         
         $output .= '</div></div>';
+        
+        return $output;
+    }
+    
+    /**
+     * Get coming soon programs that should be displayed
+     */
+    private function get_coming_soon_programs() {
+        $coming_soon_ids = get_option('adc_coming_soon_programs', array());
+        
+        if (empty($coming_soon_ids)) {
+            return array();
+        }
+        
+        $all_programs = $this->api->get_all_programs_from_api();
+        $coming_soon_programs = array();
+        
+        foreach ($coming_soon_ids as $program_id) {
+            foreach ($all_programs as $program) {
+                if ($program['id'] == $program_id) {
+                    // Double check that this program doesn't have videos
+                    $materials = $this->api->get_materials($program['id']);
+                    if (empty($materials)) {
+                        $program['is_coming_soon'] = true;
+                        $coming_soon_programs[] = $program;
+                    }
+                    break;
+                }
+            }
+        }
+        
+        return $coming_soon_programs;
+    }
+    
+    /**
+     * Render a single category card (regular or coming soon)
+     */
+    private function render_category_card($program) {
+        $slug = $this->slugify($program['name']);
+        $is_coming_soon = isset($program['is_coming_soon']) && $program['is_coming_soon'];
+        
+        $output = '<div class="adc-category-card-wrapper">';
+        
+        if ($is_coming_soon) {
+            // Coming soon - no link, special styling
+            $output .= '<div class="adc-category-card adc-coming-soon-card">';
+        } else {
+            // Regular clickable card
+            $output .= '<a class="adc-category-card" href="?categoria=' . esc_attr($slug) . '">';
+        }
+        
+        $output .= '<div class="adc-category-image-circle">';
+        
+        if (isset($program['cover'])) {
+            $output .= '<img src="' . esc_url($program['cover']) . '" alt="' . esc_attr($program['name']) . '">';
+        } else {
+            $output .= '<img src="' . ADC_PLUGIN_URL . 'assets/img/no-cover.jpg" alt="' . esc_attr($program['name']) . '">';
+        }
+        
+        // Add coming soon overlay
+        if ($is_coming_soon) {
+            $output .= '<div class="adc-coming-soon-overlay">';
+            $output .= '<span class="adc-coming-soon-text">Próximamente</span>';
+            $output .= '<div class="adc-coming-soon-lock">🔒</div>';
+            $output .= '</div>';
+        }
+        
+        $output .= '</div>';
+        $output .= '<div class="adc-category-name">' . esc_html($program['name']) . '</div>';
+        
+        if ($is_coming_soon) {
+            $output .= '</div>'; // Close div
+        } else {
+            $output .= '</a>'; // Close anchor
+        }
+        
+        $output .= '</div>';
         
         return $output;
     }
@@ -344,7 +378,6 @@ class ADC_Video_Display {
         // Group by season
         $seasons = $this->api->group_materials_by_season($materials);
         
-        $section = $this->api->get_section();
         $home_url = home_url('/');
         
         $output = '<div class="adc-category-header">';
@@ -364,8 +397,6 @@ class ADC_Video_Display {
             
             foreach ($season_videos as $video) {
                 $video_slug = $this->slugify($video['title']);
-                
-                // Generate proper thumbnail URL with quality suffix
                 $thumbnail_url = $this->api->get_thumbnail_url($video['id']);
                 
                 $output .= '<div class="adc-video-item">';
@@ -431,12 +462,10 @@ class ADC_Video_Display {
         if ($video_index < count($materials) - 1) {
             $next_video = $materials[$video_index + 1];
             $next_slug = $this->slugify($next_video['title']);
-            
             $next_url = home_url('/?categoria=' . $category_slug . '&video=' . $next_slug);
         }
         
         // Start output
-        $section = $this->api->get_section();
         $home_url = home_url('/');
         
         $output = '<div class="adc-video-container">';
@@ -475,7 +504,7 @@ class ADC_Video_Display {
             $output .= '</div>';
         }
 
-        // Related videos - Smart logic implementation
+        // Related videos
         $related_videos = $this->get_smart_related_videos($materials, $video_index, 8);
         
         $output .= '<h2 class="adc-related-videos-title">Más videos de ' . esc_html($category['name']) . '</h2>';
@@ -502,99 +531,103 @@ class ADC_Video_Display {
         
         $output .= '</div></div>';
         
-        // Configuration for JavaScript (SOLO lo que necesita datos PHP dinámicos)
+        // Video player configuration
         $autoplay = isset($this->options['enable_autoplay']) ? $this->options['enable_autoplay'] : '1';
         $countdown = isset($this->options['autoplay_countdown']) ? $this->options['autoplay_countdown'] : '5';
         
-        // Add inline script SOLO para configuración específica del video que usa datos PHP
         if ($next_url && $autoplay == '1') {
-            $output .= '<script>
-            document.addEventListener("DOMContentLoaded", function() {
-                if (typeof videojs !== "undefined" && document.getElementById("adc-player")) {
-                    var player = videojs("adc-player");
-                    var overlay = document.getElementById("adc-next-overlay");
-                    var countdownEl = document.getElementById("adc-countdown");
-                    var cancelBtn = document.getElementById("adc-cancel-autoplay");
-                    var interval = null;
-                    var seconds = ' . intval($countdown) . ';
-                    var cancelled = false;
-                    
-                    player.ready(function() {
-                        player.volume(0.5);
-                        
-                        // Add custom buttons
-                        var Button = videojs.getComponent("Button");
-                        
-                        var rewindButton = videojs.extend(Button, {
-                            constructor: function() {
-                                Button.apply(this, arguments);
-                                this.controlText("Rewind 10 seconds");
-                                this.addClass("vjs-rewind-button");
-                                this.el().innerHTML = "⏪ 10s";
-                            },
-                            handleClick: function() {
-                                player.currentTime(player.currentTime() - 10);
-                            }
-                        });
-                        videojs.registerComponent("RewindButton", rewindButton);
-                        player.getChild("controlBar").addChild("RewindButton", {}, 0);
-                        
-                        var forwardButton = videojs.extend(Button, {
-                            constructor: function() {
-                                Button.apply(this, arguments);
-                                this.controlText("Forward 10 seconds");
-                                this.addClass("vjs-forward-button");
-                                this.el().innerHTML = "10s ⏩";
-                            },
-                            handleClick: function() {
-                                player.currentTime(player.currentTime() + 10);
-                            }
-                        });
-                        videojs.registerComponent("ForwardButton", forwardButton);
-                        player.getChild("controlBar").addChild("ForwardButton", {}, 2);
-                    });
-                    
-                    player.on("ended", function() {
-                        if (!overlay || cancelled) return;
-                        
-                        // Exit fullscreen if active
-                        if (player.isFullscreen()) {
-                            player.exitFullscreen();
-                        }
-                        
-                        // Show overlay after small delay to ensure fullscreen exit
-                        setTimeout(function() {
-                            overlay.style.display = "block";
-                            seconds = ' . intval($countdown) . ';
-                            countdownEl.textContent = seconds;
-                            interval = setInterval(function() {
-                                seconds--;
-                                countdownEl.textContent = seconds;
-                                if (seconds <= 0 && !cancelled) {
-                                    clearInterval(interval);
-                                    window.location.href = "' . $next_url . '";
-                                }
-                            }, 1000);
-                        }, 300);
-                    });
-                    
-                    if (cancelBtn) {
-                        cancelBtn.addEventListener("click", function() {
-                            cancelled = true;
-                            if (overlay) {
-                                overlay.innerHTML = \'<p style="color:#aaa">Autoplay cancelado</p>\';
-                            }
-                            clearInterval(interval);
-                        });
-                    }
-                }
-            });
-            </script>';
+            $output .= $this->generate_video_player_script($next_url, $countdown);
         }
         
         $output .= '</div>';
         
         return $output;
+    }
+    
+    /**
+     * Generate video player script (optimized)
+     */
+    private function generate_video_player_script($next_url, $countdown) {
+        return '<script>
+        document.addEventListener("DOMContentLoaded", function() {
+            if (typeof videojs !== "undefined" && document.getElementById("adc-player")) {
+                var player = videojs("adc-player");
+                var overlay = document.getElementById("adc-next-overlay");
+                var countdownEl = document.getElementById("adc-countdown");
+                var cancelBtn = document.getElementById("adc-cancel-autoplay");
+                var interval = null;
+                var seconds = ' . intval($countdown) . ';
+                var cancelled = false;
+                
+                player.ready(function() {
+                    player.volume(0.5);
+                    
+                    // Add custom buttons
+                    var Button = videojs.getComponent("Button");
+                    
+                    var rewindButton = videojs.extend(Button, {
+                        constructor: function() {
+                            Button.apply(this, arguments);
+                            this.controlText("Rewind 10 seconds");
+                            this.addClass("vjs-rewind-button");
+                            this.el().innerHTML = "⏪ 10s";
+                        },
+                        handleClick: function() {
+                            player.currentTime(player.currentTime() - 10);
+                        }
+                    });
+                    videojs.registerComponent("RewindButton", rewindButton);
+                    player.getChild("controlBar").addChild("RewindButton", {}, 0);
+                    
+                    var forwardButton = videojs.extend(Button, {
+                        constructor: function() {
+                            Button.apply(this, arguments);
+                            this.controlText("Forward 10 seconds");
+                            this.addClass("vjs-forward-button");
+                            this.el().innerHTML = "10s ⏩";
+                        },
+                        handleClick: function() {
+                            player.currentTime(player.currentTime() + 10);
+                        }
+                    });
+                    videojs.registerComponent("ForwardButton", forwardButton);
+                    player.getChild("controlBar").addChild("ForwardButton", {}, 2);
+                });
+                
+                player.on("ended", function() {
+                    if (!overlay || cancelled) return;
+                    
+                    if (player.isFullscreen()) {
+                        player.exitFullscreen();
+                    }
+                    
+                    setTimeout(function() {
+                        overlay.style.display = "block";
+                        seconds = ' . intval($countdown) . ';
+                        countdownEl.textContent = seconds;
+                        interval = setInterval(function() {
+                            seconds--;
+                            countdownEl.textContent = seconds;
+                            if (seconds <= 0 && !cancelled) {
+                                clearInterval(interval);
+                                window.location.href = "' . $next_url . '";
+                            }
+                        }, 1000);
+                    }, 300);
+                });
+                
+                if (cancelBtn) {
+                    cancelBtn.addEventListener("click", function() {
+                        cancelled = true;
+                        if (overlay) {
+                            overlay.innerHTML = \'<p style="color:#aaa">Autoplay cancelado</p>\';
+                        }
+                        clearInterval(interval);
+                    });
+                }
+            }
+        });
+        </script>';
     }
     
     /**
@@ -604,7 +637,6 @@ class ADC_Video_Display {
         $related = array();
         $total_videos = count($materials);
         
-        // If we have fewer videos than the limit, show all except current
         if ($total_videos <= $limit + 1) {
             for ($i = 0; $i < $total_videos; $i++) {
                 if ($i != $current_index) {
@@ -615,20 +647,17 @@ class ADC_Video_Display {
             return $related;
         }
         
-        // Otherwise, use the smart logic
         $added = 0;
         $position = $current_index + 1;
         
         while ($added < $limit) {
             $index = $position % $total_videos;
             
-            // Skip if it's the current video
             if ($index == $current_index) {
                 $position++;
                 continue;
             }
             
-            // Add original index for loop detection
             $materials[$index]['original_index'] = $index;
             $related[] = $materials[$index];
             $added++;
@@ -636,6 +665,18 @@ class ADC_Video_Display {
         }
         
         return $related;
+    }
+    
+    /**
+     * Convert title to slug (optimized, single function)
+     */
+    private function slugify($text) {
+        $text = preg_replace('~[^\pL\d]+~u', '-', $text);
+        $text = trim($text, '-');
+        $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
+        $text = strtolower($text);
+        $text = preg_replace('~[^-\w]+~', '', $text);
+        return $text;
     }
 }
 
@@ -660,6 +701,9 @@ function adc_video_display_activate() {
     );
     
     add_option('adc-video-display', $default_options);
+    
+    // Initialize coming soon programs option
+    add_option('adc_coming_soon_programs', array());
 }
 
 // Deactivation hook
