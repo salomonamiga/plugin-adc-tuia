@@ -862,29 +862,3 @@ class ADC_Admin
 if (is_admin()) {
     new ADC_Admin();
 }
-
-// DEBUG TEMPORAL - Agregar antes del cierre final
-if (isset($_GET['debug_coming_soon'])) {
-    echo '<div style="background: #f0f0f0; padding: 20px; margin: 20px 0; border: 1px solid #ccc;">';
-    echo '<h3>🔍 DEBUG: Programas IA</h3>';
-
-    $api = new ADC_API();
-    $api->enable_debug();
-
-    echo '<h4>1. Todos los programas de la API:</h4>';
-    $all_programs = $api->get_all_programs_from_api();
-    echo 'Total encontrados: ' . count($all_programs) . '<br>';
-
-    echo '<h4>2. Programas filtrados (solo con portada IA):</h4>';
-    $filtered_programs = $api->get_programs();
-    echo 'Con portada IA: ' . count($filtered_programs) . '<br>';
-
-    echo '<h4>3. Programas sin videos:</h4>';
-    $programs_without_videos = $api->get_programs_without_videos();
-    echo 'Sin videos: ' . count($programs_without_videos) . '<br>';
-
-    echo '<h4>4. Debug info:</h4>';
-    echo '<pre>' . print_r($api->get_debug_info(), true) . '</pre>';
-
-    echo '</div>';
-}
