@@ -581,6 +581,9 @@ class ADC_Admin
     /**
      * Display the coming soon page
      */
+    /**
+     * Display the coming soon page
+     */
     public function display_coming_soon_page()
     {
         $programs_without_videos = $this->api->get_programs_without_videos();
@@ -599,7 +602,7 @@ class ADC_Admin
             return;
         }
 
-        echo '<form method="post" action="options.php">';
+        echo '<form method="post" action="options.php" id="adc-coming-soon-form">';
         settings_fields($this->plugin_name . '_coming_soon_group');
 
         echo '<div class="adc-coming-soon-controls">';
@@ -639,6 +642,54 @@ class ADC_Admin
         echo '</div>';
 
         submit_button('Guardar Programas Próximamente');
+
+        echo '<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var form = document.querySelector("#adc-coming-soon-form");
+    var submitBtn = document.querySelector("#submit");
+    
+    if (form && submitBtn) {
+        // Override form submit to ensure it works even with mixed content
+        submitBtn.addEventListener("click", function(e) {
+            e.preventDefault();
+            
+            // Add loading state
+            submitBtn.disabled = true;
+            submitBtn.value = "Guardando...";
+            
+            console.log("ADC: Forcing form submission");
+            
+            // Force submission after short delay
+            setTimeout(function() {
+                try {
+                    form.submit();
+                } catch (error) {
+                    console.error("ADC: Form submission error:", error);
+                    // Fallback: try direct submission
+                    var formData = new FormData(form);
+                    fetch("/wp-admin/options.php", {
+                        method: "POST",
+                        body: formData
+                    }).then(function(response) {
+                        if (response.ok) {
+                            window.location.reload();
+                        } else {
+                            alert("Error al guardar. Inténtalo de nuevo.");
+                        }
+                    }).catch(function(error) {
+                        console.error("ADC: Fetch error:", error);
+                        alert("Error al guardar. Inténtalo de nuevo.");
+                    }).finally(function() {
+                        submitBtn.disabled = false;
+                        submitBtn.value = "Guardar Programas Próximamente";
+                    });
+                }
+            }, 100);
+        });
+    }
+});
+</script>';
+
         echo '</form>';
         echo '</div>';
     }
