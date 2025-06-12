@@ -325,30 +325,7 @@ class ADC_Video_Display
             // and will be automatically removed from "Coming Soon" display
         }
 
-        // DEBUG TEMPORAL - MOSTRAR EN PANTALLA
-if (current_user_can('manage_options')) {
-    echo '<div style="background: yellow; padding: 10px; margin: 10px; border: 2px solid red; position: fixed; top: 50px; right: 10px; z-index: 9999; max-width: 400px;">';
-    echo '<strong>DEBUG COMING SOON:</strong><br>';
-    echo 'IDs seleccionados: ' . implode(', ', $coming_soon_ids) . '<br>';
-    echo 'Programas encontrados: ' . count($coming_soon_programs) . '<br>';
-    // DEBUG ADICIONAL
-if (current_user_can('manage_options')) {
-    echo '<div style="background: orange; padding: 10px; margin: 10px; border: 2px solid blue; position: fixed; top: 150px; right: 10px; z-index: 9999; max-width: 400px;">';
-    echo '<strong>DEBUG API:</strong><br>';
-    echo 'Total programas de API: ' . count($all_programs) . '<br>';
-    foreach ($all_programs as $prog) {
-        echo '- ID: ' . $prog['id'] . ' - ' . $prog['name'] . '<br>';
-    }
-    echo '</div>';
-}
-
-    foreach ($coming_soon_programs as $prog) {
-        echo '- ' . $prog['name'] . ' (ID: ' . $prog['id'] . ')<br>';
-    }
-    echo '</div>';
-}
-
-return $coming_soon_programs;
+        return $coming_soon_programs;
     }
 
     /**

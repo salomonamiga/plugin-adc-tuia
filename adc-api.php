@@ -144,7 +144,7 @@ class ADC_API
     public function get_all_programs_from_api()
     {
         $cache_key = 'all_programs_' . $this->section;
-        $endpoint = $this->section == '5' ? '/ia/categories' : '/programs';
+        $endpoint = $this->section == '5' ? '/ia/categories/all' : '/programs';
         $data = $this->make_request($endpoint, array(), $cache_key);
 
         if (!$data || !isset($data['data'])) {
