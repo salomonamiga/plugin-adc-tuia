@@ -147,16 +147,25 @@ class ADC_API {
     }
     
     /**
-     * Get programs that don't have videos (for coming soon selection)
+     * Get programs that don't have videos (for coming soon selection) - FIXED
      */
     public function get_programs_without_videos() {
+        // First get ALL programs from API
         $all_programs = $this->get_all_programs_from_api();
+        
+        // Apply the same filtering by cover as get_programs() does
+        $filtered_programs = $this->filter_programs_by_section($all_programs);
+        
         $programs_without_videos = array();
         
-        foreach ($all_programs as $program) {
+        // Now check which of the filtered programs don't have videos
+        foreach ($filtered_programs as $program) {
             $materials = $this->get_materials($program['id']);
             if (empty($materials)) {
                 $programs_without_videos[] = $program;
+                $this->add_debug('Program without videos found: ' . $program['name'] . ' (ID: ' . $program['id'] . ')');
+            } else {
+                $this->add_debug('Program with videos: ' . $program['name'] . ' (ID: ' . $program['id'] . ') - ' . count($materials) . ' videos');
             }
         }
         
@@ -164,6 +173,8 @@ class ADC_API {
         usort($programs_without_videos, function($a, $b) {
             return strcmp($a['name'], $b['name']);
         });
+        
+        $this->add_debug('Total programs without videos: ' . count($programs_without_videos));
         
         return $programs_without_videos;
     }
@@ -174,15 +185,25 @@ class ADC_API {
     private function filter_programs_by_section($programs) {
         if ($this->section == '5') {
             // Filter IA programs (those with _ia.png in cover)
-            return array_values(array_filter($programs, function($program) {
-                return isset($program['cover']) && strpos($program['cover'], '_ia.png') !== false;
-            }));
+            $filtered = array_filter($programs, function($program) {
+                $has_ia_cover = isset($program['cover']) && strpos($program['cover'], '_ia.png') !== false;
+                if ($has_ia_cover) {
+                    $this->add_debug('IA Program found: ' . $program['name'] . ' (ID: ' . $program['id'] . ')');
+                }
+                return $has_ia_cover;
+            });
         } else {
             // Filter Kids programs (those with _infantil.png in cover)
-            return array_values(array_filter($programs, function($program) {
-                return isset($program['cover']) && strpos($program['cover'], '_infantil.png') !== false;
-            }));
+            $filtered = array_filter($programs, function($program) {
+                $has_kids_cover = isset($program['cover']) && strpos($program['cover'], '_infantil.png') !== false;
+                if ($has_kids_cover) {
+                    $this->add_debug('Kids Program found: ' . $program['name'] . ' (ID: ' . $program['id'] . ')');
+                }
+                return $has_kids_cover;
+            });
         }
+        
+        return array_values($filtered);
     }
     
     /**
@@ -202,9 +223,11 @@ class ADC_API {
         $data = $this->make_request($endpoint, $params, $cache_key);
         
         if (!$data || !isset($data['data'])) {
+            $this->add_debug('No materials found for program ID: ' . $program_id);
             return array();
         }
         
+        $this->add_debug('Materials found for program ID ' . $program_id . ': ' . count($data['data']));
         return $data['data'];
     }
     
@@ -581,4 +604,4 @@ class ADC_API {
         
         return $programs_with_videos;
     }
-}
+} 
