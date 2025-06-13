@@ -890,14 +890,19 @@
 
 /* Dropdown arrow animation */
 .dropdown-arrow {
-    color: #6EC1E4 !important;
-    margin-left: 8px !important;
-    vertical-align: middle !important;
-    transition: transform 0.3s ease !important;
-    display: inline-block !important;
-    font-size: 18px !important;
-    line-height: 1 !important;
-    font-weight: bold !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border-top: none !important;
+    background-color: rgba(0, 0, 0, 0.8) !important;
+    transform: none !important;
+}
+
+/* Quitar outline del menú programas */
+a:focus,
+button:focus {
+    outline: none !important;
 }
 
 /* Positioning for Elementor menus */
@@ -906,15 +911,6 @@
     left: 0 !important;
     transform: none !important;
     margin: 0 !important;
-}
-
-/* Quitar borde azul del menú programas */
-.adc-programs-menu-trigger,
-.adc-programs-menu-trigger:focus,
-.adc-programs-menu-trigger:active {
-    outline: none !important;
-    border: none !important;
-    box-shadow: none !important;
 }
 
 /* ===================================
