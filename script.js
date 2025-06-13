@@ -928,7 +928,7 @@
                 }).on('mouseleave.adc-video', '.adc-back-button, .adc-view-all-button, .adc-view-more-button', function() {
                     $(this).removeClass('adc-button-hover');
                 });
-            }
+            },
 
             bindGeneralEvents: function() {
                 // Window resize handler - debounced
