@@ -343,7 +343,7 @@
             configureExistingElements: function() {
                 var self = this;
                 
-                $('a:contains("PROGRAMAS"), .adc_programs_menu_text').each(function() {
+                $('a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger').each(function() {
                     self.setupProgramElement($(this));
                 });
             },
@@ -634,7 +634,7 @@
 
                 var self = this;
                 
-                $('a:contains("BUSCADOR"), a:contains("Buscar"), a.search-toggle, .search-toggle, .search-icon, .fa-search').each(function() {
+                $('a:contains("BUSCADOR"), a:contains("Buscar"), a.search-toggle, .search-toggle, .search-icon, .fa-search, .adc-search-menu-trigger').each(function() {
                     var $searchLink = $(this);
                     
                     if ($searchLink.data('search-initialized')) {
