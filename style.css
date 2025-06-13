@@ -905,6 +905,21 @@
     margin: 0 !important;
 }
 
+/* Flecha para elementos PROGRAMAS - FIXED */
+.adc-programs-menu-trigger::after {
+    content: ' ▾';
+    color: #6EC1E4;
+    margin-left: 5px;
+    vertical-align: middle;
+    transition: transform 0.3s ease;
+    display: inline-block;
+}
+
+.adc-programs-menu-trigger.active::after,
+.adc-programs-menu-trigger[aria-expanded="true"]::after {
+    transform: rotate(180deg);
+}
+
 /* ===================================
    Search Form Styles - Enhanced
    =================================== */
