@@ -16,7 +16,7 @@
 
 /* ===================================
       Grid Layouts - Optimized
-      =================================== */
+   =================================== */
 
 /* Categories Grid (circles) */
 .adc-categories-row {
@@ -74,7 +74,7 @@
 
 /* ===================================
       Category Cards - Enhanced with Coming Soon
-      =================================== */
+   =================================== */
 .adc-category-card {
     display: flex;
     flex-direction: column;
@@ -194,7 +194,7 @@
 
 /* ===================================
       Section Headers - Optimized
-      =================================== */
+ =================================== */
 
 /* Category header */
 .adc-category-header {
@@ -242,7 +242,7 @@
 
 /* ===================================
       Video Cards - Enhanced
-      =================================== */
+   =================================== */
 .adc-video-item {
     width: 100%;
     max-width: 240px;
@@ -363,7 +363,7 @@
 
 /* ===================================
       Single Video Page - Enhanced
-      =================================== */
+   =================================== */
 
 /* Video Title and Header Container */
 .adc-video-header {
@@ -776,9 +776,9 @@
 }
 
 /* ===================================
-   Dropdown Menu Styles - Enhanced
+   Dropdown Menu Styles
    =================================== */
-.adc-dropdown-menu {
+   .adc-dropdown-menu {
     position: relative;
     display: inline-block;
 }
@@ -801,7 +801,7 @@
     padding: 12px 16px;
     text-decoration: none;
     display: block;
-    transition: all 0.3s ease;
+    transition: background-color 0.3s;
 }
 
 .adc-dropdown-content a:hover {
@@ -814,7 +814,7 @@
 }
 
 /* ===================================
-   Programs Dropdown Menu Styles - Enhanced
+   Programs Dropdown Menu Styles
    =================================== */
 .has-programs-dropdown {
     position: relative !important;
@@ -845,7 +845,6 @@
     box-shadow: 0 15px 25px rgba(0, 0, 0, 0.3);
     display: none;
     border-top: 2px solid #6EC1E4;
-    backdrop-filter: blur(5px);
 }
 
 .adc-wp-programs-dropdown.active {
@@ -874,8 +873,6 @@
     line-height: 1.5 !important;
     transition: all 0.2s ease !important;
     border-bottom: 1px solid rgba(110, 193, 228, 0.1) !important;
-    white-space: normal !important;
-    word-wrap: break-word !important;
 }
 
 .adc-wp-programs-dropdown a:last-child {
@@ -890,27 +887,63 @@
 
 /* Dropdown arrow animation */
 .dropdown-arrow {
-    position: static !important;
-    width: 100% !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    border-top: none !important;
-    background-color: rgba(0, 0, 0, 0.8) !important;
+    color: #6EC1E4 !important;
+    margin-left: 5px !important;
+    vertical-align: middle !important;
+    transition: transform 0.3s ease !important;
+    display: inline-block !important;
+    font-size: 14px !important;
+}
+
+/* Posicionamiento específico para menús Elementor */
+.elementor-nav-menu--main .elementor-nav-menu .has-programs-dropdown .adc-wp-programs-dropdown {
+    top: 100% !important;
+    left: 0 !important;
     transform: none !important;
+    margin: 0 !important;
+}
+
+/* Programs dropdown mobile adjustments */
+@media (max-width: 768px) {
+    .adc-wp-programs-dropdown {
+        position: static !important;
+        width: 100% !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border-top: none !important;
+        background-color: rgba(0, 0, 0, 0.8) !important;
+        transform: none !important;
+    }
+
+    .adc-wp-programs-dropdown a {
+        padding: 12px 16px !important;
+    }
+
+    .adc-wp-programs-dropdown a:hover {
+        padding-left: 20px !important;
+    }
+
+    .programs-active>a::after {
+        content: '';
+        display: inline-block;
+        margin-left: 8px;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 4px 4px 0 4px;
+        border-color: #6EC1E4 transparent transparent transparent;
+        transition: transform 0.3s ease;
+    }
+
+    .programs-active.active>a::after {
+        transform: rotate(180deg);
+    }
 }
 
 /* Quitar outline del menú programas */
 a:focus,
 button:focus {
     outline: none !important;
-}
-
-/* Positioning for Elementor menus */
-.elementor-nav-menu--main .elementor-nav-menu .has-programs-dropdown .adc-wp-programs-dropdown {
-    top: 100% !important;
-    left: 0 !important;
-    transform: none !important;
-    margin: 0 !important;
 }
 
 /* ===================================
