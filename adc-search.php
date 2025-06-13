@@ -109,45 +109,68 @@ class ADC_Search {
         return $output;
     }
     
-    /**
-     * Enhanced AJAX search handler - Consolidated
-     */
-    public function ajax_search() {
-        // Verify nonce if available
-        if (isset($_POST['nonce']) && !empty($_POST['nonce'])) {
-            if (!wp_verify_nonce($_POST['nonce'], 'adc_nonce')) {
-                wp_send_json_error('Invalid nonce');
-                return;
-            }
+/**
+ * Enhanced AJAX search handler - Consolidated with better error handling
+ */
+public function ajax_search() {
+    // Enhanced nonce verification
+    if (isset($_POST['nonce']) && !empty($_POST['nonce'])) {
+        if (!wp_verify_nonce($_POST['nonce'], 'adc_nonce')) {
+            wp_send_json_error(array(
+                'message' => 'Invalid nonce',
+                'code' => 'INVALID_NONCE'
+            ));
+            return;
         }
-        
-        $search_term = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
-        
-        if (empty($search_term) || strlen($search_term) < 2) {
-            wp_send_json_error('Search term too short');
+    }
+    
+    $search_term = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
+    
+    if (empty($search_term) || strlen($search_term) < 2) {
+        wp_send_json_error(array(
+            'message' => 'Search term too short',
+            'code' => 'TERM_TOO_SHORT',
+            'min_length' => 2
+        ));
+        return;
+    }
+    
+    try {
+        // Check if search is enabled
+        if (!$this->is_search_enabled()) {
+            wp_send_json_error(array(
+                'message' => 'Search disabled',
+                'code' => 'SEARCH_DISABLED'
+            ));
             return;
         }
         
-        try {
-            // Get search results with caching
-            $results = $this->get_cached_search_results($search_term);
-            
-            // Add metadata
-            $response_data = array(
-                'results' => $results,
-                'total' => count($results),
-                'search_term' => $search_term,
-                'grouped_results' => $this->group_results_by_category($results),
-                'cache_time' => current_time('timestamp')
-            );
-            
-            wp_send_json_success($response_data);
-            
-        } catch (Exception $e) {
-            error_log('ADC Search Error: ' . $e->getMessage());
-            wp_send_json_error('Search failed');
-        }
+        // Get search results with caching
+        $results = $this->get_cached_search_results($search_term);
+        
+        // Enhanced response data structure
+        $response_data = array(
+            'results' => $results,
+            'total' => count($results),
+            'search_term' => $search_term,
+            'grouped_results' => $this->group_results_by_category($results),
+            'cache_time' => current_time('timestamp'),
+            'section' => $this->api->get_section_name(),
+            'success' => true,
+            'version' => '2.1'
+        );
+        
+        wp_send_json_success($response_data);
+        
+    } catch (Exception $e) {
+        error_log('ADC Search Error: ' . $e->getMessage());
+        wp_send_json_error(array(
+            'message' => 'Search failed',
+            'code' => 'SEARCH_ERROR',
+            'debug' => WP_DEBUG ? $e->getMessage() : null
+        ));
     }
+}
     
     /**
      * Legacy AJAX search videos handler (for backwards compatibility)

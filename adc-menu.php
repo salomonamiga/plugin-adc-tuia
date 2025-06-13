@@ -89,47 +89,64 @@ class ADC_Menu {
         return $output;
     }
     
-    /**
-     * AJAX handler to get programs - Enhanced with error handling
-     */
-    public function ajax_get_programs() {
-        // Verify nonce if available
-        if (isset($_POST['nonce']) && !empty($_POST['nonce'])) {
-            if (!wp_verify_nonce($_POST['nonce'], 'adc_nonce')) {
-                wp_send_json_error('Invalid nonce');
-                return;
-            }
-        }
-        
-        try {
-            // Check if API is configured
-            if (!$this->api->is_configured()) {
-                wp_send_json_error('API not configured');
-                return;
-            }
-            
-            $programs = $this->get_cached_programs_for_menu();
-            
-            if (empty($programs)) {
-                wp_send_json_error('No programs found');
-                return;
-            }
-            
-            // Add additional data for frontend
-            $response_data = array(
-                'programs' => $programs,
-                'count' => count($programs),
-                'section' => $this->api->get_section_name(),
-                'cache_time' => current_time('timestamp')
-            );
-            
-            wp_send_json_success($response_data);
-            
-        } catch (Exception $e) {
-            error_log('ADC Menu AJAX Error: ' . $e->getMessage());
-            wp_send_json_error('Internal server error');
+/**
+ * AJAX handler to get programs - Enhanced with error handling and compatibility
+ */
+public function ajax_get_programs() {
+    // Enhanced nonce verification
+    if (isset($_POST['nonce']) && !empty($_POST['nonce'])) {
+        if (!wp_verify_nonce($_POST['nonce'], 'adc_nonce')) {
+            wp_send_json_error(array(
+                'message' => 'Invalid nonce',
+                'code' => 'INVALID_NONCE'
+            ));
+            return;
         }
     }
+    
+    try {
+        // Check if API is configured
+        if (!$this->api->is_configured()) {
+            wp_send_json_error(array(
+                'message' => 'API not configured',
+                'code' => 'API_NOT_CONFIGURED'
+            ));
+            return;
+        }
+        
+        // Get programs with enhanced caching
+        $programs = $this->get_cached_programs_for_menu();
+        
+        if (empty($programs)) {
+            wp_send_json_error(array(
+                'message' => 'No programs found',
+                'code' => 'NO_PROGRAMS',
+                'programs' => []
+            ));
+            return;
+        }
+        
+        // Enhanced response data structure for better compatibility
+        $response_data = array(
+            'programs' => $programs,
+            'count' => count($programs),
+            'section' => $this->api->get_section_name(),
+            'cache_time' => current_time('timestamp'),
+            'success' => true,
+            'version' => '2.1'
+        );
+        
+        wp_send_json_success($response_data);
+        
+    } catch (Exception $e) {
+        error_log('ADC Menu AJAX Error: ' . $e->getMessage());
+        wp_send_json_error(array(
+            'message' => 'Internal server error',
+            'code' => 'SERVER_ERROR',
+            'debug' => WP_DEBUG ? $e->getMessage() : null
+        ));
+    }
+}
     
     /**
      * Get programs with caching - Optimized
