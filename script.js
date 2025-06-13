@@ -390,7 +390,7 @@
                 $dropdown.hide();
 
                 // Add enhanced arrow
-                var $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block;">▾</span>');
+                var $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block; font-size:12px;">▼</span>');
                 $element.append($arrow);
 
                 // Store references with validation
