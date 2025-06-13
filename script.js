@@ -343,8 +343,16 @@
             configureExistingElements: function() {
                 var self = this;
                 
+                // Buscar elementos por texto Y por clases CSS
                 $('a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger').each(function() {
                     self.setupProgramElement($(this));
+                });
+                
+                // También buscar elementos que tengan la clase pero no se hayan detectado
+                $('.adc-programs-menu-trigger').each(function() {
+                    if (!$(this).data('programs-configured')) {
+                        self.setupProgramElement($(this));
+                    }
                 });
             },
 
@@ -486,15 +494,15 @@
 
             setupSearchReplacements: function() {
                 ADCVideo.utils.log('Setting up search replacements');
-
-                // Replace BUSCADOR elements with search forms
+            
+                // Buscar elementos BUSCADOR por texto
                 document.querySelectorAll('a').forEach(function(link) {
                     if (link.textContent.trim() === 'BUSCADOR') {
                         var searchContainer = document.createElement('div');
                         searchContainer.className = 'adc-menu-search-container';
-
+            
                         var homeUrl = window.location.origin + '/';
-
+            
                         searchContainer.innerHTML =
                             '<form class="adc-inline-search-form" action="' + homeUrl + '" method="get">' +
                             '<input type="text" name="adc_search" placeholder="Buscar..." class="adc-inline-search-input">' +
@@ -505,7 +513,7 @@
                             '</svg>' +
                             '</button>' +
                             '</form>';
-
+            
                         var menuItem = link.closest('li');
                         if (menuItem) {
                             menuItem.innerHTML = '';
@@ -515,6 +523,41 @@
                             menuItem.style.marginLeft = '40px';
                         }
                     }
+                });
+                
+                // Buscar elementos con clase CSS específica
+                document.querySelectorAll('.adc-search-menu-trigger').forEach(function(element) {
+                    if (element.dataset.searchConfigured) return;
+                    
+                    var searchContainer = document.createElement('div');
+                    searchContainer.className = 'adc-menu-search-container';
+            
+                    var homeUrl = window.location.origin + '/';
+            
+                    searchContainer.innerHTML =
+                        '<form class="adc-inline-search-form" action="' + homeUrl + '" method="get">' +
+                        '<input type="text" name="adc_search" placeholder="Buscar..." class="adc-inline-search-input">' +
+                        '<button type="submit" class="adc-inline-search-button">' +
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                        '<circle cx="11" cy="11" r="8"></circle>' +
+                        '<line x1="21" y1="21" x2="16.65" y2="16.65"></line>' +
+                        '</svg>' +
+                        '</button>' +
+                        '</form>';
+            
+                    var menuItem = element.closest('li');
+                    if (menuItem) {
+                        menuItem.innerHTML = '';
+                        menuItem.appendChild(searchContainer);
+                        menuItem.style.display = 'flex';
+                        menuItem.style.alignItems = 'center';
+                        menuItem.style.marginLeft = '40px';
+                    } else {
+                        // Si no hay li padre, reemplazar directamente
+                        element.parentNode.replaceChild(searchContainer, element);
+                    }
+                    
+                    element.dataset.searchConfigured = 'true';
                 });
             },
 
@@ -1503,3 +1546,5 @@ if (window.performance && window.performance.mark) {
         }
     }, 1000);
 }
+
+
