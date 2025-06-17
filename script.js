@@ -361,13 +361,13 @@
             },
 
             setupProgramElement: function($element) {
-                if ($element.data('programs-configured') && this.isProperlyConfigured($element)) {
-                    return; // Already properly configured
-                }
-
-                ADCVideo.utils.log('Configuring PROGRAMAS element with class: adc-programs-menu-trigger');
-
-                var $parentLi = $element.closest('li.menu-item, li');
+                if ($element.data('programs-configured')) return;
+            
+                ADCVideo.utils.log('Configuring PROGRAMAS element');
+            
+                var $programasLink = $element; // Guardar referencia al enlace original
+                var $parentLi = $element.closest('li');
+                
                 if (!$parentLi.length) {
                     $parentLi = $element.parent();
                 }
@@ -391,7 +391,7 @@
 
                 // Add enhanced arrow
                 var $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block;">▾</span>');
-                $element.append($arrow);
+                $programasLink.append($arrow);
 
                 // Store references with validation
                 $element.data({
