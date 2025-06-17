@@ -343,29 +343,49 @@
             configureExistingElements: function () {
                 var self = this;
 
-                $('a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger').each(function () {
+                // CORRECCIÓN: Ser más específico con los selectores
+                // Primero buscar elementos con la clase específica
+                $('.adc-programs-menu-trigger').each(function () {
                     self.setupProgramElement($(this));
+                });
+
+                // Solo buscar elementos que contengan "PROGRAMAS" si están en un contexto de menú
+                $('nav a:contains("PROGRAMAS"), .menu a:contains("PROGRAMAS"), .elementor-nav-menu a:contains("PROGRAMAS")').each(function () {
+                    var $this = $(this);
+                    // Evitar duplicados - solo procesar si no tiene la clase ya configurada
+                    if (!$this.hasClass('adc-programs-menu-trigger') && !$this.data('programs-configured')) {
+                        $this.addClass('adc-programs-menu-trigger');
+                        self.setupProgramElement($this);
+                    }
+                });
+
+                // Buscar elementos con clase específica del menú WP
+                $('.adc_programs_menu_text').each(function () {
+                    var $this = $(this);
+                    if (!$this.data('programs-configured')) {
+                        self.setupProgramElement($this);
+                    }
                 });
             },
 
             setupProgramElement: function ($element) {
-                if ($element.data('programs-configured')) return;
+                // CORRECCIÓN: Verificar si ya está configurado para evitar duplicados
+                if ($element.data('programs-configured')) {
+                    ADCVideo.utils.log('Element already configured, skipping');
+                    return;
+                }
 
                 ADCVideo.utils.log('Configuring PROGRAMAS element');
 
-                var $programasLink = $element.find('a'); // Buscar el enlace dentro del elemento
-                if (!$programasLink.length) {
-                    $programasLink = $element; // Fallback si no encuentra el enlace
-                }
                 var $parentLi = $element.closest('li');
                 if (!$parentLi.length) {
                     $parentLi = $element.parent();
                 }
 
-                // Clean previous configuration
+                // CORRECCIÓN: Limpiar MÁS específicamente para evitar tocar otros elementos
                 $parentLi.find('.adc-wp-programs-dropdown').remove();
                 $element.find('.dropdown-arrow').remove();
-                $element.removeData('dropdown arrow programs-configured');
+                $element.removeData('dropdown arrow');
 
                 // Setup container
                 $parentLi.css({
@@ -379,9 +399,16 @@
                 $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
                 $dropdown.hide();
 
-                // Add arrow with original styling - ESTA ES LA CORRECCIÓN CLAVE
-                var $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block;">▾</span>');
-                $programasLink.append($arrow);
+                // CORRECCIÓN: Solo añadir flecha si NO existe ya
+                var existingArrow = $element.find('.dropdown-arrow');
+                var $arrow;
+                
+                if (existingArrow.length === 0) {
+                    $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block;">▾</span>');
+                    $element.append($arrow);
+                } else {
+                    $arrow = existingArrow.first(); // Usar la flecha existente
+                }
 
                 // Store references
                 $element.data({
@@ -529,7 +556,8 @@
                 this.observer = new MutationObserver(function (mutations) {
                     mutations.forEach(function (mutation) {
                         if (mutation.type === 'childList') {
-                            $(mutation.addedNodes).find('a:contains("PROGRAMAS"), .adc_programs_menu_text').each(function () {
+                            // CORRECCIÓN: Ser más específico con los elementos que observamos
+                            $(mutation.addedNodes).find('.adc-programs-menu-trigger, .adc_programs_menu_text').each(function () {
                                 var $this = $(this);
                                 if (!$this.data('programs-configured') || !self.isProperlyConfigured($this)) {
                                     ADCVideo.utils.log('New PROGRAMAS element detected by observer');
@@ -559,8 +587,8 @@
             bindEvents: function () {
                 var self = this;
 
-                // Use event delegation for PROGRAMAS clicks
-                ADCVideo.cache.$document.on('click.programs-menu', 'a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger', function (e) {
+                // CORRECCIÓN: Usar selectores más específicos para evitar conflictos
+                ADCVideo.cache.$document.on('click.programs-menu', '.adc-programs-menu-trigger, .adc_programs_menu_text', function (e) {
                     e.preventDefault();
                     e.stopPropagation();
 
@@ -579,7 +607,7 @@
 
                 // Close dropdowns when clicking outside
                 ADCVideo.cache.$document.on('click.programs-menu-outside', function (e) {
-                    if (!$(e.target).closest('.adc-wp-programs-dropdown, a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger').length) {
+                    if (!$(e.target).closest('.adc-wp-programs-dropdown, .adc-programs-menu-trigger, .adc_programs_menu_text').length) {
                         $('.adc-wp-programs-dropdown').slideUp(200);
                         $('.dropdown-arrow').css('transform', 'rotate(0deg)');
                     }
