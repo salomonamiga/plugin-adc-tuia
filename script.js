@@ -310,245 +310,185 @@
             }
         },
 
-        // Menu Module - SELECTOR CORRECTO BASADO EN HTML REAL
+        // Menu Module - FIXED WITH WORKING LOGIC FROM v2.0
         menu: {
             initialized: false,
+            observer: null,
 
             init: function () {
                 if (this.initialized) return;
 
-                console.log('Inicializando menú PROGRAMAS - Selector Correcto');
-                this.initProgramsMenu();
+                ADCVideo.utils.log('Initializing menu system');
+
+                this.setupProgramsMenu();
                 this.setupSearchReplacements();
+                this.setupMutationObserver();
+                this.bindEvents();
+
                 this.initialized = true;
             },
 
-            initProgramsMenu: function () {
-                console.log('Inicializando menú PROGRAMAS - Versión correcta');
+            setupProgramsMenu: function () {
                 var self = this;
 
-                // Limpiar eventos anteriores
-                $(document).off('click.programs-menu');
-                $(document).off('click.programs-menu-outside');
-                $(document).off('keydown.programs-menu');
+                // Clean previous events and elements
+                ADCVideo.cache.$document.off('.programs-menu');
                 $('.dropdown-arrow').remove();
                 $('.adc-wp-programs-dropdown').remove();
 
-                // Función para configurar un elemento PROGRAMAS
-                function setupProgramsElement($li) {
-                    console.log('Configurando elemento PROGRAMAS LI');
-
-                    // Limpiar configuración anterior si existe
-                    $li.find('.adc-wp-programs-dropdown').remove();
-                    $li.find('.dropdown-arrow').remove();
-                    $li.removeData('dropdown arrow programs-configured');
-
-                    // Configurar el contenedor padre
-                    $li.css({
-                        'position': 'relative',
-                        'z-index': '999'
-                    });
-
-                    // Crear el dropdown
-                    var $dropdown = $('<div class="adc-wp-programs-dropdown"></div>');
-                    $li.append($dropdown);
-                    $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
-                    $dropdown.hide();
-
-                    // Añadir flecha AL ENLACE DENTRO DEL LI
-                    var $link = $li.find('a').first();
-                    var $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block;">▾</span>');
-                    $link.append($arrow);
-
-                    // Guardar referencias en el LI
-                    $li.data('dropdown', $dropdown);
-                    $li.data('arrow', $arrow);
-                    $li.data('programs-configured', true);
-
-                    console.log('✅ Elemento PROGRAMAS LI configurado correctamente');
-                }
-
-                // Función para cargar programas
-                function loadPrograms($dropdown) {
-                    if ($dropdown.data('programs-loaded')) {
-                        console.log('Programas ya cargados');
-                        return;
-                    }
-
-                    console.log('📡 Cargando programas desde API...');
-
-                    var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
-                    var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
-
-                    $.ajax({
-                        url: ajaxUrl,
-                        type: 'POST',
-                        data: {
-                            action: 'adc_get_programs_menu',
-                            nonce: nonce
-                        },
-                        success: function (response) {
-                            if (response.success && response.data) {
-                                var html = '';
-
-                                $.each(response.data, function (i, program) {
-                                    var slug = self.slugify(program.name);
-                                    html += '<a href="/?categoria=' + slug + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important; white-space:normal !important; word-wrap:break-word !important; max-width:300px !important; overflow-wrap:break-word !important;">' + program.name + '</a>';
-                                });
-
-                                $dropdown.html(html);
-                                $dropdown.data('programs-loaded', true);
-                                console.log('✅ Programas cargados:', response.data.length);
-
-                                // Efectos hover
-                                $dropdown.find('a').hover(
-                                    function () {
-                                        $(this).css({
-                                            'background-color': 'rgba(110, 193, 228, 0.1)',
-                                            'color': '#FFFFFF',
-                                            'padding-left': '25px'
-                                        });
-                                    },
-                                    function () {
-                                        $(this).css({
-                                            'background-color': 'transparent',
-                                            'color': '#6EC1E4',
-                                            'padding-left': '20px'
-                                        });
-                                    }
-                                );
-                            } else {
-                                console.log('❌ Error en respuesta API');
-                                $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">No hay programas disponibles</div>');
-                            }
-                        },
-                        error: function () {
-                            console.log('❌ Error AJAX');
-                            $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">Error al cargar programas</div>');
-                        }
-                    });
-                }
-
-                // Función para toggle del dropdown
-                function toggleDropdown($li) {
-                    var $dropdown = $li.data('dropdown');
-                    var $arrow = $li.data('arrow');
-
-                    if (!$dropdown || !$arrow) {
-                        console.log('❌ No se encontraron referencias del dropdown');
-                        return;
-                    }
-
-                    // Cerrar otros dropdowns
-                    $('.adc-wp-programs-dropdown').not($dropdown).slideUp(200);
-                    $('.dropdown-arrow').not($arrow).css('transform', 'rotate(0deg)');
-
-                    // Toggle del dropdown actual
-                    var isVisible = $dropdown.is(':visible');
-                    $dropdown.slideToggle(200);
-
-                    // Actualizar flecha
-                    if (isVisible) {
-                        $arrow.css('transform', 'rotate(0deg)');
-                        console.log('🔽 Dropdown cerrado');
-                    } else {
-                        $arrow.css('transform', 'rotate(180deg)');
-                        console.log('🔼 Dropdown abierto');
-
-                        // Cargar programas si es necesario
-                        if ($dropdown.find('.adc-loading, .adc-error').length) {
-                            loadPrograms($dropdown);
-                        }
-                    }
-                }
-
-                // CONFIGURAR ELEMENTOS EXISTENTES - SELECTOR CORRECTO
-                $('.adc-programs-menu-trigger').each(function () {
-                    setupProgramsElement($(this));
-                });
-
-                // EVENTOS PARA EL SELECTOR CORRECTO - CLIC EN EL ENLACE DENTRO DEL LI
-                $(document).on('click.programs-menu', '.adc-programs-menu-trigger a', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    console.log('🖱️ Click en PROGRAMAS detectado - ENLACE');
-
-                    var $link = $(this);
-                    var $li = $link.closest('.adc-programs-menu-trigger');
-
-                    // Verificar si está configurado
-                    if (!$li.data('programs-configured')) {
-                        console.log('🔄 Reconfigurando elemento LI');
-                        setupProgramsElement($li);
-                    }
-
-                    toggleDropdown($li);
-                });
-
-                // EVENTO PARA CLIC DIRECTO EN EL LI (backup)
-                $(document).on('click.programs-menu-li', '.adc-programs-menu-trigger', function (e) {
-                    // Solo si NO se hizo clic en el enlace
-                    if (!$(e.target).is('a') && !$(e.target).closest('a').length) {
-                        e.preventDefault();
-                        e.stopPropagation();
-
-                        console.log('🖱️ Click en PROGRAMAS detectado - LI');
-
-                        var $li = $(this);
-
-                        if (!$li.data('programs-configured')) {
-                            console.log('🔄 Reconfigurando elemento LI');
-                            setupProgramsElement($li);
-                        }
-
-                        toggleDropdown($li);
-                    }
-                });
-
-                // Cerrar dropdowns al hacer click fuera
-                $(document).on('click.programs-menu-outside', function (e) {
-                    if (!$(e.target).closest('.adc-wp-programs-dropdown, .adc-programs-menu-trigger').length) {
-                        $('.adc-wp-programs-dropdown').slideUp(200);
-                        $('.dropdown-arrow').css('transform', 'rotate(0deg)');
-                    }
-                });
-
-                // Manejar tecla Escape
-                $(document).on('keydown.programs-menu', function (e) {
-                    if (e.key === 'Escape') {
-                        $('.adc-wp-programs-dropdown').slideUp(200);
-                        $('.dropdown-arrow').css('transform', 'rotate(0deg)');
-                    }
-                });
-
-                console.log('✅ Menú PROGRAMAS inicializado correctamente');
+                // Setup existing PROGRAMAS elements
+                this.configureExistingElements();
             },
 
-            // Función slugify
-            slugify: function(text) {
-                if (!text) return '';
-                
-                var from = "áàäâéèëêíìïîóòöôúùüûñç·/_,:;";
-                var to = "aaaaeeeeiiiioooouuuunc------";
+            configureExistingElements: function () {
+                var self = this;
 
-                for (var i = 0, l = from.length; i < l; i++) {
-                    text = text.replace(new RegExp(from.charAt(i), 'g'), to.charAt(i));
+                // SELECTOR CORRECTO - incluye tanto contenido "PROGRAMAS" como la clase CSS configurada
+                $('a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger a').each(function () {
+                    self.setupProgramElement($(this));
+                });
+            },
+
+            setupProgramElement: function ($element) {
+                if ($element.data('programs-configured')) return;
+
+                ADCVideo.utils.log('Configuring PROGRAMAS element');
+
+                var $parentLi = $element.closest('li');
+                if (!$parentLi.length) {
+                    $parentLi = $element.parent();
                 }
 
-                return text
-                    .toString()
-                    .toLowerCase()
-                    .trim()
-                    .replace(/\s+/g, '-')
-                    .replace(/&/g, '-y-')
-                    .replace(/[^\w\-]+/g, '')
-                    .replace(/\-\-+/g, '-')
-                    .replace(/^-+/, '')
-                    .replace(/-+$/, '');
+                // Clean previous configuration
+                $parentLi.find('.adc-wp-programs-dropdown').remove();
+                $element.find('.dropdown-arrow').remove();
+                $element.removeData('dropdown arrow programs-configured');
+
+                // Setup container
+                $parentLi.css({
+                    'position': 'relative',
+                    'z-index': '999'
+                });
+
+                // Create dropdown
+                var $dropdown = $('<div class="adc-wp-programs-dropdown"></div>');
+                $parentLi.append($dropdown);
+                $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
+                $dropdown.hide();
+
+                // Add arrow with enhanced styling
+                var $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block;">▾</span>');
+                $element.append($arrow);
+
+                // Store references
+                $element.data({
+                    'dropdown': $dropdown,
+                    'arrow': $arrow,
+                    'programs-configured': true
+                });
+
+                ADCVideo.utils.log('PROGRAMAS element configured successfully');
+            },
+
+            loadProgramsData: function ($dropdown) {
+                if ($dropdown.data('programs-loaded')) {
+                    ADCVideo.utils.log('Programs already loaded, skipping');
+                    return;
+                }
+
+                ADCVideo.utils.log('Loading programs from API');
+
+                var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
+                var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
+
+                $.ajax({
+                    url: ajaxUrl,
+                    type: 'POST',
+                    data: {
+                        action: 'adc_get_programs_menu',
+                        nonce: nonce
+                    },
+                    success: function (response) {
+                        if (response.success && response.data) {
+                            var html = '';
+
+                            $.each(response.data, function (i, program) {
+                                var slug = ADCVideo.utils.slugify(program.name);
+                                html += '<a href="/?categoria=' + slug + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important; white-space:normal !important; word-wrap:break-word !important; max-width:300px !important; overflow-wrap:break-word !important;">' + program.name + '</a>';
+                            });
+
+                            $dropdown.html(html);
+                            $dropdown.data('programs-loaded', true);
+
+                            ADCVideo.utils.log('Programs loaded successfully: ' + response.data.length);
+
+                            // Add hover effects
+                            $dropdown.find('a').hover(
+                                function () {
+                                    $(this).css({
+                                        'background-color': 'rgba(110, 193, 228, 0.1)',
+                                        'color': '#FFFFFF',
+                                        'padding-left': '25px'
+                                    });
+                                },
+                                function () {
+                                    $(this).css({
+                                        'background-color': 'transparent',
+                                        'color': '#6EC1E4',
+                                        'padding-left': '20px'
+                                    });
+                                }
+                            );
+                        } else {
+                            ADCVideo.utils.log('Error loading programs from API', 'error');
+                            $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">No hay programas disponibles</div>');
+                        }
+                    },
+                    error: function () {
+                        ADCVideo.utils.log('AJAX error loading programs', 'error');
+                        $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">Error al cargar programas</div>');
+                    }
+                });
+            },
+
+            toggleDropdown: function ($element) {
+                var $dropdown = $element.data('dropdown');
+                var $arrow = $element.data('arrow');
+
+                if (!$dropdown || !$arrow) {
+                    ADCVideo.utils.log('Dropdown references not found', 'warn');
+                    return;
+                }
+
+                // Close other dropdowns
+                $('.adc-wp-programs-dropdown').not($dropdown).slideUp(200);
+                $('.dropdown-arrow').not($arrow).css('transform', 'rotate(0deg)');
+
+                // Check if dropdown is visible before toggling
+                var isVisible = $dropdown.is(':visible');
+
+                // Toggle current dropdown
+                $dropdown.slideToggle(200);
+
+                // Update arrow rotation
+                if (isVisible) {
+                    $arrow.css('transform', 'rotate(0deg)');
+                    ADCVideo.utils.log('Dropdown closed');
+                } else {
+                    $arrow.css('transform', 'rotate(180deg)');
+                    ADCVideo.utils.log('Dropdown opened');
+
+                    // Load programs if needed
+                    if ($dropdown.find('.adc-loading, .adc-error').length) {
+                        this.loadProgramsData($dropdown);
+                    }
+                }
             },
 
             setupSearchReplacements: function () {
+                ADCVideo.utils.log('Setting up search replacements');
+
+                // Replace BUSCADOR elements with search forms
                 document.querySelectorAll('a').forEach(function (link) {
                     if (link.textContent.trim() === 'BUSCADOR') {
                         var searchContainer = document.createElement('div');
@@ -575,6 +515,78 @@
                             menuItem.style.alignItems = 'center';
                             menuItem.style.marginLeft = '40px';
                         }
+                    }
+                });
+            },
+
+            setupMutationObserver: function () {
+                var self = this;
+
+                // Setup observer for dynamic content changes (mobile menus, etc.)
+                this.observer = new MutationObserver(function (mutations) {
+                    mutations.forEach(function (mutation) {
+                        if (mutation.type === 'childList') {
+                            $(mutation.addedNodes).find('a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger a').each(function () {
+                                var $this = $(this);
+                                if (!$this.data('programs-configured') || !self.isProperlyConfigured($this)) {
+                                    ADCVideo.utils.log('New PROGRAMAS element detected by observer');
+                                    self.setupProgramElement($this);
+                                }
+                            });
+                        }
+                    });
+                });
+
+                this.observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            },
+
+            isProperlyConfigured: function ($element) {
+                var $dropdown = $element.data('dropdown');
+                var $arrow = $element.data('arrow');
+
+                if (!$dropdown || !$arrow) return false;
+
+                // Check if elements are still in the DOM
+                return $.contains(document, $dropdown[0]) && $.contains(document, $arrow[0]);
+            },
+
+            bindEvents: function () {
+                var self = this;
+
+                // Use event delegation for PROGRAMAS clicks
+                ADCVideo.cache.$document.on('click.programs-menu', 'a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger a', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    ADCVideo.utils.log('PROGRAMAS click detected');
+
+                    var $this = $(this);
+
+                    // Reconfigure if needed (mobile compatibility)
+                    if (!$this.data('programs-configured') || !self.isProperlyConfigured($this)) {
+                        ADCVideo.utils.log('Reconfiguring element (mobile or broken references)');
+                        self.setupProgramElement($this);
+                    }
+
+                    self.toggleDropdown($this);
+                });
+
+                // Close dropdowns when clicking outside
+                ADCVideo.cache.$document.on('click.programs-menu-outside', function (e) {
+                    if (!$(e.target).closest('.adc-wp-programs-dropdown, a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger').length) {
+                        $('.adc-wp-programs-dropdown').slideUp(200);
+                        $('.dropdown-arrow').css('transform', 'rotate(0deg)');
+                    }
+                });
+
+                // Handle escape key
+                ADCVideo.cache.$document.on('keydown.programs-menu', function (e) {
+                    if (e.key === 'Escape') {
+                        $('.adc-wp-programs-dropdown').slideUp(200);
+                        $('.dropdown-arrow').css('transform', 'rotate(0deg)');
                     }
                 });
             }
@@ -623,7 +635,7 @@
 
                 var self = this;
 
-                $('a:contains("BUSCADOR"), a:contains("Buscar"), a.search-toggle, .search-toggle, .search-icon, .fa-search, .adc-search-menu-trigger').each(function () {
+                $('a:contains("BUSCADOR"), a:contains("Buscar"), a.search-toggle, .search-toggle, .search-icon, .fa-search').each(function () {
                     var $searchLink = $(this);
 
                     if ($searchLink.data('search-initialized')) {
@@ -1054,8 +1066,8 @@
                 // Remove old dropdown arrows that might be orphaned
                 $('.dropdown-arrow').each(function () {
                     var $this = $(this);
-                    var $parent = $this.closest('li');
-                    if (!$parent.length || !$parent.hasClass('adc-programs-menu-trigger')) {
+                    var $parent = $this.closest('a, li');
+                    if (!$parent.length || !$parent.data('programs-configured')) {
                         $this.remove();
                         ADCVideo.utils.log('Removed orphaned dropdown arrow');
                     }
@@ -1065,8 +1077,9 @@
                 $('.adc-wp-programs-dropdown').each(function () {
                     var $this = $(this);
                     var $parentLi = $this.closest('li');
-                    
-                    if (!$parentLi.length || !$parentLi.hasClass('adc-programs-menu-trigger')) {
+                    var $programsLink = $parentLi.find('a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger a');
+
+                    if (!$programsLink.length || $programsLink.data('dropdown') !== $this) {
                         $this.remove();
                         ADCVideo.utils.log('Removed orphaned dropdown container');
                     }
@@ -1151,8 +1164,14 @@
             }
 
             // Remove event listeners
-            this.cache.$document.off('.adc-video .programs-menu .programs-menu-outside .programs-menu-li');
+            this.cache.$document.off('.adc-video .programs-menu .programs-menu-outside');
             this.cache.$window.off('.adc-video');
+
+            // Disconnect mutation observer
+            if (this.menu.observer) {
+                this.menu.observer.disconnect();
+                this.menu.observer = null;
+            }
 
             // Reset state
             this.state.isInitialized = false;
@@ -1198,9 +1217,7 @@
      * Enhanced error handling for the entire application
      */
     window.addEventListener('error', function (e) {
-        if (e.error) {
-            ADCVideo.utils.log('Global error caught: ' + e.error.message, 'error');
-        }
+        ADCVideo.utils.log('Global error caught: ' + e.error.message, 'error');
 
         // Don't break the application on errors
         e.preventDefault();
@@ -1220,7 +1237,7 @@
             return;
         }
 
-        console.log('🚀 Starting ADC Video initialization');
+        ADCVideo.utils.log('Starting ADC Video initialization');
 
         // Get configuration from localized script
         var config = {};
@@ -1254,9 +1271,7 @@
             ADCVideo.init(config);
             window.ADCVideoInitialized = true;
             ADCVideo.performance.logInitTime();
-            console.log('✅ ADC Video initialized successfully');
         } catch (error) {
-            console.error('❌ Initialization error:', error.message);
             ADCVideo.utils.log('Initialization error: ' + error.message, 'error');
         }
     }
@@ -1266,10 +1281,10 @@
      */
     function handleDOMReady() {
         if (document.readyState === "interactive" || document.readyState === "complete") {
-            console.log('✅ DOM ready, initializing immediately');
+            ADCVideo.utils.log('DOM ready, initializing immediately');
             initializeADCVideo();
         } else {
-            console.log('⏳ DOM not ready, waiting...');
+            ADCVideo.utils.log('DOM not ready, waiting...');
             // Try again after a short delay
             setTimeout(function () {
                 if (document.readyState === "interactive" || document.readyState === "complete") {
@@ -1293,7 +1308,7 @@
     if (typeof $ !== 'undefined') {
         $(document).ready(function () {
             if (!window.ADCVideoInitialized) {
-                console.log('📚 jQuery document ready triggered');
+                ADCVideo.utils.log('jQuery document ready triggered');
                 initializeADCVideo();
             }
         });
@@ -1303,7 +1318,7 @@
     if (document.addEventListener) {
         document.addEventListener('DOMContentLoaded', function () {
             if (!window.ADCVideoInitialized) {
-                console.log('📄 DOMContentLoaded event triggered');
+                ADCVideo.utils.log('DOMContentLoaded event triggered');
                 initializeADCVideo();
             }
         });
@@ -1312,7 +1327,7 @@
     // Strategy 4: Window load event (final fallback)
     window.addEventListener('load', function () {
         if (!window.ADCVideoInitialized) {
-            console.log('🔄 Window load event triggered (fallback)');
+            ADCVideo.utils.log('Window load event triggered (fallback)');
             initializeADCVideo();
         }
     });
@@ -1357,12 +1372,6 @@
             },
             trackEvent: function (category, action, label) {
                 ADCVideo.analytics.track(category, action, label);
-            },
-            forceMenuSetup: function () {
-                console.log('🔧 Forcing menu setup...');
-                ADCVideo.menu.setupProgramsMenu();
-                ADCVideo.menu.configureExistingElements();
-                console.log('✅ Menu setup complete');
             }
         };
 
@@ -1370,7 +1379,6 @@
         console.log('Available debug functions:', Object.keys(window.ADCVideoDebug));
         console.log('Use ADCVideoDebug.reinit() to reinitialize');
         console.log('Use ADCVideoDebug.getState() to inspect current state');
-        console.log('Use ADCVideoDebug.forceMenuSetup() to force menu configuration');
     }
 
     /**
@@ -1496,4 +1504,3 @@ if (window.performance && window.performance.mark) {
         }
     }, 1000);
 }
-
