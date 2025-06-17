@@ -381,6 +381,7 @@
                     'position': 'relative',
                     'z-index': '999'
                 });
+                $parentLi.addClass('programs-active');
 
                 // Create dropdown with loading state
                 var $dropdown = $('<div class="adc-wp-programs-dropdown"></div>');
@@ -465,28 +466,30 @@
             toggleDropdown: function($element) {
                 var $dropdown = $element.data('dropdown');
                 var $arrow = $element.data('arrow');
-
+            
                 if (!$dropdown || !$arrow || !$.contains(document, $dropdown[0])) {
                     ADCVideo.utils.log('Dropdown references lost, reconfiguring');
                     this.setupProgramElement($element);
                     $dropdown = $element.data('dropdown');
                     $arrow = $element.data('arrow');
                 }
-
+            
                 if (!$dropdown || !$arrow) {
                     ADCVideo.utils.log('Failed to get dropdown references', 'error');
                     return;
                 }
-
+            
                 // Close other dropdowns
                 $('.adc-wp-programs-dropdown').not($dropdown).slideUp(200);
                 $('.dropdown-arrow').not($arrow).css('transform', 'rotate(0deg)');
-
+            
                 var isVisible = $dropdown.is(':visible');
-
+                var $parentLi = $element.closest('li.menu-item, li'); // ← AGREGAR ESTA LÍNEA
+            
                 // Toggle current dropdown
                 $dropdown.slideToggle(200);
-
+                $parentLi.toggleClass('active'); // ← AGREGAR ESTA LÍNEA
+            
                 // Update arrow rotation
                 if (isVisible) {
                     $arrow.css('transform', 'rotate(0deg)');
@@ -494,13 +497,14 @@
                 } else {
                     $arrow.css('transform', 'rotate(180deg)');
                     ADCVideo.utils.log('Dropdown opened');
-
+            
                     // Load programs if needed
                     if ($dropdown.find('.adc-loading, .adc-error').length) {
                         this.loadProgramsData($dropdown);
                     }
                 }
             },
+            
 
             setupSearchReplacements: function() {
                 ADCVideo.utils.log('Setting up search replacements - CSS CLASS VERSION');
