@@ -310,7 +310,7 @@
             }
         },
 
-        // Menu Module - Función simplificada que funciona
+        // Menu Module - CORRECCIÓN FINAL basada en HTML real
         menu: {
             initialized: false,
             observer: null,
@@ -318,7 +318,7 @@
             init: function () {
                 if (this.initialized) return;
 
-                console.log('Inicializando menú PROGRAMAS - Versión funcional');
+                console.log('Inicializando menú PROGRAMAS - Versión FINAL');
 
                 this.setupProgramsMenu();
                 this.setupSearchReplacements();
@@ -328,9 +328,7 @@
             },
 
             setupProgramsMenu: function () {
-                // Limpiar elementos anteriores
-                $('.dropdown-arrow').remove();
-                $('.adc-wp-programs-dropdown').remove();
+                // NO limpiar flechas existentes si están funcionando
                 $(document).off('.programs-menu');
 
                 // Configurar elementos PROGRAMAS
@@ -340,46 +338,43 @@
             configureExistingElements: function () {
                 var self = this;
 
-                // Buscar elementos PROGRAMAS específicos
-                $('.adc-programs-menu-trigger, .adc_programs_menu_text').each(function () {
+                // Buscar LI con clase adc-programs-menu-trigger
+                $('.adc-programs-menu-trigger').each(function () {
                     self.setupProgramElement($(this));
                 });
             },
 
-            setupProgramElement: function ($element) {
-                if ($element.data('programs-configured')) return;
+            setupProgramElement: function ($li) {
+                if ($li.data('programs-configured')) return;
 
-                console.log('Configurando elemento PROGRAMAS');
+                console.log('Configurando elemento PROGRAMAS LI');
 
-                var $parentLi = $element.closest('li');
-                if (!$parentLi.length) {
-                    $parentLi = $element.parent();
+                // El dropdown se añade al LI, no al enlace
+                var $dropdown = $li.find('.adc-wp-programs-dropdown');
+                if ($dropdown.length === 0) {
+                    $dropdown = $('<div class="adc-wp-programs-dropdown"></div>');
+                    $li.append($dropdown);
+                    $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
+                    $dropdown.hide();
                 }
 
+                // La flecha YA EXISTE en tu HTML, solo necesitamos referenciarla
+                var $arrow = $li.find('.dropdown-arrow');
+
                 // Configurar el contenedor
-                $parentLi.css({
+                $li.css({
                     'position': 'relative',
                     'z-index': '999'
                 });
 
-                // Crear dropdown
-                var $dropdown = $('<div class="adc-wp-programs-dropdown"></div>');
-                $parentLi.append($dropdown);
-                $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
-                $dropdown.hide();
-
-                // Añadir flecha
-                var $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block;">▾</span>');
-                $element.append($arrow);
-
-                // Guardar referencias
-                $element.data({
+                // Guardar referencias en el LI
+                $li.data({
                     'dropdown': $dropdown,
                     'arrow': $arrow,
                     'programs-configured': true
                 });
 
-                console.log('Elemento PROGRAMAS configurado correctamente');
+                console.log('Elemento PROGRAMAS LI configurado correctamente');
             },
 
             loadProgramsData: function ($dropdown) {
@@ -440,9 +435,9 @@
                 });
             },
 
-            toggleDropdown: function ($element) {
-                var $dropdown = $element.data('dropdown');
-                var $arrow = $element.data('arrow');
+            toggleDropdown: function ($li) {
+                var $dropdown = $li.data('dropdown');
+                var $arrow = $li.data('arrow');
 
                 if (!$dropdown || !$arrow) {
                     console.log('No se encontraron referencias del dropdown');
@@ -507,27 +502,49 @@
             bindEvents: function () {
                 var self = this;
 
-                // Eventos de clic para PROGRAMAS
-                $(document).on('click.programs-menu', '.adc-programs-menu-trigger, .adc_programs_menu_text', function (e) {
+                // CORRECCIÓN CLAVE: Detectar clic en el ENLACE dentro del LI
+                $(document).on('click.programs-menu', '.adc-programs-menu-trigger a', function (e) {
                     e.preventDefault();
                     e.stopPropagation();
 
-                    console.log('Click en PROGRAMAS detectado');
+                    console.log('Click en PROGRAMAS detectado - ENLACE');
 
-                    var $this = $(this);
+                    var $link = $(this);
+                    var $li = $link.closest('.adc-programs-menu-trigger');
 
                     // Reconfigurar si es necesario
-                    if (!$this.data('programs-configured')) {
-                        console.log('Reconfigurando elemento');
-                        self.setupProgramElement($this);
+                    if (!$li.data('programs-configured')) {
+                        console.log('Reconfigurando elemento LI');
+                        self.setupProgramElement($li);
                     }
 
-                    self.toggleDropdown($this);
+                    self.toggleDropdown($li);
+                });
+
+                // También detectar clic directo en el LI (por si acaso)
+                $(document).on('click.programs-menu-li', '.adc-programs-menu-trigger', function (e) {
+                    // Solo procesar si el clic NO fue en el enlace (ya manejado arriba)
+                    if (!$(e.target).is('a') && !$(e.target).closest('a').length) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        console.log('Click en PROGRAMAS detectado - LI');
+
+                        var $li = $(this);
+
+                        // Reconfigurar si es necesario
+                        if (!$li.data('programs-configured')) {
+                            console.log('Reconfigurando elemento LI');
+                            self.setupProgramElement($li);
+                        }
+
+                        self.toggleDropdown($li);
+                    }
                 });
 
                 // Cerrar dropdowns al hacer clic fuera
                 $(document).on('click.programs-menu-outside', function (e) {
-                    if (!$(e.target).closest('.adc-wp-programs-dropdown, .adc-programs-menu-trigger, .adc_programs_menu_text').length) {
+                    if (!$(e.target).closest('.adc-wp-programs-dropdown, .adc-programs-menu-trigger').length) {
                         $('.adc-wp-programs-dropdown').slideUp(200);
                         $('.dropdown-arrow').css('transform', 'rotate(0deg)');
                     }
