@@ -310,7 +310,7 @@
             }
         },
 
-        // Menu Module - VERSIÓN FINAL QUE FUNCIONA
+        // Menu Module - LÓGICA ORIGINAL RESTAURADA
         menu: {
             initialized: false,
             observer: null,
@@ -318,7 +318,7 @@
             init: function () {
                 if (this.initialized) return;
 
-                console.log('Inicializando menú PROGRAMAS - VERSIÓN FINAL');
+                console.log('Inicializando menú PROGRAMAS - Lógica Original');
 
                 this.setupProgramsMenu();
                 this.setupSearchReplacements();
@@ -332,6 +332,9 @@
                 $(document).off('.programs-menu');
                 $(document).off('.programs-menu-li');
                 $(document).off('.programs-menu-outside');
+
+                // LIMPIAR FLECHAS FEAS EXISTENTES
+                $('.adc-programs-menu-trigger .dropdown-arrow').remove();
 
                 // Configurar elementos PROGRAMAS
                 this.configureExistingElements();
@@ -360,31 +363,27 @@
                     'z-index': '999'
                 });
 
-                // Buscar o crear dropdown
-                var $dropdown = $li.find('.adc-wp-programs-dropdown');
-                if ($dropdown.length === 0) {
-                    $dropdown = $('<div class="adc-wp-programs-dropdown"></div>');
-                    $li.append($dropdown);
-                    $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
-                    $dropdown.hide();
-                }
+                // Limpiar completamente cualquier dropdown existente
+                $li.find('.adc-wp-programs-dropdown').remove();
 
-                // Buscar o crear flecha
-                var $arrow = $li.find('.dropdown-arrow');
-                if ($arrow.length === 0) {
-                    console.log('Creando nueva flecha');
-                    $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block;">▾</span>');
-                    $li.append($arrow);
+                // Crear dropdown nuevo
+                var $dropdown = $('<div class="adc-wp-programs-dropdown"></div>');
+                $li.append($dropdown);
+                $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
+                $dropdown.hide();
+
+                // LIMPIAR FLECHAS EXISTENTES Y CREAR UNA NUEVA CORRECTA
+                $li.find('.dropdown-arrow').remove();
+                
+                console.log('Creando nueva flecha correcta');
+                var $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block;">▾</span>');
+                
+                // Añadir la flecha AL ENLACE, no al LI
+                var $link = $li.find('a').first();
+                if ($link.length) {
+                    $link.append($arrow);
                 } else {
-                    console.log('Usando flecha existente');
-                    // Asegurar que la flecha tenga los estilos correctos
-                    $arrow.css({
-                        'color': '#6EC1E4',
-                        'margin-left': '5px',
-                        'vertical-align': 'middle',
-                        'transition': 'transform 0.3s ease',
-                        'display': 'inline-block'
-                    });
+                    $li.append($arrow);
                 }
 
                 // Guardar referencias en el LI
@@ -394,7 +393,7 @@
                     'programs-configured': true
                 });
 
-                console.log('Elemento PROGRAMAS configurado correctamente');
+                console.log('Elemento PROGRAMAS configurado correctamente con flecha nueva');
             },
 
             loadProgramsData: function ($dropdown) {
@@ -419,6 +418,7 @@
                         if (response.success && response.data) {
                             var html = '';
 
+                            // USAR LA LÓGICA EXACTA DEL CÓDIGO ORIGINAL
                             $.each(response.data, function (i, program) {
                                 var slug = ADCVideo.utils.slugify(program.name);
                                 html += '<a href="/?categoria=' + slug + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important; white-space:normal !important; word-wrap:break-word !important; max-width:300px !important; overflow-wrap:break-word !important;">' + program.name + '</a>';
@@ -427,9 +427,9 @@
                             $dropdown.html(html);
                             $dropdown.data('programs-loaded', true);
 
-                            console.log('Programas cargados:', response.data.length);
+                            console.log('Programas cargados correctamente:', response.data.length);
 
-                            // Efectos hover
+                            // EFECTOS HOVER EXACTOS DEL CÓDIGO ORIGINAL
                             $dropdown.find('a').hover(
                                 function () {
                                     $(this).css({
@@ -473,11 +473,11 @@
                 $('.adc-wp-programs-dropdown').not($dropdown).slideUp(200);
                 $('.dropdown-arrow').not($arrow).css('transform', 'rotate(0deg)');
 
-                // Toggle del dropdown actual
+                // Toggle del dropdown actual - LÓGICA ORIGINAL
                 var isVisible = $dropdown.is(':visible');
                 $dropdown.slideToggle(200);
 
-                // Actualizar flecha
+                // Actualizar flecha - LÓGICA ORIGINAL
                 if (isVisible) {
                     $arrow.css('transform', 'rotate(0deg)');
                     console.log('Dropdown cerrado');
@@ -485,7 +485,7 @@
                     $arrow.css('transform', 'rotate(180deg)');
                     console.log('Dropdown abierto');
 
-                    // Cargar programas si es necesario
+                    // Cargar programas si es necesario - CONDICIÓN ORIGINAL
                     if ($dropdown.find('.adc-loading, .adc-error').length) {
                         this.loadProgramsData($dropdown);
                     }
@@ -493,7 +493,7 @@
             },
 
             setupSearchReplacements: function () {
-                // Replace BUSCADOR elements with search forms
+                // Replace BUSCADOR elements with search forms - EXACTO DEL ORIGINAL
                 document.querySelectorAll('a').forEach(function (link) {
                     if (link.textContent.trim() === 'BUSCADOR') {
                         var searchContainer = document.createElement('div');
@@ -527,7 +527,7 @@
             bindEvents: function () {
                 var self = this;
 
-                // Evento para clic en el enlace PROGRAMAS
+                // EVENTOS EXACTOS DEL CÓDIGO ORIGINAL
                 $(document).on('click.programs-menu', '.adc-programs-menu-trigger a', function (e) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -567,7 +567,7 @@
                     }
                 });
 
-                // Cerrar dropdowns al hacer clic fuera
+                // EVENTOS DE CIERRE EXACTOS DEL ORIGINAL
                 $(document).on('click.programs-menu-outside', function (e) {
                     if (!$(e.target).closest('.adc-wp-programs-dropdown, .adc-programs-menu-trigger').length) {
                         $('.adc-wp-programs-dropdown').slideUp(200);
@@ -575,7 +575,7 @@
                     }
                 });
 
-                // Manejar tecla Escape
+                // Manejar tecla Escape - EXACTO DEL ORIGINAL
                 $(document).on('keydown.programs-menu', function (e) {
                     if (e.key === 'Escape') {
                         $('.adc-wp-programs-dropdown').slideUp(200);
