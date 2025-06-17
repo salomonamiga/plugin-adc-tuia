@@ -374,7 +374,6 @@
 
                 // Clean previous configuration
                 $parentLi.find('.adc-wp-programs-dropdown').remove();
-                $element.find('.dropdown-arrow').remove();
                 $element.removeData('dropdown arrow programs-configured');
 
                 // Setup container with enhanced positioning
@@ -389,14 +388,11 @@
                 $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
                 $dropdown.hide();
 
-                // Add enhanced arrow
-                var $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block;">▾</span>');
-                $element.append($arrow);
 
                 // Store references with validation
                 $element.data({
                     'dropdown': $dropdown,
-                    'arrow': $arrow,
+                    'arrow': null,
                     'programs-configured': true,
                     'config-timestamp': Date.now()
                 });
