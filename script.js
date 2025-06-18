@@ -317,100 +317,87 @@
 
             init: function () {
                 if (this.initialized) return;
-
-                console.log('Inicializando menú PROGRAMAS - Lógica v2.0 restaurada');
-
+                console.log('Inicializando menú PROGRAMAS optimizado');
                 this.initProgramsMenu();
                 this.setupSearchReplacements();
-
                 this.initialized = true;
             },
 
             initProgramsMenu: function () {
-                console.log('Inicializando menú PROGRAMAS optimizado');
-                // Eliminamos antes cualquier binding anterior
+                // Desenlazamos cualquier handler anterior
                 $(document).off('click.programsMenu');
-            
-                // Delegamos el click al trigger
-                $(document).on('click.programsMenu', '.adc-programs-menu-trigger > a', function(e) {
+
+                // Delegamos el clic al trigger de PROGRAMAS
+                $(document).on('click.programsMenu', '.adc-programs-menu-trigger > a', function (e) {
                     e.preventDefault();
-                    var $trigger  = $(this).parent('.adc-programs-menu-trigger');
+                    var $trigger = $(this).parent('.adc-programs-menu-trigger');
                     var $dropdown = $trigger.find('.adc-wp-programs-dropdown');
-                    var $arrow    = $(this).find('.dropdown-arrow');
-            
+                    var $arrow = $(this).find('.dropdown-arrow');
+
                     // Cerramos otros dropdowns abiertos
                     $('.adc-wp-programs-dropdown').not($dropdown).slideUp(200);
                     $('.dropdown-arrow').not($arrow).css('transform', 'rotate(0deg)');
-            
-                    // Toggle del actual
+
+                    // Toggle del dropdown actual
                     if ($dropdown.is(':visible')) {
                         $dropdown.slideUp(200);
                         $arrow.css('transform', 'rotate(0deg)');
                     } else {
                         $dropdown.slideDown(200);
                         $arrow.css('transform', 'rotate(180deg)');
-            
-                        // Sólo cargamos la primera vez
+
+                        // Cargar por AJAX sólo la primera vez
                         if (!$dropdown.data('loaded')) {
                             $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
-            
+
                             $.ajax({
                                 url: adc_config.ajax_url,
                                 method: 'POST',
                                 data: {
                                     action: 'adc_get_programs_menu',
-                                    nonce:  adc_config.nonce
-                                },
-                                success: function(response) {
+                                    nonce: adc_config.nonce
+                                }
+                            })
+                                .done(function (response) {
                                     if (response.success) {
                                         $dropdown.html(response.data);
                                         $dropdown.data('loaded', true);
                                     } else {
                                         $dropdown.html('<div class="adc-error">Error al cargar programas.</div>');
                                     }
-                                },
-                                error: function() {
+                                })
+                                .fail(function () {
                                     $dropdown.html('<div class="adc-error">Error de red.</div>');
-                                }
-                            });
+                                });
                         }
                     }
                 });
             },
-            
 
-            // Función slugify - IGUAL A LA ORIGINAL
             slugify: function (text) {
-                // Primera conversión: eliminar acentos
                 var from = "áàäâéèëêíìïîóòöôúùüûñç·/_,:;";
                 var to = "aaaaeeeeiiiioooouuuunc------";
-
-                for (var i = 0, l = from.length; i < l; i++) {
+                for (var i = 0; i < from.length; i++) {
                     text = text.replace(new RegExp(from.charAt(i), 'g'), to.charAt(i));
                 }
-
-                // Normalizar a ASCII
                 return text
-                    .toString()                      // Convertir a string
-                    .toLowerCase()                   // Convertir a minúsculas
-                    .trim()                          // Eliminar espacios al inicio y final
-                    .replace(/\s+/g, '-')            // Reemplazar espacios con guiones
-                    .replace(/&/g, '-y-')            // Reemplazar & con 'y'
-                    .replace(/[^\w\-]+/g, '')        // Eliminar todos los caracteres no-alfanuméricos
-                    .replace(/\-\-+/g, '-')          // Reemplazar múltiples guiones con uno solo
-                    .replace(/^-+/, '')              // Eliminar guiones del inicio
-                    .replace(/-+$/, '');             // Eliminar guiones del final
+                    .toString()
+                    .toLowerCase()
+                    .trim()
+                    .replace(/\s+/g, '-')
+                    .replace(/&/g, '-y-')
+                    .replace(/[^\w\-]+/g, '')
+                    .replace(/\-\-+/g, '-')
+                    .replace(/^-+/, '')
+                    .replace(/-+$/, '');
             },
 
             setupSearchReplacements: function () {
-                // Buscar elementos BUSCADOR y reemplazarlos con formulario de búsqueda
                 document.querySelectorAll('a').forEach(function (link) {
                     if (link.textContent.trim() === 'BUSCADOR') {
                         var searchContainer = document.createElement('div');
                         searchContainer.className = 'adc-menu-search-container';
-
                         var homeUrl = window.location.origin + '/';
-
                         searchContainer.innerHTML =
                             '<form class="adc-inline-search-form" action="' + homeUrl + '" method="get">' +
                             '<input type="text" name="adc_search" placeholder="Buscar..." class="adc-inline-search-input">' +
@@ -421,8 +408,6 @@
                             '</svg>' +
                             '</button>' +
                             '</form>';
-
-                        // Reemplazar el elemento del menú
                         var menuItem = link.closest('li');
                         if (menuItem) {
                             menuItem.innerHTML = '';
