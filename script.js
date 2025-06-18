@@ -816,7 +816,7 @@
 
                 $.ajax({
                     url: ajaxUrl,
-                    type: 'POST',
+                    type: 'GET',
                     data: {
                         action: 'adc_search',
                         search: query,

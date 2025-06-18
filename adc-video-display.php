@@ -124,8 +124,8 @@ class ADC_Video_Display
                 return;
             }
 
-            // Obtener programas para el menú
-            $programs = $this->api->get_programs();
+            // TEST - obtener TODOS los programas sin filtrar
+$programs = $this->api->get_all_programs_from_api();
             
             if (empty($programs)) {
                 wp_send_json_error('No programs found');
