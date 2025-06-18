@@ -420,7 +420,7 @@
                                 var html = '';
 
                                 $.each(response.data, function (i, program) {
-                                    var slug = ADCVideo.utils.slugify(program.name);
+                                    var slug = self.slugify(program.name);
                                     // ESTILOS MEJORADOS CON SOPORTE PARA 2 LÍNEAS
                                     html += '<a href="/?categoria=' + slug + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important; white-space:normal !important; word-wrap:break-word !important; max-width:300px !important; overflow-wrap:break-word !important;">' + program.name + '</a>';
                                 });
