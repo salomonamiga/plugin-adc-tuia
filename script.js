@@ -327,249 +327,57 @@
             },
 
             initProgramsMenu: function () {
-                console.log('Inicializando menú PROGRAMAS - Versión completa');
-                var self = this;
-
-                // Limpiar eventos anteriores para evitar duplicaciones
-                $(document).off('click.programs-menu');
-                $(document).off('click.programs-menu-outside');
-                $(document).off('keydown.programs-menu');
-                $('.dropdown-arrow').remove();
-                $('.adc-wp-programs-dropdown').remove();
-
-                // Función para verificar si un elemento está correctamente configurado
-                function isProperlyConfigured($programasLink) {
-                    var $dropdown = $programasLink.data('dropdown');
-                    var $arrow = $programasLink.data('arrow');
-
-                    // Verificar que existen y están en el DOM
-                    if (!$dropdown || !$arrow) {
-                        return false;
-                    }
-
-                    // Verificar que los elementos están realmente en el DOM
-                    if (!$.contains(document, $dropdown[0]) || !$.contains(document, $arrow[0])) {
-                        console.log('⚠️ Referencias rotas detectadas, necesita reconfiguración');
-                        return false;
-                    }
-
-                    return true;
-                }
-
-                // Función para configurar un elemento PROGRAMAS
-                function setupProgramsElement($programasLink) {
-                    console.log('Configurando elemento PROGRAMAS:', $programasLink.text());
-
-                    var $parentLi = $programasLink.closest('li');
-                    if (!$parentLi.length) {
-                        $parentLi = $programasLink.parent();
-                    }
-
-                    // Limpiar configuración anterior si existe
-                    $parentLi.find('.adc-wp-programs-dropdown').remove();
-                    $programasLink.find('.dropdown-arrow').remove();
-                    $programasLink.removeData('dropdown arrow programs-configured');
-
-                    // Configurar el contenedor padre
-                    $parentLi.css({
-                        'position': 'relative',
-                        'z-index': '999'
-                    });
-
-                    // Crear el dropdown
-                    var $dropdown = $('<div class="adc-wp-programs-dropdown"></div>');
-                    $parentLi.append($dropdown);
-                    $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
-                    $dropdown.hide(); // Ocultar inicialmente
-
-                    // Añadir flecha CON TODOS LOS ESTILOS ORIGINALES
-                    var $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block;">▾</span>');
-                    $programasLink.append($arrow);
-
-                    // Guardar referencias en el elemento para fácil acceso
-                    $programasLink.data('dropdown', $dropdown);
-                    $programasLink.data('arrow', $arrow);
-                    $programasLink.data('programs-configured', true);
-
-                    console.log('✅ Elemento PROGRAMAS configurado correctamente');
-                }
-
-                // Función para cargar programas en el dropdown
-                function loadPrograms($dropdown) {
-                    if ($dropdown.data('programs-loaded')) {
-                        console.log('Programas ya cargados, saltando...');
-                        return; // Ya están cargados
-                    }
-
-                    console.log('📡 Cargando programas desde API...');
-
-                    var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
-                    var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
-
-                    $.ajax({
-                        url: ajaxUrl,
-                        type: 'POST',
-                        data: {
-                            action: 'adc_get_programs_menu',
-                            nonce: nonce
-                        },
-                        success: function (response) {
-                            console.log('✅ Respuesta API completa:', response);
-
-                            if (response.success && response.data && response.data.length > 0) {
-                                var html = '';
-
-                                $.each(response.data, function (i, program) {
-                                    var slug = self.slugify(program.name);
-                                    // ESTILOS MEJORADOS CON SOPORTE PARA 2 LÍNEAS
-                                    html += '<a href="/?categoria=' + slug + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important; white-space:normal !important; word-wrap:break-word !important; max-width:300px !important; overflow-wrap:break-word !important;">' + program.name + '</a>';
-                                });
-
-                                $dropdown.html(html);
-                                $dropdown.data('programs-loaded', true);
-                                console.log('✅ Programas cargados exitosamente:', response.data.length);
-
-                                // Efectos hover IGUALES A LOS ORIGINALES
-                                $dropdown.find('a').hover(
-                                    function () {
-                                        $(this).css({
-                                            'background-color': 'rgba(110, 193, 228, 0.1)',
-                                            'color': '#FFFFFF',
-                                            'padding-left': '25px'
-                                        });
-                                    },
-                                    function () {
-                                        $(this).css({
-                                            'background-color': 'transparent',
-                                            'color': '#6EC1E4',
-                                            'padding-left': '20px'
-                                        });
-                                    }
-                                );
-                            } else {
-                                console.log('❌ Error: respuesta sin programas válidos', response);
-                                var errorMsg = 'No hay programas disponibles';
-                                if (response.data && response.data.message) {
-                                    errorMsg = response.data.message;
-                                } else if (!response.success && response.data) {
-                                    errorMsg = response.data;
-                                }
-                                $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">' + errorMsg + '</div>');
-                            }
-                        },
-                        error: function (xhr, status, error) {
-                            console.log('❌ Error AJAX completo:', {
-                                status: status,
-                                error: error,
-                                responseText: xhr.responseText,
-                                xhr: xhr
-                            });
-                            $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">Error al cargar programas: ' + error + '</div>');
-                        }
-                    });
-                }
-
-                // Función para toggle del dropdown
-                function toggleDropdown($programasLink) {
-                    var $dropdown = $programasLink.data('dropdown');
-                    var $arrow = $programasLink.data('arrow');
-
-                    if (!$dropdown || !$arrow) {
-                        console.log('❌ No se encontraron referencias del dropdown');
-                        return;
-                    }
-
-                    // Cerrar otros dropdowns primero
+                console.log('Inicializando menú PROGRAMAS optimizado');
+                // Eliminamos antes cualquier binding anterior
+                $(document).off('click.programsMenu');
+            
+                // Delegamos el click al trigger
+                $(document).on('click.programsMenu', '.adc-programs-menu-trigger > a', function(e) {
+                    e.preventDefault();
+                    var $trigger  = $(this).parent('.adc-programs-menu-trigger');
+                    var $dropdown = $trigger.find('.adc-wp-programs-dropdown');
+                    var $arrow    = $(this).find('.dropdown-arrow');
+            
+                    // Cerramos otros dropdowns abiertos
                     $('.adc-wp-programs-dropdown').not($dropdown).slideUp(200);
                     $('.dropdown-arrow').not($arrow).css('transform', 'rotate(0deg)');
-
-                    // Verificar si el dropdown está visible ANTES de cambiarlo (LÓGICA ORIGINAL)
-                    var isVisible = $dropdown.is(':visible');
-
-                    // Toggle del dropdown actual
-                    $dropdown.slideToggle(200);
-
-                    // Actualizar flecha al abrir/cerrar (LÓGICA ORIGINAL CORREGIDA)
-                    if (isVisible) {
-                        // Si ya estaba visible, lo estamos cerrando
+            
+                    // Toggle del actual
+                    if ($dropdown.is(':visible')) {
+                        $dropdown.slideUp(200);
                         $arrow.css('transform', 'rotate(0deg)');
-                        console.log('🔽 Dropdown cerrado');
                     } else {
-                        // Si estaba oculto, lo estamos abriendo
+                        $dropdown.slideDown(200);
                         $arrow.css('transform', 'rotate(180deg)');
-                        console.log('🔼 Dropdown abierto');
-
-                        // Cargar programas si no están cargados (CONDICIÓN ORIGINAL)
-                        if ($dropdown.find('.adc-loading, .adc-error').length) {
-                            loadPrograms($dropdown);
-                        }
-                    }
-                }
-
-                // Configurar elementos existentes al inicializar - SELECTOR ORIGINAL + NUEVO
-                $('a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger a').each(function () {
-                    setupProgramsElement($(this));
-                });
-
-                // Usar delegación de eventos para manejar clicks (funciona incluso cuando el DOM cambia)
-                $(document).on('click.programs-menu', 'a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger a', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    console.log('🖱️ Click en PROGRAMAS detectado');
-
-                    var $this = $(this);
-
-                    // SOLUCIÓN MÓVIL: Verificar si está correctamente configurado o necesita reconfiguración
-                    if (!$this.data('programs-configured') || !isProperlyConfigured($this)) {
-                        console.log('🔄 Reconfigurando elemento (móvil o referencias rotas)');
-                        setupProgramsElement($this);
-                    }
-
-                    toggleDropdown($this);
-                });
-
-                // Cerrar dropdowns al hacer click fuera (IGUAL AL ORIGINAL)
-                $(document).on('click.programs-menu-outside', function (e) {
-                    if (!$(e.target).closest('.adc-wp-programs-dropdown, a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger').length) {
-                        $('.adc-wp-programs-dropdown').slideUp(200);
-                        $('.dropdown-arrow').css('transform', 'rotate(0deg)');
-                    }
-                });
-
-                // Manejar tecla Escape
-                $(document).on('keydown.programs-menu', function (e) {
-                    if (e.key === 'Escape') {
-                        $('.adc-wp-programs-dropdown').slideUp(200);
-                        $('.dropdown-arrow').css('transform', 'rotate(0deg)');
-                    }
-                });
-
-                // SOLUCIÓN MÓVIL ADICIONAL: Reconfigurar cuando el menú de Elementor se abre
-                // Detectar cambios en el DOM que puedan afectar nuestros elementos
-                this.observer = new MutationObserver(function (mutations) {
-                    mutations.forEach(function (mutation) {
-                        if (mutation.type === 'childList') {
-                            // Buscar elementos PROGRAMAS que puedan haberse añadido/modificado
-                            $(mutation.addedNodes).find('a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger a').each(function () {
-                                var $this = $(this);
-                                if (!$this.data('programs-configured') || !isProperlyConfigured($this)) {
-                                    console.log('🆕 Nuevo elemento PROGRAMAS detectado por MutationObserver');
-                                    setupProgramsElement($this);
+            
+                        // Sólo cargamos la primera vez
+                        if (!$dropdown.data('loaded')) {
+                            $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
+            
+                            $.ajax({
+                                url: adc_config.ajax_url,
+                                method: 'POST',
+                                data: {
+                                    action: 'adc_get_programs_menu',
+                                    nonce:  adc_config.nonce
+                                },
+                                success: function(response) {
+                                    if (response.success) {
+                                        $dropdown.html(response.data);
+                                        $dropdown.data('loaded', true);
+                                    } else {
+                                        $dropdown.html('<div class="adc-error">Error al cargar programas.</div>');
+                                    }
+                                },
+                                error: function() {
+                                    $dropdown.html('<div class="adc-error">Error de red.</div>');
                                 }
                             });
                         }
-                    });
+                    }
                 });
-
-                // Observar cambios en el body
-                this.observer.observe(document.body, {
-                    childList: true,
-                    subtree: true
-                });
-
-                console.log('✅ Menú PROGRAMAS inicializado correctamente con soluciones para desktop y móvil');
             },
+            
 
             // Función slugify - IGUAL A LA ORIGINAL
             slugify: function (text) {
