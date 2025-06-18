@@ -319,10 +319,10 @@
                 if (this.initialized) return;
 
                 console.log('Inicializando menú PROGRAMAS - Lógica v2.0 restaurada');
-                
+
                 this.initProgramsMenu();
                 this.setupSearchReplacements();
-                
+
                 this.initialized = true;
             },
 
@@ -414,7 +414,9 @@
                             nonce: nonce
                         },
                         success: function (response) {
-                            if (response.success && response.data) {
+                            console.log('✅ Respuesta API completa:', response);
+
+                            if (response.success && response.data && response.data.length > 0) {
                                 var html = '';
 
                                 $.each(response.data, function (i, program) {
@@ -425,7 +427,7 @@
 
                                 $dropdown.html(html);
                                 $dropdown.data('programs-loaded', true);
-                                console.log('✅ Programas cargados:', response.data.length);
+                                console.log('✅ Programas cargados exitosamente:', response.data.length);
 
                                 // Efectos hover IGUALES A LOS ORIGINALES
                                 $dropdown.find('a').hover(
@@ -445,13 +447,24 @@
                                     }
                                 );
                             } else {
-                                console.log('❌ Error en respuesta API');
-                                $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">No hay programas disponibles</div>');
+                                console.log('❌ Error: respuesta sin programas válidos', response);
+                                var errorMsg = 'No hay programas disponibles';
+                                if (response.data && response.data.message) {
+                                    errorMsg = response.data.message;
+                                } else if (!response.success && response.data) {
+                                    errorMsg = response.data;
+                                }
+                                $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">' + errorMsg + '</div>');
                             }
                         },
-                        error: function () {
-                            console.log('❌ Error AJAX');
-                            $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">Error al cargar programas</div>');
+                        error: function (xhr, status, error) {
+                            console.log('❌ Error AJAX completo:', {
+                                status: status,
+                                error: error,
+                                responseText: xhr.responseText,
+                                xhr: xhr
+                            });
+                            $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">Error al cargar programas: ' + error + '</div>');
                         }
                     });
                 }
@@ -559,7 +572,7 @@
             },
 
             // Función slugify - IGUAL A LA ORIGINAL
-            slugify: function(text) {
+            slugify: function (text) {
                 // Primera conversión: eliminar acentos
                 var from = "áàäâéèëêíìïîóòöôúùüûñç·/_,:;";
                 var to = "aaaaeeeeiiiioooouuuunc------";
@@ -1100,7 +1113,7 @@
                 $('.adc-wp-programs-dropdown').each(function () {
                     var $this = $(this);
                     var $parentLi = $this.closest('li');
-                    
+
                     if (!$parentLi.length || !$parentLi.hasClass('adc-programs-menu-trigger')) {
                         $this.remove();
                         ADCVideo.utils.log('Removed orphaned dropdown container');

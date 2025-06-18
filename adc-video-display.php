@@ -45,6 +45,10 @@ class ADC_Video_Display
         // AJAX handlers
         add_action('wp_ajax_adc_search', array($this, 'handle_ajax_search'));
         add_action('wp_ajax_nopriv_adc_search', array($this, 'handle_ajax_search'));
+        
+        // AJAX handler para el menú de programas - AGREGADO
+        add_action('wp_ajax_adc_get_programs_menu', array($this, 'handle_ajax_get_programs_menu'));
+        add_action('wp_ajax_nopriv_adc_get_programs_menu', array($this, 'handle_ajax_get_programs_menu'));
 
         // Handle custom URLs
         add_filter('request', array($this, 'handle_custom_urls'));
@@ -98,6 +102,42 @@ class ADC_Video_Display
         $results = $this->api->search_materials($search_term);
 
         wp_send_json_success($results);
+    }
+
+    /**
+     * Handle AJAX get programs menu - FUNCIÓN NUEVA AGREGADA
+     */
+    public function handle_ajax_get_programs_menu()
+    {
+        // Verificar nonce si existe
+        if (isset($_POST['nonce']) && !empty($_POST['nonce'])) {
+            if (!wp_verify_nonce($_POST['nonce'], 'adc_nonce')) {
+                wp_send_json_error('Invalid nonce');
+                return;
+            }
+        }
+
+        try {
+            // Verificar que la API esté configurada
+            if (!$this->api->is_configured()) {
+                wp_send_json_error('API not configured');
+                return;
+            }
+
+            // Obtener programas para el menú
+            $programs = $this->api->get_programs();
+            
+            if (empty($programs)) {
+                wp_send_json_error('No programs found');
+                return;
+            }
+
+            wp_send_json_success($programs);
+
+        } catch (Exception $e) {
+            error_log('ADC Menu AJAX Error: ' . $e->getMessage());
+            wp_send_json_error('Internal server error');
+        }
     }
 
     /**
