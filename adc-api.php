@@ -287,7 +287,9 @@ class ADC_API
      */
     public function get_programs_with_custom_order()
     {
-        $programs = $this->get_programs();
+        $programs = $this->filter_programs_by_section(
+            $this->get_all_programs_from_api()
+        );
 
         // Get custom order from WordPress option based on language
         $order_option = 'adc_programs_order_' . $this->language;
