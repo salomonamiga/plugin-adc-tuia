@@ -378,11 +378,7 @@ class ADC_API
         return $duration;
     }
 
-    
-
-
-
-        /**
+    /**
      * Get video thumbnail URL
      */
     public function get_thumbnail_url($video_id)
@@ -397,6 +393,8 @@ class ADC_API
     {
         return isset($video['video']) ? $video['video'] : '';
     }
+
+    /** ESTO LO ARREGLO CODEX, SI NO FUNCIONA, REVISAR */
 
     /**
      * Get season names mapping
@@ -587,19 +585,7 @@ class ADC_API
         return $grouped;
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /** hasta aqui arreglo */
 
 
     /**
