@@ -587,7 +587,7 @@
             // Función slugify
             slugify: function (text) {
                 return ADCVideo.utils.slugify(text);
-            }
+            },
 
             setupSearchReplacements: function () {
                 // Buscar elementos BUSCADOR y reemplazarlos con formulario de búsqueda
