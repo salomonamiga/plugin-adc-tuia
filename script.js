@@ -376,60 +376,61 @@
                 }
 
                 // Función para cargar programas en el dropdown
-                function loadPrograms($dropdown, language) {
-                    if ($dropdown.data('programs-loaded')) {
-                        return;
-                    }
+function loadPrograms($dropdown, language) {
+    if ($dropdown.data('programs-loaded')) {
+        return;
+    }
 
-                    var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
-                    var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
+    var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
+    var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
 
-                    $.ajax({
-                        url: ajaxUrl,
-                        type: 'POST',
-                        data: {
-                            action: 'adc_get_programs_menu',
-                            language: language,
-                            nonce: nonce
-                        },
-                        success: function (response) {
-                            var programs = [];
-                        
-                            // Compatibilidad con ambas estructuras
-                            if (response.success) {
-                                if (Array.isArray(response.data)) {
-                                    programs = response.data;
-                                } else if (response.data && Array.isArray(response.data.programs)) {
-                                    programs = response.data.programs;
-                                }
-                            }
-                        
-                            if (programs.length > 0) {
-                                var html = '';
-                                var baseUrl = window.location.origin + '/';
-                                if (language !== 'es') {
-                                    baseUrl += language + '/';
-                                }
-                        
-                                $.each(programs, function (i, program) {
-                                    var slug = self.slugify(program.name);
-                                    var url = baseUrl + '?categoria=' + slug;
-                                    html += '<a href="' + url + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important; white-space:normal !important; word-wrap:break-word !important; max-width:300px !important; overflow-wrap:break-word !important;">' + program.name + '</a>';
-                                });
-                        
-                                $dropdown.html(html);
-                                $dropdown.data('programs-loaded', true);
-                                // Mantener los efectos hover...
-                            } else {
-                                var errorMsg = 'No hay programas disponibles';
-                                if (response.data && response.data.message) {
-                                    errorMsg = response.data.message;
-                                }
-                                $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">' + errorMsg + '</div>');
-                            }
-                        }
-                        );
+    $.ajax({
+        url: ajaxUrl,
+        type: 'POST',
+        data: {
+            action: 'adc_get_programs_menu',
+            language: language,
+            nonce: nonce
+        },
+        success: function (response) {
+            var programs = [];
+
+            // Compatibilidad con ambas estructuras
+            if (response.success) {
+                if (Array.isArray(response.data)) {
+                    programs = response.data;
+                } else if (response.data && Array.isArray(response.data.programs)) {
+                    programs = response.data.programs;
                 }
+            }
+
+            if (programs.length > 0) {
+                var html = '';
+                var baseUrl = window.location.origin + '/';
+                if (language !== 'es') {
+                    baseUrl += language + '/';
+                }
+
+                $.each(programs, function (i, program) {
+                    var slug = self.slugify(program.name);
+                    var url = baseUrl + '?categoria=' + slug;
+                    html += '<a href="' + url + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important; white-space:normal !important; word-wrap:break-word !important; max-width:300px !important; overflow-wrap:break-word !important;">' + program.name + '</a>';
+                });
+
+                $dropdown.html(html);
+                $dropdown.data('programs-loaded', true);
+                // Mantener los efectos hover...
+            } else {
+                var errorMsg = 'No hay programas disponibles';
+                if (response.data && response.data.message) {
+                    errorMsg = response.data.message;
+                }
+                $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">' + errorMsg + '</div>');
+            }
+        }
+        );
+}
+
 
                 // Función para toggle del dropdown
                 function toggleDropdown($programasLink) {
