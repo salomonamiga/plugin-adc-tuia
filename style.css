@@ -1458,3 +1458,54 @@
     }
 }
 
+
+
+
+/* ===================================
+   MÓVIL: Alinear buscador bajo “CONTACTO”
+   =================================== */
+   @media (max-width: 768px) {
+    /* 1) Reset contenedor de la opción de menú */
+    .menu-item-search-inline {
+      margin-left: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+    }
+  
+    /* 2) Reset contenedor interno del buscador */
+    .adc-menu-search-container {
+      margin: 0 !important;
+      padding: 0 20px !important;
+      width: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+    }
+  
+    /* 3) El form ocupa todo el ancho y se alinea a la izquierda */
+    .adc-inline-search-form {
+      margin: 0 !important;
+      width: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      background: transparent !important;
+      border: 1px solid #4a4949 !important;
+      border-radius: 6px !important;
+      backdrop-filter: blur(3px) !important;
+    }
+  
+    /* 4) El input crece al 100% dentro del form */
+    .adc-inline-search-input {
+      flex: 1 !important;
+      width: auto !important;
+      padding: 0 15px !important;
+    }
+  
+    /* 5) Separación mínima para el botón */
+    .adc-inline-search-button {
+      margin-left: 8px !important;
+    }
+  }
+  
