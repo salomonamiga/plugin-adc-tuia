@@ -1475,7 +1475,7 @@
     li.adc-search-menu-trigger {
       display: flex !important;
       align-items: center !important;
-      width: 100% !important;
+      width: 80% !important;
       margin: 0 !important;
       padding: 0 !important;
     }
@@ -1484,7 +1484,7 @@
     li.adc-search-menu-trigger .adc-menu-search-container {
       display: flex !important;
       align-items: center !important;
-      width: 100% !important;
+      width: 80% !important;
       margin: 0 !important;
       padding: 0 20px !important;
     }
@@ -1494,7 +1494,8 @@
       display: flex !important;
       justify-content: flex-start !important;
       align-items: center !important;
-      width: 100% !important;
+      width: 80% !important;
+      max-width: 6px !important;
       margin: 0 !important;
       background: transparent !important;
       border: 1px solid #4a4949 !important;
