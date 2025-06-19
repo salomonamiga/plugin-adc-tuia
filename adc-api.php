@@ -1,8 +1,9 @@
 <?php
 /**
  * ADC Video Display - API Handler
+ * Version: 3.0 - Multiidioma
  * 
- * Handles all API requests to TuTorah TV
+ * Maneja todas las peticiones API a TuTorah TV
  */
 
 // Prevent direct access
@@ -12,51 +13,41 @@ if (!defined('ABSPATH')) {
 
 class ADC_API
 {
-
     private $api_token;
     private $api_url;
+    private $language;
     private $section;
     private $debug_mode = false;
-    private $debug_info = array();
-    private $cache = array(); // Add simple caching
+    private $cache = array();
 
     /**
      * Constructor
      */
-    public function __construct()
+    public function __construct($language = 'es')
     {
         $options = get_option('adc-video-display');
 
         $this->api_token = isset($options['api_token']) ? $options['api_token'] : '';
         $this->api_url = isset($options['api_url']) ? $options['api_url'] : 'https://api.tutorah.tv/v1';
-        $this->section = isset($options['section']) ? $options['section'] : '2';
         $this->debug_mode = isset($options['debug_mode']) ? $options['debug_mode'] : false;
+        
+        // Set language and corresponding section
+        $this->language = $language;
+        $this->section = $this->get_section_by_language($language);
     }
 
     /**
-     * Enable debug mode
+     * Get section ID by language
      */
-    public function enable_debug()
+    private function get_section_by_language($language)
     {
-        $this->debug_mode = true;
-    }
+        $sections = array(
+            'es' => '5', // Español - IA
+            'en' => '6', // Inglés
+            'he' => '7'  // Hebreo
+        );
 
-    /**
-     * Get debug info
-     */
-    public function get_debug_info()
-    {
-        return $this->debug_info;
-    }
-
-    /**
-     * Add debug message
-     */
-    private function add_debug($message)
-    {
-        if ($this->debug_mode) {
-            $this->debug_info[] = '[' . date('H:i:s') . '] ' . $message;
-        }
+        return isset($sections[$language]) ? $sections[$language] : '5';
     }
 
     /**
@@ -66,7 +57,6 @@ class ADC_API
     {
         // Check cache first
         if ($cache_key && isset($this->cache[$cache_key])) {
-            $this->add_debug('Cache hit for: ' . $cache_key);
             return $this->cache[$cache_key];
         }
 
@@ -76,28 +66,23 @@ class ADC_API
             $url = add_query_arg($params, $url);
         }
 
-        $this->add_debug('Request URL: ' . $url);
-
         $args = array(
             'headers' => array(
                 'Authorization' => $this->api_token,
-                'User-Agent' => 'ADC-WordPress-Plugin/2.1'
+                'User-Agent' => 'ADC-WordPress-Plugin/3.0'
             ),
-            'timeout' => 30, // Increased timeout
+            'timeout' => 30,
             'sslverify' => true
         );
 
         $response = wp_remote_get($url, $args);
 
         if (is_wp_error($response)) {
-            $error_message = $response->get_error_message();
-            $this->add_debug('WP Error: ' . $error_message);
             return false;
         }
 
         $http_code = wp_remote_retrieve_response_code($response);
         if ($http_code !== 200) {
-            $this->add_debug('HTTP Error: ' . $http_code);
             return false;
         }
 
@@ -105,12 +90,10 @@ class ADC_API
         $data = json_decode($body, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            $this->add_debug('JSON Error: ' . json_last_error_msg());
             return false;
         }
 
         if (isset($data['error']) && $data['error']) {
-            $this->add_debug('API Error: ' . (isset($data['message']) ? $data['message'] : 'Unknown error'));
             return false;
         }
 
@@ -123,12 +106,12 @@ class ADC_API
     }
 
     /**
-     * Get programs/categories based on section (with filtering)
+     * Get programs/categories based on language
      */
     public function get_programs()
     {
-        $cache_key = 'programs_' . $this->section;
-        $endpoint = $this->section == '5' ? '/ia/categories' : '/programs';
+        $cache_key = 'programs_' . $this->language . '_' . $this->section;
+        $endpoint = '/ia/categories';
         $data = $this->make_request($endpoint, array(), $cache_key);
 
         if (!$data || !isset($data['data'])) {
@@ -139,12 +122,12 @@ class ADC_API
     }
 
     /**
-     * Get ALL programs from API (without filtering, for admin use)
+     * Get ALL programs from API without filtering
      */
     public function get_all_programs_from_api()
     {
-        $cache_key = 'all_programs_' . $this->section;
-        $endpoint = $this->section == '5' ? '/ia/categories/all' : '/programs';
+        $cache_key = 'all_programs_' . $this->language . '_' . $this->section;
+        $endpoint = '/ia/categories/all';
         $data = $this->make_request($endpoint, array(), $cache_key);
 
         if (!$data || !isset($data['data'])) {
@@ -155,73 +138,31 @@ class ADC_API
     }
 
     /**
-     * Get programs that don't have videos (for coming soon selection) - FIXED with new endpoint
-     */
-    public function get_programs_without_videos()
-    {
-        // Usar el nuevo endpoint que obtiene TODAS las categorías IA con portada
-        $cache_key = 'all_ia_categories_with_covers';
-        $endpoint = '/ia/categories/all'; // Nuevo endpoint específico
-
-        $data = $this->make_request($endpoint, array(), $cache_key);
-
-        if (!$data || !isset($data['data'])) {
-            $this->add_debug('No data from /ia/categories/all endpoint');
-            return array();
-        }
-
-        $all_categories_with_covers = $data['data'];
-        $programs_without_videos = array();
-
-        $this->add_debug('Found ' . count($all_categories_with_covers) . ' categories with covers from new endpoint');
-
-        // Verificar cuáles NO tienen videos
-        foreach ($all_categories_with_covers as $program) {
-            $materials = $this->get_materials($program['id']);
-            if (empty($materials)) {
-                $programs_without_videos[] = $program;
-                $this->add_debug('Program without videos: ' . $program['name'] . ' (ID: ' . $program['id'] . ')');
-            } else {
-                $this->add_debug('Program with videos: ' . $program['name'] . ' (ID: ' . $program['id'] . ') - ' . count($materials) . ' videos');
-            }
-        }
-
-        // Sort alphabetically
-        usort($programs_without_videos, function ($a, $b) {
-            return strcmp($a['name'], $b['name']);
-        });
-
-        $this->add_debug('Total programs without videos: ' . count($programs_without_videos));
-
-        return $programs_without_videos;
-    }
-
-    /**
-     * Filter programs based on section (optimized)
+     * Filter programs based on section
      */
     private function filter_programs_by_section($programs)
     {
-        if ($this->section == '5') {
-            // Filter IA programs (those with _ia.png in cover)
-            $filtered = array_filter($programs, function ($program) {
-                $has_ia_cover = isset($program['cover']) && strpos($program['cover'], '_ia.png') !== false;
-                if ($has_ia_cover) {
-                    $this->add_debug('IA Program found: ' . $program['name'] . ' (ID: ' . $program['id'] . ')');
-                }
-                return $has_ia_cover;
-            });
-        } else {
-            // Filter Kids programs (those with _infantil.png in cover)
-            $filtered = array_filter($programs, function ($program) {
-                $has_kids_cover = isset($program['cover']) && strpos($program['cover'], '_infantil.png') !== false;
-                if ($has_kids_cover) {
-                    $this->add_debug('Kids Program found: ' . $program['name'] . ' (ID: ' . $program['id'] . ')');
-                }
-                return $has_kids_cover;
-            });
-        }
+        $section_suffix = $this->get_section_suffix();
+        
+        $filtered = array_filter($programs, function ($program) use ($section_suffix) {
+            return isset($program['cover']) && strpos($program['cover'], $section_suffix) !== false;
+        });
 
         return array_values($filtered);
+    }
+
+    /**
+     * Get section suffix for filtering
+     */
+    private function get_section_suffix()
+    {
+        $suffixes = array(
+            '5' => '_ia.png',     // Español
+            '6' => '_en.png',     // Inglés
+            '7' => '_he.png'      // Hebreo
+        );
+
+        return isset($suffixes[$this->section]) ? $suffixes[$this->section] : '_ia.png';
     }
 
     /**
@@ -229,24 +170,16 @@ class ADC_API
      */
     public function get_materials($program_id)
     {
-        $cache_key = 'materials_' . $program_id;
-
-        if ($this->section == '5') {
-            $endpoint = '/ia/categories/materials';
-            $params = array('category' => $program_id);
-        } else {
-            $endpoint = '/programs/materials';
-            $params = array('program' => $program_id);
-        }
+        $cache_key = 'materials_' . $this->language . '_' . $program_id;
+        $endpoint = '/ia/categories/materials';
+        $params = array('category' => $program_id);
 
         $data = $this->make_request($endpoint, $params, $cache_key);
 
         if (!$data || !isset($data['data'])) {
-            $this->add_debug('No materials found for program ID: ' . $program_id);
             return array();
         }
 
-        $this->add_debug('Materials found for program ID ' . $program_id . ': ' . count($data['data']));
         return $data['data'];
     }
 
@@ -301,7 +234,7 @@ class ADC_API
      */
     public function get_material_by_id($material_id)
     {
-        $cache_key = 'material_' . $material_id;
+        $cache_key = 'material_' . $this->language . '_' . $material_id;
         $endpoint = '/advanced-search/materials';
         $params = array('id' => $material_id);
 
@@ -356,8 +289,9 @@ class ADC_API
     {
         $programs = $this->get_programs();
 
-        // Get custom order from WordPress option
-        $order = get_option('adc_programs_order', array());
+        // Get custom order from WordPress option based on language
+        $order_option = 'adc_programs_order_' . $this->language;
+        $order = get_option($order_option, array());
 
         if (!empty($order)) {
             $programs = $this->apply_custom_order($programs, $order);
@@ -367,20 +301,17 @@ class ADC_API
     }
 
     /**
-     * Apply custom order to programs array (optimized)
+     * Apply custom order to programs array
      */
     private function apply_custom_order($programs, $order)
     {
-        // Create a lookup array with program IDs as keys and sort order as values
         $order_lookup = array_flip($order);
 
-        // Sort the programs based on the custom order
         usort($programs, function ($a, $b) use ($order_lookup) {
             $a_order = isset($order_lookup[$a['id']]) ? $order_lookup[$a['id']] : PHP_INT_MAX;
             $b_order = isset($order_lookup[$b['id']]) ? $order_lookup[$b['id']] : PHP_INT_MAX;
 
             if ($a_order == $b_order) {
-                // If both have same order (or no order), use alphabetical
                 return strcmp($a['name'], $b['name']);
             }
 
@@ -388,6 +319,14 @@ class ADC_API
         });
 
         return $programs;
+    }
+
+    /**
+     * Get current language
+     */
+    public function get_language()
+    {
+        return $this->language;
     }
 
     /**
@@ -399,11 +338,17 @@ class ADC_API
     }
 
     /**
-     * Get section name
+     * Get language name
      */
-    public function get_section_name()
+    public function get_language_name()
     {
-        return $this->section == '5' ? 'IA' : 'Kids';
+        $names = array(
+            'es' => 'Español',
+            'en' => 'English',
+            'he' => 'עברית'
+        );
+
+        return isset($names[$this->language]) ? $names[$this->language] : 'Español';
     }
 
     /**
@@ -448,7 +393,7 @@ class ADC_API
     }
 
     /**
-     * Get season names mapping (optimized with static)
+     * Get season names mapping
      */
     public function get_season_names()
     {
@@ -515,7 +460,7 @@ class ADC_API
     }
 
     /**
-     * Group materials by season (optimized)
+     * Group materials by season
      */
     public function group_materials_by_season($materials)
     {
@@ -538,7 +483,7 @@ class ADC_API
     }
 
     /**
-     * Group search results by category (optimized)
+     * Group search results by category
      */
     public function group_search_results_by_category($results)
     {
@@ -569,7 +514,7 @@ class ADC_API
     }
 
     /**
-     * Test API connection (improved with detailed info)
+     * Test API connection
      */
     public function test_connection()
     {
@@ -588,8 +533,7 @@ class ADC_API
         if ($programs === false) {
             return array(
                 'success' => false,
-                'error' => 'Error al conectar con la API',
-                'debug_info' => $this->get_debug_info()
+                'error' => 'Error al conectar con la API'
             );
         }
 
@@ -605,8 +549,7 @@ class ADC_API
             'success' => true,
             'programs_count' => count($programs),
             'materials_test' => $materials_test,
-            'section' => $this->get_section_name(),
-            'debug_info' => $this->get_debug_info()
+            'language' => $this->get_language_name()
         );
     }
 
@@ -616,33 +559,19 @@ class ADC_API
     public function clear_cache()
     {
         $this->cache = array();
-        $this->add_debug('Cache cleared');
     }
 
     /**
-     * Get cache statistics
+     * Get coming soon text by language
      */
-    public function get_cache_stats()
+    public function get_coming_soon_text()
     {
-        return array(
-            'cache_entries' => count($this->cache),
-            'cache_keys' => array_keys($this->cache)
+        $texts = array(
+            'es' => 'Próximamente',
+            'en' => 'Coming Soon',
+            'he' => 'בקרוב'
         );
-    }
 
-    /**
-     * Batch get materials for multiple programs (optimized for coming soon check)
-     */
-    public function batch_check_programs_with_videos($program_ids)
-    {
-        $programs_with_videos = array();
-
-        foreach ($program_ids as $program_id) {
-            if ($this->program_has_videos($program_id)) {
-                $programs_with_videos[] = $program_id;
-            }
-        }
-
-        return $programs_with_videos;
+        return isset($texts[$this->language]) ? $texts[$this->language] : 'Próximamente';
     }
 }
