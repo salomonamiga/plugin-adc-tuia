@@ -378,7 +378,11 @@ class ADC_API
         return $duration;
     }
 
-    /**
+    
+
+
+
+        /**
      * Get video thumbnail URL
      */
     public function get_thumbnail_url($video_id)
@@ -403,46 +407,132 @@ class ADC_API
 
         if ($season_names === null) {
             $season_names = array(
-                1 => "Temporada 1",
-                2 => "Temporada 2",
-                3 => "Temporada 3",
-                4 => "Temporada 4",
-                5 => "Temporada 5",
-                6 => "Bereshit",
-                7 => "Shemot",
-                8 => "Vaikra",
-                9 => "Bamidbar",
-                10 => "Debarim",
-                11 => "Pesaj",
-                12 => "Lag Baomer",
-                13 => "Shabuot",
-                14 => "Rosh Hashana",
-                15 => "Kipur",
-                16 => "Sucot",
-                17 => "Simjat Torah",
-                18 => "Januca",
-                19 => "Tu Bishvat",
-                20 => "Purim",
-                21 => "Ayunos",
-                22 => "Bereshit - Español",
-                23 => "Bereshit - Hebreo",
-                24 => "Bereshit - Ingles",
-                25 => "Shemot - Español",
-                26 => "Shemot - Hebreo",
-                27 => "Shemot - Ingles",
-                28 => "Vaikra - Español",
-                29 => "Vaikra - Hebreo",
-                30 => "Vaikra - Ingles",
-                31 => "Bamidbar - Español",
-                32 => "Bamidbar - Hebreo",
-                33 => "Bamidbar - Ingles",
-                34 => "Debarim - Español",
-                35 => "Debarim - Hebreo",
-                36 => "Debarim - Ingles",
-                37 => "Jaguim - Español",
-                38 => "Jaguim - Hebreo",
-                39 => "Jaguim - Ingles",
-                40 => "Jaguim"
+                'es' => array(
+                    1  => 'Temporada 1',
+                    2  => 'Temporada 2',
+                    3  => 'Temporada 3',
+                    4  => 'Temporada 4',
+                    5  => 'Temporada 5',
+                    6  => 'Bereshit',
+                    7  => 'Shemot',
+                    8  => 'Vaikra',
+                    9  => 'Bamidbar',
+                    10 => 'Debarim',
+                    11 => 'Pesaj',
+                    12 => 'Lag Baomer',
+                    13 => 'Shabuot',
+                    14 => 'Rosh Hashana',
+                    15 => 'Kipur',
+                    16 => 'Sucot',
+                    17 => 'Simjat Torah',
+                    18 => 'Januca',
+                    19 => 'Tu Bishvat',
+                    20 => 'Purim',
+                    21 => 'Ayunos',
+                    22 => 'Bereshit - Español',
+                    23 => 'Bereshit - Hebreo',
+                    24 => 'Bereshit - Ingles',
+                    25 => 'Shemot - Español',
+                    26 => 'Shemot - Hebreo',
+                    27 => 'Shemot - Ingles',
+                    28 => 'Vaikra - Español',
+                    29 => 'Vaikra - Hebreo',
+                    30 => 'Vaikra - Ingles',
+                    31 => 'Bamidbar - Español',
+                    32 => 'Bamidbar - Hebreo',
+                    33 => 'Bamidbar - Ingles',
+                    34 => 'Debarim - Español',
+                    35 => 'Debarim - Hebreo',
+                    36 => 'Debarim - Ingles',
+                    37 => 'Jaguim - Español',
+                    38 => 'Jaguim - Hebreo',
+                    39 => 'Jaguim - Ingles',
+                    40 => 'Jaguim'
+                ),
+                'en' => array(
+                    1  => 'Season 1',
+                    2  => 'Season 2',
+                    3  => 'Season 3',
+                    4  => 'Season 4',
+                    5  => 'Season 5',
+                    6  => 'Bereshit',
+                    7  => 'Shemot',
+                    8  => 'Vaikra',
+                    9  => 'Bamidbar',
+                    10 => 'Debarim',
+                    11 => 'Pesaj',
+                    12 => 'Lag Baomer',
+                    13 => 'Shabuot',
+                    14 => 'Rosh Hashana',
+                    15 => 'Kipur',
+                    16 => 'Sucot',
+                    17 => 'Simjat Torah',
+                    18 => 'Januca',
+                    19 => 'Tu Bishvat',
+                    20 => 'Purim',
+                    21 => 'Ayunos',
+                    22 => 'Bereshit - Español',
+                    23 => 'Bereshit - Hebreo',
+                    24 => 'Bereshit - Ingles',
+                    25 => 'Shemot - Español',
+                    26 => 'Shemot - Hebreo',
+                    27 => 'Shemot - Ingles',
+                    28 => 'Vaikra - Español',
+                    29 => 'Vaikra - Hebreo',
+                    30 => 'Vaikra - Ingles',
+                    31 => 'Bamidbar - Español',
+                    32 => 'Bamidbar - Hebreo',
+                    33 => 'Bamidbar - Ingles',
+                    34 => 'Debarim - Español',
+                    35 => 'Debarim - Hebreo',
+                    36 => 'Debarim - Ingles',
+                    37 => 'Jaguim - Español',
+                    38 => 'Jaguim - Hebreo',
+                    39 => 'Jaguim - Ingles',
+                    40 => 'Jaguim'
+                ),
+                'he' => array(
+                    1  => 'עונה 1',
+                    2  => 'עונה 2',
+                    3  => 'עונה 3',
+                    4  => 'עונה 4',
+                    5  => 'עונה 5',
+                    6  => 'Bereshit',
+                    7  => 'Shemot',
+                    8  => 'Vaikra',
+                    9  => 'Bamidbar',
+                    10 => 'Debarim',
+                    11 => 'Pesaj',
+                    12 => 'Lag Baomer',
+                    13 => 'Shabuot',
+                    14 => 'Rosh Hashana',
+                    15 => 'Kipur',
+                    16 => 'Sucot',
+                    17 => 'Simjat Torah',
+                    18 => 'Januca',
+                    19 => 'Tu Bishvat',
+                    20 => 'Purim',
+                    21 => 'Ayunos',
+                    22 => 'Bereshit - Español',
+                    23 => 'Bereshit - Hebreo',
+                    24 => 'Bereshit - Ingles',
+                    25 => 'Shemot - Español',
+                    26 => 'Shemot - Hebreo',
+                    27 => 'Shemot - Ingles',
+                    28 => 'Vaikra - Español',
+                    29 => 'Vaikra - Hebreo',
+                    30 => 'Vaikra - Ingles',
+                    31 => 'Bamidbar - Español',
+                    32 => 'Bamidbar - Hebreo',
+                    33 => 'Bamidbar - Ingles',
+                    34 => 'Debarim - Español',
+                    35 => 'Debarim - Hebreo',
+                    36 => 'Debarim - Ingles',
+                    37 => 'Jaguim - Español',
+                    38 => 'Jaguim - Hebreo',
+                    39 => 'Jaguim - Ingles',
+                    40 => 'Jaguim'
+                )
             );
         }
 
@@ -454,11 +544,24 @@ class ADC_API
      */
     public function get_season_name($season_number)
     {
-        $seasons = $this->get_season_names();
+        $all_seasons = $this->get_season_names();
+        $language = $this->language;
 
-        return isset($seasons[$season_number])
-            ? $seasons[$season_number]
-            : 'Temporada ' . intval($season_number);
+        $seasons = isset($all_seasons[$language]) ? $all_seasons[$language] : $all_seasons['es'];
+
+        if (isset($seasons[$season_number])) {
+            return $seasons[$season_number];
+        }
+
+        $default = array(
+            'es' => 'Temporada ',
+            'en' => 'Season ',
+            'he' => 'עונה '
+        );
+
+        $prefix = isset($default[$language]) ? $default[$language] : 'Temporada ';
+
+        return $prefix . intval($season_number);
     }
 
     /**
@@ -483,6 +586,21 @@ class ADC_API
 
         return $grouped;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     /**
      * Group search results by category
