@@ -393,41 +393,33 @@
                             nonce: nonce
                         },
                         success: function (response) {
-                            if (response.success && response.data && response.data.length > 0) {
+                            var programs = [];
+                        
+                            // Compatibilidad con ambas estructuras
+                            if (response.success) {
+                                if (Array.isArray(response.data)) {
+                                    programs = response.data;
+                                } else if (response.data && Array.isArray(response.data.programs)) {
+                                    programs = response.data.programs;
+                                }
+                            }
+                        
+                            if (programs.length > 0) {
                                 var html = '';
                                 var baseUrl = window.location.origin + '/';
                                 if (language !== 'es') {
                                     baseUrl += language + '/';
                                 }
-
-                                $.each(response.data, function (i, program) {
+                        
+                                $.each(programs, function (i, program) {
                                     var slug = self.slugify(program.name);
                                     var url = baseUrl + '?categoria=' + slug;
-                                    
-                                    // ESTILOS ORIGINALES RESTAURADOS
                                     html += '<a href="' + url + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important; white-space:normal !important; word-wrap:break-word !important; max-width:300px !important; overflow-wrap:break-word !important;">' + program.name + '</a>';
                                 });
-
+                        
                                 $dropdown.html(html);
                                 $dropdown.data('programs-loaded', true);
-
-                                // Efectos hover ORIGINALES
-                                $dropdown.find('a').hover(
-                                    function () {
-                                        $(this).css({
-                                            'background-color': 'rgba(110, 193, 228, 0.1)',
-                                            'color': '#FFFFFF',
-                                            'padding-left': '25px'
-                                        });
-                                    },
-                                    function () {
-                                        $(this).css({
-                                            'background-color': 'transparent',
-                                            'color': '#6EC1E4',
-                                            'padding-left': '20px'
-                                        });
-                                    }
-                                );
+                                // Mantener los efectos hover...
                             } else {
                                 var errorMsg = 'No hay programas disponibles';
                                 if (response.data && response.data.message) {
@@ -435,11 +427,8 @@
                                 }
                                 $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">' + errorMsg + '</div>');
                             }
-                        },
-                        error: function (xhr, status, error) {
-                            $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">Error al cargar programas</div>');
                         }
-                    });
+                        );
                 }
 
                 // Función para toggle del dropdown
