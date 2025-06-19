@@ -298,7 +298,7 @@
                     overlay.innerHTML = '<p style="color:#aaa">Autoplay cancelado</p>';
                 }
             }
-        }
+        },
 
         // Menu Module - RESTAURADO CON ESTILOS ORIGINALES
         menu: {
