@@ -1,8 +1,9 @@
 <?php
 /**
  * ADC Video Display - Search Handler
+ * Version: 3.0 - Multiidioma
  * 
- * Handles search functionality with enhanced performance and UX
+ * Maneja la funcionalidad de búsqueda para los 3 idiomas
  */
 
 // Prevent direct access
@@ -12,25 +13,25 @@ if (!defined('ABSPATH')) {
 
 class ADC_Search {
     
-    private $api;
-    private $cache = array(); // Internal caching
+    private $cache = array();
     private $options;
     
     /**
      * Constructor
      */
     public function __construct() {
-        $this->api = new ADC_API();
         $this->options = get_option('adc-video-display');
         
-        // Register shortcode
+        // Register shortcodes for each language
         add_shortcode('adc_search_form', array($this, 'render_search_form'));
+        add_shortcode('adc_search_form_en', array($this, 'render_search_form_en'));
+        add_shortcode('adc_search_form_he', array($this, 'render_search_form_he'));
         
         // AJAX handlers
         add_action('wp_ajax_adc_search_videos', array($this, 'ajax_search_videos'));
         add_action('wp_ajax_nopriv_adc_search_videos', array($this, 'ajax_search_videos'));
         
-        // Enhanced AJAX search handler (consolidated)
+        // Enhanced AJAX search handler
         add_action('wp_ajax_adc_search', array($this, 'ajax_search'));
         add_action('wp_ajax_nopriv_adc_search', array($this, 'ajax_search'));
         
@@ -54,20 +55,71 @@ class ADC_Search {
             return $content;
         }
         
+        // Detect language from URL
+        $language = $this->detect_language();
+        
         // Add search results to content
-        $search_results = $this->display_search_results();
+        $search_results = $this->display_search_results($language);
         return $content . $search_results;
     }
     
     /**
-     * Render search form with enhanced options
+     * Detect language from URL
+     */
+    private function detect_language() {
+        $uri = $_SERVER['REQUEST_URI'];
+        
+        if (strpos($uri, '/en/') !== false) {
+            return 'en';
+        } elseif (strpos($uri, '/he/') !== false) {
+            return 'he';
+        }
+        
+        return 'es';
+    }
+    
+    /**
+     * Render search form for Spanish
      */
     public function render_search_form($atts) {
+        return $this->render_search_form_generic('es', $atts);
+    }
+    
+    /**
+     * Render search form for English
+     */
+    public function render_search_form_en($atts) {
+        return $this->render_search_form_generic('en', $atts);
+    }
+    
+    /**
+     * Render search form for Hebrew
+     */
+    public function render_search_form_he($atts) {
+        return $this->render_search_form_generic('he', $atts);
+    }
+    
+    /**
+     * Generic render search form
+     */
+    private function render_search_form_generic($language, $atts) {
+        $default_placeholders = array(
+            'es' => 'Buscar videos...',
+            'en' => 'Search videos...',
+            'he' => 'חיפוש סרטונים...'
+        );
+        
+        $default_button_texts = array(
+            'es' => 'Buscar',
+            'en' => 'Search',
+            'he' => 'חיפוש'
+        );
+        
         $atts = shortcode_atts(array(
-            'placeholder' => $this->get_placeholder_text(),
-            'button_text' => 'Buscar',
+            'placeholder' => $default_placeholders[$language],
+            'button_text' => $default_button_texts[$language],
             'class' => 'adc-search-form',
-            'results_page' => $this->get_results_page_url(),
+            'results_page' => $this->get_results_page_url($language),
             'show_suggestions' => 'false',
             'autocomplete' => 'true'
         ), $atts);
@@ -77,12 +129,12 @@ class ADC_Search {
             return '<!-- ADC Search disabled in settings -->';
         }
         
-        $form_id = 'adc-search-form-' . uniqid();
+        $form_id = 'adc-search-form-' . $language . '-' . uniqid();
         
-        $output = '<div class="adc-search-container">';
-        $output .= '<form class="' . esc_attr($atts['class']) . '" id="' . esc_attr($form_id) . '" method="get" action="' . esc_url($atts['results_page']) . '" role="search">';
+        $output = '<div class="adc-search-container adc-search-' . $language . '">';
+        $output .= '<form class="' . esc_attr($atts['class']) . '" id="' . esc_attr($form_id) . '" method="get" action="' . esc_url($atts['results_page']) . '" role="search" data-language="' . esc_attr($language) . '">';
         
-        // Add search input with enhanced attributes
+        // Add search input
         $output .= '<div class="adc-search-input-container">';
         $output .= '<input type="search" name="adc_search" class="adc-search-input" ';
         $output .= 'placeholder="' . esc_attr($atts['placeholder']) . '" ';
@@ -110,7 +162,7 @@ class ADC_Search {
     }
     
     /**
-     * Enhanced AJAX search handler - CORREGIDO con mejor estructura de respuesta
+     * Enhanced AJAX search handler
      */
     public function ajax_search() {
         // Enhanced nonce verification
@@ -125,6 +177,12 @@ class ADC_Search {
         }
         
         $search_term = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
+        $language = isset($_POST['language']) ? sanitize_text_field($_POST['language']) : 'es';
+        
+        // Validate language
+        if (!in_array($language, array('es', 'en', 'he'))) {
+            $language = 'es';
+        }
         
         if (empty($search_term) || strlen($search_term) < 2) {
             wp_send_json_error(array(
@@ -146,24 +204,23 @@ class ADC_Search {
             }
             
             // Get search results with caching
-            $results = $this->get_cached_search_results($search_term);
+            $results = $this->get_cached_search_results($search_term, $language);
             
-            // Enhanced response data structure for better compatibility
+            // Enhanced response data structure
             $response_data = array(
                 'results' => $results,
                 'total' => count($results),
                 'search_term' => $search_term,
+                'language' => $language,
                 'grouped_results' => $this->group_results_by_category($results),
                 'cache_time' => current_time('timestamp'),
-                'section' => $this->api->get_section_name(),
                 'success' => true,
-                'version' => '2.1'
+                'version' => '3.0'
             );
             
             wp_send_json_success($response_data);
             
         } catch (Exception $e) {
-            error_log('ADC Search Error: ' . $e->getMessage());
             wp_send_json_error(array(
                 'message' => 'Search failed',
                 'code' => 'SEARCH_ERROR',
@@ -180,55 +237,89 @@ class ADC_Search {
     }
     
     /**
-     * Display search results with enhanced layout
+     * Display search results
      */
-    private function display_search_results() {
+    private function display_search_results($language = 'es') {
         $search_term = sanitize_text_field($_GET['adc_search']);
         
         if (empty($search_term)) {
-            return '<div class="adc-search-error">Por favor ingresa un término de búsqueda válido.</div>';
+            $error_texts = array(
+                'es' => 'Por favor ingresa un término de búsqueda válido.',
+                'en' => 'Please enter a valid search term.',
+                'he' => 'אנא הזן מונח חיפוש תקף.'
+            );
+            return '<div class="adc-search-error">' . $error_texts[$language] . '</div>';
         }
         
         // Get results with caching
-        $results = $this->get_cached_search_results($search_term);
+        $results = $this->get_cached_search_results($search_term, $language);
         
-        $output = '<div class="adc-search-results-container" data-search-term="' . esc_attr($search_term) . '">';
+        $output = '<div class="adc-search-results-container" data-search-term="' . esc_attr($search_term) . '" data-language="' . esc_attr($language) . '">';
         
         if (empty($results)) {
-            $output .= $this->render_no_results($search_term);
+            $output .= $this->render_no_results($search_term, $language);
         } else {
-            $output .= $this->render_search_results($search_term, $results);
+            $output .= $this->render_search_results($search_term, $results, $language);
         }
         
         $output .= '</div>';
         
         return $output;
     }
-    
+
     /**
      * Render no results message with recommendations
      */
-    private function render_no_results($search_term) {
+    private function render_no_results($search_term, $language) {
+        $no_results_texts = array(
+            'es' => array(
+                'title' => 'No encontramos resultados para',
+                'suggestions_title' => 'Sugerencias para mejorar tu búsqueda:',
+                'suggestion_1' => 'Verifica que no haya errores de ortografía',
+                'suggestion_2' => 'Intenta con palabras más generales',
+                'suggestion_3' => 'Usa sinónimos o términos relacionados',
+                'recommended_title' => 'Quizás te interesen estos videos:'
+            ),
+            'en' => array(
+                'title' => 'No results found for',
+                'suggestions_title' => 'Suggestions to improve your search:',
+                'suggestion_1' => 'Check for spelling errors',
+                'suggestion_2' => 'Try more general words',
+                'suggestion_3' => 'Use synonyms or related terms',
+                'recommended_title' => 'You might be interested in these videos:'
+            ),
+            'he' => array(
+                'title' => 'לא נמצאו תוצאות עבור',
+                'suggestions_title' => 'הצעות לשיפור החיפוש:',
+                'suggestion_1' => 'בדוק שאין שגיאות כתיב',
+                'suggestion_2' => 'נסה מילים כלליות יותר',
+                'suggestion_3' => 'השתמש במילים נרדפות או מונחים קשורים',
+                'recommended_title' => 'אולי יעניינו אותך הסרטונים האלה:'
+            )
+        );
+        
+        $texts = $no_results_texts[$language];
+        
         $output = '<div class="adc-no-results-section">';
-        $output .= '<h2 class="adc-no-results-title">No encontramos resultados para "' . esc_html($search_term) . '"</h2>';
+        $output .= '<h2 class="adc-no-results-title">' . $texts['title'] . ' "' . esc_html($search_term) . '"</h2>';
         $output .= '<div class="adc-search-tips">';
-        $output .= '<h3>Sugerencias para mejorar tu búsqueda:</h3>';
+        $output .= '<h3>' . $texts['suggestions_title'] . '</h3>';
         $output .= '<ul>';
-        $output .= '<li>Verifica que no haya errores de ortografía</li>';
-        $output .= '<li>Intenta con palabras más generales</li>';
-        $output .= '<li>Usa sinónimos o términos relacionados</li>';
+        $output .= '<li>' . $texts['suggestion_1'] . '</li>';
+        $output .= '<li>' . $texts['suggestion_2'] . '</li>';
+        $output .= '<li>' . $texts['suggestion_3'] . '</li>';
         $output .= '</ul>';
         $output .= '</div>';
         $output .= '</div>';
         
         // Add recommended videos
-        $recommended_videos = $this->get_recommended_videos();
+        $recommended_videos = $this->get_recommended_videos($language);
         if (!empty($recommended_videos)) {
-            $output .= '<h2 class="adc-recommended-title">Quizás te interesen estos videos:</h2>';
+            $output .= '<h2 class="adc-recommended-title">' . $texts['recommended_title'] . '</h2>';
             $output .= '<div class="adc-recommended-videos">';
             
             foreach ($recommended_videos as $video) {
-                $output .= $this->render_video_card($video);
+                $output .= $this->render_video_card($video, $language);
             }
             
             $output .= '</div>';
@@ -240,16 +331,36 @@ class ADC_Search {
     /**
      * Render search results with grouping options
      */
-    private function render_search_results($search_term, $results) {
-        $output = '<h1 class="adc-search-results-title">Resultados para: "' . esc_html($search_term) . '"</h1>';
-        $output .= '<div class="adc-search-results-meta">Se encontraron ' . count($results) . ' resultado(s)</div>';
+    private function render_search_results($search_term, $results, $language) {
+        $results_texts = array(
+            'es' => array(
+                'results_for' => 'Resultados para',
+                'found' => 'Se encontraron',
+                'results' => 'resultado(s)'
+            ),
+            'en' => array(
+                'results_for' => 'Results for',
+                'found' => 'Found',
+                'results' => 'result(s)'
+            ),
+            'he' => array(
+                'results_for' => 'תוצאות עבור',
+                'found' => 'נמצאו',
+                'results' => 'תוצאות'
+            )
+        );
+        
+        $texts = $results_texts[$language];
+        
+        $output = '<h1 class="adc-search-results-title">' . $texts['results_for'] . ': "' . esc_html($search_term) . '"</h1>';
+        $output .= '<div class="adc-search-results-meta">' . $texts['found'] . ' ' . count($results) . ' ' . $texts['results'] . '</div>';
         
         // Group results by category if there are many results
         if (count($results) > 6) {
             $grouped_results = $this->group_results_by_category($results);
-            $output .= $this->render_grouped_results($grouped_results);
+            $output .= $this->render_grouped_results($grouped_results, $language);
         } else {
-            $output .= $this->render_simple_results($results);
+            $output .= $this->render_simple_results($results, $language);
         }
         
         return $output;
@@ -258,7 +369,7 @@ class ADC_Search {
     /**
      * Render grouped results by category
      */
-    private function render_grouped_results($grouped_results) {
+    private function render_grouped_results($grouped_results, $language) {
         $output = '<div class="adc-grouped-results">';
         
         foreach ($grouped_results as $category => $videos) {
@@ -267,7 +378,7 @@ class ADC_Search {
             $output .= '<div class="adc-category-videos">';
             
             foreach ($videos as $video) {
-                $output .= $this->render_video_card($video);
+                $output .= $this->render_video_card($video, $language);
             }
             
             $output .= '</div>';
@@ -282,11 +393,11 @@ class ADC_Search {
     /**
      * Render simple results grid
      */
-    private function render_simple_results($results) {
+    private function render_simple_results($results, $language) {
         $output = '<div class="adc-recommended-videos">';
         
         foreach ($results as $video) {
-            $output .= $this->render_video_card($video);
+            $output .= $this->render_video_card($video, $language);
         }
         
         $output .= '</div>';
@@ -295,19 +406,38 @@ class ADC_Search {
     }
     
     /**
-     * Render a single video card - Enhanced
+     * Render a single video card
      */
-    private function render_video_card($video) {
+    private function render_video_card($video, $language) {
         $category_slug = $this->slugify($video['category']);
         $video_slug = $this->slugify($video['title']);
-        $url = '?categoria=' . $category_slug . '&video=' . $video_slug;
+        
+        $base_url = home_url('/');
+        if ($language !== 'es') {
+            $base_url .= $language . '/';
+        }
+        $url = $base_url . '?categoria=' . $category_slug . '&video=' . $video_slug;
+        
+        $program_text = array(
+            'es' => 'Programa',
+            'en' => 'Program',
+            'he' => 'תוכנית'
+        );
+        
+        $duration_text = array(
+            'es' => 'Duración',
+            'en' => 'Duration',
+            'he' => 'משך'
+        );
+        
+        $api = new ADC_API($language);
         
         $output = '<div class="adc-search-video-item" data-video-id="' . esc_attr($video['id']) . '">';
         $output .= '<a href="' . esc_url($url) . '" class="adc-search-video-link">';
         
         // Thumbnail with lazy loading
         $output .= '<div class="adc-search-thumbnail">';
-        $thumbnail_url = $this->api->get_thumbnail_url($video['id']);
+        $thumbnail_url = $api->get_thumbnail_url($video['id']);
         $output .= '<img src="' . esc_url($thumbnail_url) . '" alt="' . esc_attr($video['title']) . '" loading="lazy">';
         $output .= '<div class="adc-search-play-icon" aria-hidden="true"></div>';
         $output .= '</div>';
@@ -315,11 +445,11 @@ class ADC_Search {
         // Video info
         $output .= '<div class="adc-search-info">';
         $output .= '<h3 class="adc-search-title">' . esc_html($video['title']) . '</h3>';
-        $output .= '<div class="adc-search-program">Programa: ' . esc_html($video['category']) . '</div>';
+        $output .= '<div class="adc-search-program">' . $program_text[$language] . ': ' . esc_html($video['category']) . '</div>';
         
         // Enhanced duration display
-        $formatted_duration = $this->api->format_duration($video['duration']);
-        $output .= '<div class="adc-search-duration">Duración: ' . esc_html($formatted_duration) . '</div>';
+        $formatted_duration = $api->format_duration($video['duration']);
+        $output .= '<div class="adc-search-duration">' . $duration_text[$language] . ': ' . esc_html($formatted_duration) . '</div>';
         
         $output .= '</div>';
         $output .= '</a>';
@@ -329,10 +459,10 @@ class ADC_Search {
     }
     
     /**
-     * Get recommended videos for empty search results - Enhanced
+     * Get recommended videos for empty search results
      */
-    private function get_recommended_videos($limit = 8) {
-        $cache_key = 'recommended_videos_' . $this->api->get_section() . '_' . $limit;
+    private function get_recommended_videos($language, $limit = 8) {
+        $cache_key = 'recommended_videos_' . $language . '_' . $limit;
         
         // Check cache
         if (isset($this->cache[$cache_key])) {
@@ -345,8 +475,11 @@ class ADC_Search {
             return $cached_recommendations;
         }
         
+        // Create API instance for the language
+        $api = new ADC_API($language);
+        
         // Get programs
-        $programs = $this->api->get_programs();
+        $programs = $api->get_programs();
         
         if (empty($programs)) {
             return array();
@@ -355,7 +488,7 @@ class ADC_Search {
         // Collect videos from all programs
         $all_videos = array();
         foreach ($programs as $program) {
-            $videos = $this->api->get_materials($program['id']);
+            $videos = $api->get_materials($program['id']);
             if (!empty($videos)) {
                 foreach ($videos as $video) {
                     $video['program'] = $program['name'];
@@ -385,25 +518,28 @@ class ADC_Search {
     }
     
     /**
-     * Get search results with caching - Enhanced
+     * Get search results with caching
      */
-    private function get_cached_search_results($search_term) {
-        $cache_key = 'search_' . md5($search_term . '_' . $this->api->get_section());
+    private function get_cached_search_results($search_term, $language) {
+        $cache_key = 'search_' . md5($search_term . '_' . $language);
         
         // Check internal cache
         if (isset($this->cache[$cache_key])) {
             return $this->cache[$cache_key];
         }
         
-        // Check WordPress transient (shorter cache for search results)
+        // Check WordPress transient
         $cached_results = get_transient($cache_key);
         if ($cached_results !== false) {
             $this->cache[$cache_key] = $cached_results;
             return $cached_results;
         }
         
+        // Create API instance for the language
+        $api = new ADC_API($language);
+        
         // Perform actual search
-        $results = $this->api->search_materials($search_term);
+        $results = $api->search_materials($search_term);
         
         // Cache for 10 minutes
         if (is_array($results)) {
@@ -415,7 +551,7 @@ class ADC_Search {
     }
     
     /**
-     * Group search results by category - Enhanced
+     * Group search results by category
      */
     private function group_results_by_category($results) {
         $grouped = array();
@@ -439,7 +575,7 @@ class ADC_Search {
     }
     
     /**
-     * Convert title to slug - Consolidated (no more duplication)
+     * Convert title to slug
      */
     private function slugify($text) {
         // Remove accents
@@ -465,18 +601,12 @@ class ADC_Search {
         return isset($this->options['enable_search']) ? $this->options['enable_search'] === '1' : true;
     }
     
-    private function get_placeholder_text() {
-        return isset($this->options['search_placeholder']) ? $this->options['search_placeholder'] : 'Buscar videos...';
-    }
-    
-    private function get_results_page_url() {
-        $results_page_id = isset($this->options['search_results_page']) ? $this->options['search_results_page'] : 0;
-        
-        if ($results_page_id > 0) {
-            return get_permalink($results_page_id);
+    private function get_results_page_url($language) {
+        $base_url = home_url('/');
+        if ($language !== 'es') {
+            $base_url .= $language . '/';
         }
-        
-        return home_url('/');
+        return $base_url;
     }
     
     /**
@@ -489,20 +619,13 @@ class ADC_Search {
             
             // If it looks like an ADC search, redirect to ADC search
             if (!empty($search_term) && !isset($_GET['adc_search'])) {
-                $redirect_url = add_query_arg('adc_search', urlencode($search_term), home_url('/'));
+                $language = $this->detect_language();
+                $redirect_url = $this->get_results_page_url($language);
+                $redirect_url = add_query_arg('adc_search', urlencode($search_term), $redirect_url);
                 wp_redirect($redirect_url, 302);
                 exit;
             }
         }
-    }
-    
-    /**
-     * Create search widget
-     */
-    public static function create_search_widget() {
-        add_action('widgets_init', function() {
-            register_widget('ADC_Search_Widget');
-        });
     }
     
     /**
@@ -517,152 +640,7 @@ class ADC_Search {
         // Clear internal cache
         $this->cache = array();
     }
-    
-    /**
-     * Get search statistics for admin
-     */
-    public function get_search_stats() {
-        return array(
-            'cache_entries' => count($this->cache),
-            'search_enabled' => $this->is_search_enabled(),
-            'results_page' => $this->get_results_page_url(),
-            'placeholder_text' => $this->get_placeholder_text()
-        );
-    }
-}
-
-/**
- * Enhanced Search Widget Class
- */
-class ADC_Search_Widget extends WP_Widget {
-    
-    /**
-     * Constructor
-     */
-    public function __construct() {
-        parent::__construct(
-            'adc_search_widget',
-            'ADC Video Search',
-            array(
-                'description' => 'Formulario de búsqueda para videos ADC con opciones avanzadas',
-                'classname' => 'adc-search-widget'
-            )
-        );
-    }
-    
-    /**
-     * Widget frontend
-     */
-    public function widget($args, $instance) {
-        echo $args['before_widget'];
-        
-        if (!empty($instance['title'])) {
-            echo $args['before_title'] . apply_filters('widget_title', $instance['title']) . $args['after_title'];
-        }
-        
-        // Build shortcode attributes
-        $shortcode_atts = array();
-        
-        if (!empty($instance['placeholder'])) {
-            $shortcode_atts[] = 'placeholder="' . esc_attr($instance['placeholder']) . '"';
-        }
-        
-        if (!empty($instance['button_text'])) {
-            $shortcode_atts[] = 'button_text="' . esc_attr($instance['button_text']) . '"';
-        }
-        
-        if (!empty($instance['show_suggestions']) && $instance['show_suggestions'] === '1') {
-            $shortcode_atts[] = 'show_suggestions="true"';
-        }
-        
-        if (!empty($instance['custom_class'])) {
-            $shortcode_atts[] = 'class="' . esc_attr($instance['custom_class']) . '"';
-        }
-        
-        // Build and execute shortcode
-        $shortcode = '[adc_search_form';
-        if (!empty($shortcode_atts)) {
-            $shortcode .= ' ' . implode(' ', $shortcode_atts);
-        }
-        $shortcode .= ']';
-        
-        echo do_shortcode($shortcode);
-        
-        echo $args['after_widget'];
-    }
-    
-    /**
-     * Widget backend
-     */
-    public function form($instance) {
-        $title = !empty($instance['title']) ? $instance['title'] : 'Buscar Videos';
-        $placeholder = !empty($instance['placeholder']) ? $instance['placeholder'] : 'Buscar...';
-        $button_text = !empty($instance['button_text']) ? $instance['button_text'] : 'Buscar';
-        $show_suggestions = !empty($instance['show_suggestions']) ? $instance['show_suggestions'] : '0';
-        $custom_class = !empty($instance['custom_class']) ? $instance['custom_class'] : '';
-        ?>
-        <p>
-            <label for="<?php echo esc_attr($this->get_field_id('title')); ?>">Título:</label>
-            <input class="widefat" 
-                   id="<?php echo esc_attr($this->get_field_id('title')); ?>" 
-                   name="<?php echo esc_attr($this->get_field_name('title')); ?>" 
-                   type="text" 
-                   value="<?php echo esc_attr($title); ?>">
-        </p>
-        <p>
-            <label for="<?php echo esc_attr($this->get_field_id('placeholder')); ?>">Placeholder:</label>
-            <input class="widefat" 
-                   id="<?php echo esc_attr($this->get_field_id('placeholder')); ?>" 
-                   name="<?php echo esc_attr($this->get_field_name('placeholder')); ?>" 
-                   type="text" 
-                   value="<?php echo esc_attr($placeholder); ?>">
-        </p>
-        <p>
-            <label for="<?php echo esc_attr($this->get_field_id('button_text')); ?>">Texto del Botón:</label>
-            <input class="widefat" 
-                   id="<?php echo esc_attr($this->get_field_id('button_text')); ?>" 
-                   name="<?php echo esc_attr($this->get_field_name('button_text')); ?>" 
-                   type="text" 
-                   value="<?php echo esc_attr($button_text); ?>">
-        </p>
-        <p>
-            <input class="checkbox" 
-                   type="checkbox" 
-                   <?php checked($show_suggestions, '1'); ?> 
-                   id="<?php echo esc_attr($this->get_field_id('show_suggestions')); ?>" 
-                   name="<?php echo esc_attr($this->get_field_name('show_suggestions')); ?>" 
-                   value="1">
-            <label for="<?php echo esc_attr($this->get_field_id('show_suggestions')); ?>">Mostrar sugerencias</label>
-        </p>
-        <p>
-            <label for="<?php echo esc_attr($this->get_field_id('custom_class')); ?>">Clase CSS personalizada:</label>
-            <input class="widefat" 
-                   id="<?php echo esc_attr($this->get_field_id('custom_class')); ?>" 
-                   name="<?php echo esc_attr($this->get_field_name('custom_class')); ?>" 
-                   type="text" 
-                   value="<?php echo esc_attr($custom_class); ?>"
-                   placeholder="adc-search-form">
-        </p>
-        <?php
-    }
-    
-    /**
-     * Update widget
-     */
-    public function update($new_instance, $old_instance) {
-        $instance = array();
-        $instance['title'] = (!empty($new_instance['title'])) ? sanitize_text_field($new_instance['title']) : '';
-        $instance['placeholder'] = (!empty($new_instance['placeholder'])) ? sanitize_text_field($new_instance['placeholder']) : '';
-        $instance['button_text'] = (!empty($new_instance['button_text'])) ? sanitize_text_field($new_instance['button_text']) : '';
-        $instance['show_suggestions'] = (!empty($new_instance['show_suggestions'])) ? '1' : '0';
-        $instance['custom_class'] = (!empty($new_instance['custom_class'])) ? sanitize_html_class($new_instance['custom_class']) : '';
-        
-        return $instance;
-    }
 }
 
 // Initialize search functionality
 new ADC_Search();
-
-// Create search widget
-ADC_Search::create_search_widget();

@@ -1,12 +1,12 @@
 /**
  * ADC Video Display - Frontend JavaScript
- * Version: 2.1 - Optimized with modular structure
+ * Version: 3.0 - Multiidioma Optimizado
  */
 
 (function ($) {
     'use strict';
 
-    // Main ADC Video object - Modularized and optimized
+    // Main ADC Video object - Optimizado y sin console.logs innecesarios
     window.ADCVideo = {
 
         // Configuration
@@ -21,7 +21,8 @@
         state: {
             player: null,
             countdownInterval: null,
-            isInitialized: false
+            isInitialized: false,
+            currentLanguage: 'es'
         },
 
         // Cache for DOM elements
@@ -31,9 +32,9 @@
             $body: $('body')
         },
 
-        // Utility functions - Consolidated
+        // Utility functions
         utils: {
-            // Single slugify function (no more duplication)
+            // Single slugify function (unified)
             slugify: function (text) {
                 if (!text) return '';
 
@@ -57,6 +58,17 @@
                     .replace(/-+$/, '');
             },
 
+            // Detect language from URL
+            detectLanguage: function() {
+                var path = window.location.pathname;
+                if (path.indexOf('/en/') !== -1) {
+                    return 'en';
+                } else if (path.indexOf('/he/') !== -1) {
+                    return 'he';
+                }
+                return 'es';
+            },
+
             // Format duration from seconds to MM:SS
             formatDuration: function (seconds) {
                 if (!seconds) return '';
@@ -65,7 +77,7 @@
                 return minutes + ':' + (remainingSeconds < 10 ? '0' : '') + remainingSeconds;
             },
 
-            // Debounce function - Optimized
+            // Debounce function
             debounce: function (func, wait) {
                 var timeout;
                 return function () {
@@ -81,25 +93,17 @@
             getUrlParam: function (param) {
                 var urlParams = new URLSearchParams(window.location.search);
                 return urlParams.get(param);
-            },
-
-            // Log function for debugging
-            log: function (message, type) {
-                if (ADCVideo.config.debug && window.console) {
-                    var logType = type || 'log';
-                    console[logType]('[ADC Video] ' + message);
-                }
             }
         },
 
         // Initialize - Main entry point
         init: function (options) {
             if (this.state.isInitialized) {
-                this.utils.log('Already initialized, skipping');
                 return;
             }
 
-            this.utils.log('Initializing ADC Video Display v2.1');
+            // Detect current language
+            this.state.currentLanguage = this.utils.detectLanguage();
 
             // Merge options with defaults
             if (options) {
@@ -111,21 +115,17 @@
             this.menu.init();
             this.search.init();
             this.events.init();
-            this.cleanup.init();
 
             this.state.isInitialized = true;
-            this.utils.log('Initialization complete');
         },
 
-        // Video Player Module - Optimized
+        // Video Player Module
         player: {
             init: function () {
                 if (typeof videojs === 'undefined' || !document.getElementById('adc-player')) {
-                    ADCVideo.utils.log('Video.js not found or no player element');
                     return;
                 }
 
-                ADCVideo.utils.log('Initializing video player');
                 this.setupPlayer();
             },
 
@@ -139,8 +139,6 @@
                 });
 
                 player.ready(function () {
-                    ADCVideo.utils.log('Player ready');
-
                     // Set initial volume
                     player.volume(ADCVideo.config.playerVolume);
 
@@ -162,7 +160,7 @@
             addCustomButtons: function (player) {
                 var Button = videojs.getComponent('Button');
 
-                // Rewind button - Optimized
+                // Rewind button
                 var RewindButton = videojs.extend(Button, {
                     constructor: function () {
                         Button.apply(this, arguments);
@@ -172,11 +170,10 @@
                     handleClick: function () {
                         var currentTime = player.currentTime();
                         player.currentTime(Math.max(0, currentTime - 10));
-                        ADCVideo.utils.log('Rewound 10 seconds');
                     }
                 });
 
-                // Forward button - Optimized  
+                // Forward button
                 var ForwardButton = videojs.extend(Button, {
                     constructor: function () {
                         Button.apply(this, arguments);
@@ -187,7 +184,6 @@
                         var currentTime = player.currentTime();
                         var duration = player.duration();
                         player.currentTime(Math.min(duration, currentTime + 10));
-                        ADCVideo.utils.log('Fast-forwarded 10 seconds');
                     }
                 });
 
@@ -218,16 +214,14 @@
             }
         },
 
-        // Autoplay Module - Enhanced
+        // Autoplay Module
         autoplay: {
             handleVideoEnded: function () {
                 var nextUrl = this.getNextVideoUrl();
                 if (!nextUrl) {
-                    ADCVideo.utils.log('No next video found');
                     return;
                 }
 
-                ADCVideo.utils.log('Video ended, starting autoplay countdown');
                 this.showOverlay(nextUrl);
             },
 
@@ -252,7 +246,6 @@
                 var countdownEl = document.getElementById('adc-countdown');
 
                 if (!overlay || !countdownEl) {
-                    ADCVideo.utils.log('Overlay elements not found');
                     return;
                 }
 
@@ -280,7 +273,6 @@
 
                     if (seconds <= 0 && !cancelled) {
                         clearInterval(ADCVideo.state.countdownInterval);
-                        ADCVideo.utils.log('Autoplay countdown finished, redirecting');
                         window.location.href = nextUrl;
                     }
                 }, 1000);
@@ -305,12 +297,10 @@
                 if (overlay) {
                     overlay.innerHTML = '<p style="color:#aaa">Autoplay cancelado</p>';
                 }
-
-                ADCVideo.utils.log('Autoplay cancelled by user');
             }
-        },
+        }
 
-        // Menu Module - RESTORED WORKING LOGIC FROM v2.0
+        // Menu Module - RESTAURADO CON ESTILOS ORIGINALES
         menu: {
             initialized: false,
             observer: null,
@@ -325,7 +315,6 @@
             },
 
             initProgramsMenu: function () {
-                console.log('Inicializando menú PROGRAMAS - Versión completa');
                 var self = this;
 
                 // Limpiar eventos anteriores para evitar duplicaciones
@@ -340,14 +329,11 @@
                     var $dropdown = $programasLink.data('dropdown');
                     var $arrow = $programasLink.data('arrow');
 
-                    // Verificar que existen y están en el DOM
                     if (!$dropdown || !$arrow) {
                         return false;
                     }
 
-                    // Verificar que los elementos están realmente en el DOM
                     if (!$.contains(document, $dropdown[0]) || !$.contains(document, $arrow[0])) {
-                        console.log('⚠️ Referencias rotas detectadas, necesita reconfiguración');
                         return false;
                     }
 
@@ -355,9 +341,7 @@
                 }
 
                 // Función para configurar un elemento PROGRAMAS
-                function setupProgramsElement($programasLink) {
-                    console.log('Configurando elemento PROGRAMAS:', $programasLink.text());
-
+                function setupProgramsElement($programasLink, language) {
                     var $parentLi = $programasLink.closest('li');
                     if (!$parentLi.length) {
                         $parentLi = $programasLink.parent();
@@ -366,7 +350,7 @@
                     // Limpiar configuración anterior si existe
                     $parentLi.find('.adc-wp-programs-dropdown').remove();
                     $programasLink.find('.dropdown-arrow').remove();
-                    $programasLink.removeData('dropdown arrow programs-configured');
+                    $programasLink.removeData('dropdown arrow programs-configured language');
 
                     // Configurar el contenedor padre
                     $parentLi.css({
@@ -375,31 +359,27 @@
                     });
 
                     // Crear el dropdown
-                    var $dropdown = $('<div class="adc-wp-programs-dropdown"></div>');
+                    var $dropdown = $('<div class="adc-wp-programs-dropdown" data-language="' + language + '"></div>');
                     $parentLi.append($dropdown);
                     $dropdown.html('<div class="adc-loading">Cargando programas...</div>');
-                    $dropdown.hide(); // Ocultar inicialmente
+                    $dropdown.hide();
 
                     // Añadir flecha CON TODOS LOS ESTILOS ORIGINALES
                     var $arrow = $('<span class="dropdown-arrow" style="color:#6EC1E4; margin-left:5px; vertical-align:middle; transition:transform 0.3s ease; display:inline-block;">▾</span>');
                     $programasLink.append($arrow);
 
-                    // Guardar referencias en el elemento para fácil acceso
+                    // Guardar referencias en el elemento
                     $programasLink.data('dropdown', $dropdown);
                     $programasLink.data('arrow', $arrow);
                     $programasLink.data('programs-configured', true);
-
-                    console.log('✅ Elemento PROGRAMAS configurado correctamente');
+                    $programasLink.data('language', language);
                 }
 
                 // Función para cargar programas en el dropdown
-                function loadPrograms($dropdown) {
+                function loadPrograms($dropdown, language) {
                     if ($dropdown.data('programs-loaded')) {
-                        console.log('Programas ya cargados, saltando...');
-                        return; // Ya están cargados
+                        return;
                     }
-
-                    console.log('📡 Cargando programas desde API...');
 
                     var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
                     var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
@@ -409,25 +389,29 @@
                         type: 'POST',
                         data: {
                             action: 'adc_get_programs_menu',
+                            language: language,
                             nonce: nonce
                         },
                         success: function (response) {
-                            console.log('✅ Respuesta API completa:', response);
-
                             if (response.success && response.data && response.data.length > 0) {
                                 var html = '';
+                                var baseUrl = window.location.origin + '/';
+                                if (language !== 'es') {
+                                    baseUrl += language + '/';
+                                }
 
                                 $.each(response.data, function (i, program) {
                                     var slug = self.slugify(program.name);
-                                    // ESTILOS MEJORADOS CON SOPORTE PARA 2 LÍNEAS
-                                    html += '<a href="/?categoria=' + slug + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important; white-space:normal !important; word-wrap:break-word !important; max-width:300px !important; overflow-wrap:break-word !important;">' + program.name + '</a>';
+                                    var url = baseUrl + '?categoria=' + slug;
+                                    
+                                    // ESTILOS ORIGINALES RESTAURADOS
+                                    html += '<a href="' + url + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important; white-space:normal !important; word-wrap:break-word !important; max-width:300px !important; overflow-wrap:break-word !important;">' + program.name + '</a>';
                                 });
 
                                 $dropdown.html(html);
                                 $dropdown.data('programs-loaded', true);
-                                console.log('✅ Programas cargados exitosamente:', response.data.length);
 
-                                // Efectos hover IGUALES A LOS ORIGINALES
+                                // Efectos hover ORIGINALES
                                 $dropdown.find('a').hover(
                                     function () {
                                         $(this).css({
@@ -445,24 +429,15 @@
                                     }
                                 );
                             } else {
-                                console.log('❌ Error: respuesta sin programas válidos', response);
                                 var errorMsg = 'No hay programas disponibles';
                                 if (response.data && response.data.message) {
                                     errorMsg = response.data.message;
-                                } else if (!response.success && response.data) {
-                                    errorMsg = response.data;
                                 }
                                 $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">' + errorMsg + '</div>');
                             }
                         },
                         error: function (xhr, status, error) {
-                            console.log('❌ Error AJAX completo:', {
-                                status: status,
-                                error: error,
-                                responseText: xhr.responseText,
-                                xhr: xhr
-                            });
-                            $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">Error al cargar programas: ' + error + '</div>');
+                            $dropdown.html('<div class="adc-error" style="padding:20px; color:red; text-align:center;">Error al cargar programas</div>');
                         }
                     });
                 }
@@ -471,9 +446,9 @@
                 function toggleDropdown($programasLink) {
                     var $dropdown = $programasLink.data('dropdown');
                     var $arrow = $programasLink.data('arrow');
+                    var language = $programasLink.data('language');
 
                     if (!$dropdown || !$arrow) {
-                        console.log('❌ No se encontraron referencias del dropdown');
                         return;
                     }
 
@@ -481,55 +456,85 @@
                     $('.adc-wp-programs-dropdown').not($dropdown).slideUp(200);
                     $('.dropdown-arrow').not($arrow).css('transform', 'rotate(0deg)');
 
-                    // Verificar si el dropdown está visible ANTES de cambiarlo (LÓGICA ORIGINAL)
                     var isVisible = $dropdown.is(':visible');
 
                     // Toggle del dropdown actual
                     $dropdown.slideToggle(200);
 
-                    // Actualizar flecha al abrir/cerrar (LÓGICA ORIGINAL CORREGIDA)
                     if (isVisible) {
-                        // Si ya estaba visible, lo estamos cerrando
                         $arrow.css('transform', 'rotate(0deg)');
-                        console.log('🔽 Dropdown cerrado');
                     } else {
-                        // Si estaba oculto, lo estamos abriendo
                         $arrow.css('transform', 'rotate(180deg)');
-                        console.log('🔼 Dropdown abierto');
-
-                        // Cargar programas si no están cargados (CONDICIÓN ORIGINAL)
+                        
                         if ($dropdown.find('.adc-loading, .adc-error').length) {
-                            loadPrograms($dropdown);
+                            loadPrograms($dropdown, language);
                         }
                     }
                 }
 
-                // Configurar elementos existentes al inicializar - SELECTOR ORIGINAL + NUEVO
-                $('a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger a').each(function () {
-                    setupProgramsElement($(this));
+                // Configurar elementos existentes al inicializar
+                // Español
+                $('a:contains("PROGRAMAS_ES"), .adc-programs-menu-trigger a').each(function () {
+                    var $this = $(this);
+                    if ($this.text().trim() === 'PROGRAMAS_ES' || $this.hasClass('adc-programs-menu-trigger')) {
+                        $this.text('PROGRAMAS');
+                        setupProgramsElement($this, 'es');
+                    }
                 });
 
-                // Usar delegación de eventos para manejar clicks (funciona incluso cuando el DOM cambia)
-                $(document).on('click.programs-menu', 'a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger a', function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    console.log('🖱️ Click en PROGRAMAS detectado');
-
+                // Inglés
+                $('a:contains("PROGRAMAS_EN"), .adc-programs-menu-trigger-en a').each(function () {
                     var $this = $(this);
+                    if ($this.text().trim() === 'PROGRAMAS_EN' || $this.hasClass('adc-programs-menu-trigger-en')) {
+                        $this.text('PROGRAMS');
+                        setupProgramsElement($this, 'en');
+                    }
+                });
 
-                    // SOLUCIÓN MÓVIL: Verificar si está correctamente configurado o necesita reconfiguración
-                    if (!$this.data('programs-configured') || !isProperlyConfigured($this)) {
-                        console.log('🔄 Reconfigurando elemento (móvil o referencias rotas)');
-                        setupProgramsElement($this);
+                // Hebreo
+                $('a:contains("PROGRAMAS_HE"), .adc-programs-menu-trigger-he a').each(function () {
+                    var $this = $(this);
+                    if ($this.text().trim() === 'PROGRAMAS_HE' || $this.hasClass('adc-programs-menu-trigger-he')) {
+                        $this.text('תוכניות');
+                        setupProgramsElement($this, 'he');
+                    }
+                });
+
+                // Usar delegación de eventos para manejar clicks
+                $(document).on('click.programs-menu', 'a', function (e) {
+                    var $this = $(this);
+                    var text = $this.text().trim();
+                    var language = null;
+
+                    // Detectar idioma por texto o clase
+                    if (text === 'PROGRAMAS' || text === 'PROGRAMAS_ES' || $this.parent().hasClass('adc-programs-menu-trigger')) {
+                        language = 'es';
+                    } else if (text === 'PROGRAMS' || text === 'PROGRAMAS_EN' || $this.parent().hasClass('adc-programs-menu-trigger-en')) {
+                        language = 'en';
+                    } else if (text === 'תוכניות' || text === 'PROGRAMAS_HE' || $this.parent().hasClass('adc-programs-menu-trigger-he')) {
+                        language = 'he';
                     }
 
-                    toggleDropdown($this);
+                    if (language) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (!$this.data('programs-configured') || !isProperlyConfigured($this)) {
+                            // Actualizar texto si es necesario
+                            if (text === 'PROGRAMAS_ES') $this.text('PROGRAMAS');
+                            else if (text === 'PROGRAMAS_EN') $this.text('PROGRAMS');
+                            else if (text === 'PROGRAMAS_HE') $this.text('תוכניות');
+                            
+                            setupProgramsElement($this, language);
+                        }
+
+                        toggleDropdown($this);
+                    }
                 });
 
-                // Cerrar dropdowns al hacer click fuera (IGUAL AL ORIGINAL)
+                // Cerrar dropdowns al hacer click fuera
                 $(document).on('click.programs-menu-outside', function (e) {
-                    if (!$(e.target).closest('.adc-wp-programs-dropdown, a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger').length) {
+                    if (!$(e.target).closest('.adc-wp-programs-dropdown, a:contains("PROGRAMAS"), a:contains("PROGRAMS"), a:contains("תוכניות"), .adc-programs-menu-trigger, .adc-programs-menu-trigger-en, .adc-programs-menu-trigger-he').length) {
                         $('.adc-wp-programs-dropdown').slideUp(200);
                         $('.dropdown-arrow').css('transform', 'rotate(0deg)');
                     }
@@ -543,17 +548,29 @@
                     }
                 });
 
-                // SOLUCIÓN MÓVIL ADICIONAL: Reconfigurar cuando el menú de Elementor se abre
-                // Detectar cambios en el DOM que puedan afectar nuestros elementos
+                // MutationObserver para detectar cambios en el DOM
                 this.observer = new MutationObserver(function (mutations) {
                     mutations.forEach(function (mutation) {
                         if (mutation.type === 'childList') {
-                            // Buscar elementos PROGRAMAS que puedan haberse añadido/modificado
-                            $(mutation.addedNodes).find('a:contains("PROGRAMAS"), .adc_programs_menu_text, .adc-programs-menu-trigger a').each(function () {
+                            $(mutation.addedNodes).find('a').each(function () {
                                 var $this = $(this);
-                                if (!$this.data('programs-configured') || !isProperlyConfigured($this)) {
-                                    console.log('🆕 Nuevo elemento PROGRAMAS detectado por MutationObserver');
-                                    setupProgramsElement($this);
+                                var text = $this.text().trim();
+                                
+                                if (text === 'PROGRAMAS_ES' || text === 'PROGRAMAS_EN' || text === 'PROGRAMAS_HE') {
+                                    var language = 'es';
+                                    if (text === 'PROGRAMAS_EN') {
+                                        language = 'en';
+                                        $this.text('PROGRAMS');
+                                    } else if (text === 'PROGRAMAS_HE') {
+                                        language = 'he';
+                                        $this.text('תוכניות');
+                                    } else {
+                                        $this.text('PROGRAMAS');
+                                    }
+                                    
+                                    if (!$this.data('programs-configured')) {
+                                        setupProgramsElement($this, language);
+                                    }
                                 }
                             });
                         }
@@ -565,75 +582,72 @@
                     childList: true,
                     subtree: true
                 });
-
-                console.log('✅ Menú PROGRAMAS inicializado correctamente con soluciones para desktop y móvil');
             },
 
-            // Función slugify - IGUAL A LA ORIGINAL
+            // Función slugify
             slugify: function (text) {
-                // Primera conversión: eliminar acentos
-                var from = "áàäâéèëêíìïîóòöôúùüûñç·/_,:;";
-                var to = "aaaaeeeeiiiioooouuuunc------";
-
-                for (var i = 0, l = from.length; i < l; i++) {
-                    text = text.replace(new RegExp(from.charAt(i), 'g'), to.charAt(i));
-                }
-
-                // Normalizar a ASCII
-                return text
-                    .toString()                      // Convertir a string
-                    .toLowerCase()                   // Convertir a minúsculas
-                    .trim()                          // Eliminar espacios al inicio y final
-                    .replace(/\s+/g, '-')            // Reemplazar espacios con guiones
-                    .replace(/&/g, '-y-')            // Reemplazar & con 'y'
-                    .replace(/[^\w\-]+/g, '')        // Eliminar todos los caracteres no-alfanuméricos
-                    .replace(/\-\-+/g, '-')          // Reemplazar múltiples guiones con uno solo
-                    .replace(/^-+/, '')              // Eliminar guiones del inicio
-                    .replace(/-+$/, '');             // Eliminar guiones del final
-            },
+                return ADCVideo.utils.slugify(text);
+            }
 
             setupSearchReplacements: function () {
                 // Buscar elementos BUSCADOR y reemplazarlos con formulario de búsqueda
                 document.querySelectorAll('a').forEach(function (link) {
-                    if (link.textContent.trim() === 'BUSCADOR') {
-                        var searchContainer = document.createElement('div');
-                        searchContainer.className = 'adc-menu-search-container';
+                    var text = link.textContent.trim();
+                    var language = 'es';
+                    var placeholderText = 'Buscar...';
+                    
+                    // Detectar idioma y configurar texto
+                    if (text === 'BUSCADOR_ES' || link.classList.contains('adc-search-menu-trigger')) {
+                        language = 'es';
+                        placeholderText = 'Buscar...';
+                    } else if (text === 'BUSCADOR_EN' || link.classList.contains('adc-search-menu-trigger-en')) {
+                        language = 'en';
+                        placeholderText = 'Search...';
+                    } else if (text === 'BUSCADOR_HE' || link.classList.contains('adc-search-menu-trigger-he')) {
+                        language = 'he';
+                        placeholderText = 'חיפוש...';
+                    } else {
+                        return; // No es un link de búsqueda
+                    }
 
-                        var homeUrl = window.location.origin + '/';
+                    var searchContainer = document.createElement('div');
+                    searchContainer.className = 'adc-menu-search-container';
 
-                        searchContainer.innerHTML =
-                            '<form class="adc-inline-search-form" action="' + homeUrl + '" method="get">' +
-                            '<input type="text" name="adc_search" placeholder="Buscar..." class="adc-inline-search-input">' +
-                            '<button type="submit" class="adc-inline-search-button">' +
-                            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-                            '<circle cx="11" cy="11" r="8"></circle>' +
-                            '<line x1="21" y1="21" x2="16.65" y2="16.65"></line>' +
-                            '</svg>' +
-                            '</button>' +
-                            '</form>';
+                    var homeUrl = window.location.origin + '/';
+                    if (language !== 'es') {
+                        homeUrl += language + '/';
+                    }
 
-                        // Reemplazar el elemento del menú
-                        var menuItem = link.closest('li');
-                        if (menuItem) {
-                            menuItem.innerHTML = '';
-                            menuItem.appendChild(searchContainer);
-                            menuItem.style.display = 'flex';
-                            menuItem.style.alignItems = 'center';
-                            menuItem.style.marginLeft = '40px';
-                        }
+                    searchContainer.innerHTML =
+                        '<form class="adc-inline-search-form" action="' + homeUrl + '" method="get" data-language="' + language + '">' +
+                        '<input type="text" name="adc_search" placeholder="' + placeholderText + '" class="adc-inline-search-input">' +
+                        '<button type="submit" class="adc-inline-search-button">' +
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                        '<circle cx="11" cy="11" r="8"></circle>' +
+                        '<line x1="21" y1="21" x2="16.65" y2="16.65"></line>' +
+                        '</svg>' +
+                        '</button>' +
+                        '</form>';
+
+                    // Reemplazar el elemento del menú
+                    var menuItem = link.closest('li');
+                    if (menuItem) {
+                        menuItem.innerHTML = '';
+                        menuItem.appendChild(searchContainer);
+                        menuItem.style.display = 'flex';
+                        menuItem.style.alignItems = 'center';
+                        menuItem.style.marginLeft = '40px';
                     }
                 });
             }
         },
 
-        // Search Module - Enhanced and optimized
+        // Search Module
         search: {
             initialized: false,
 
             init: function () {
                 if (this.initialized) return;
-
-                ADCVideo.utils.log('Initializing search system');
 
                 this.setupSearchForms();
                 this.setupSearchIcon();
@@ -656,39 +670,57 @@
                         if (searchTerm === '') {
                             e.preventDefault();
                             input.focus();
-                            ADCVideo.utils.log('Empty search prevented');
-                        } else {
-                            ADCVideo.utils.log('Search submitted: ' + searchTerm);
                         }
                     });
                 });
             },
 
             setupSearchIcon: function () {
-                ADCVideo.utils.log('Setting up search icons');
-
                 var self = this;
 
-                $('a:contains("BUSCADOR"), a:contains("Buscar"), a.search-toggle, .search-toggle, .search-icon, .fa-search, .adc-search-menu-trigger').each(function () {
+                $('a').each(function () {
                     var $searchLink = $(this);
+                    var text = $searchLink.text().trim();
 
                     if ($searchLink.data('search-initialized')) {
                         return;
                     }
 
-                    ADCVideo.utils.log('Search element found, configuring');
+                    var language = null;
+                    var placeholderText = '';
 
-                    $searchLink.addClass('adc-search-menu-trigger');
+                    // Detectar idioma
+                    if (text === 'BUSCADOR_ES' || text === 'BUSCADOR' || $searchLink.parent().hasClass('adc-search-menu-trigger')) {
+                        language = 'es';
+                        placeholderText = 'Buscar...';
+                    } else if (text === 'BUSCADOR_EN' || text === 'SEARCH' || $searchLink.parent().hasClass('adc-search-menu-trigger-en')) {
+                        language = 'en';
+                        placeholderText = 'Search...';
+                    } else if (text === 'BUSCADOR_HE' || text === 'חיפוש' || $searchLink.parent().hasClass('adc-search-menu-trigger-he')) {
+                        language = 'he';
+                        placeholderText = 'חיפוש...';
+                    }
+
+                    if (!language) {
+                        return;
+                    }
+
+                    $searchLink.addClass('adc-search-menu-trigger-' + language);
 
                     var $parentLi = $searchLink.closest('li');
                     if (!$parentLi.length) {
                         $parentLi = $searchLink.parent();
                     }
 
+                    var homeUrl = window.location.origin + '/';
+                    if (language !== 'es') {
+                        homeUrl += language + '/';
+                    }
+
                     // Create enhanced search form
                     var $searchContainer = $('<div class="adc-menu-search-container"></div>');
-                    var $searchForm = $('<form class="adc-inline-search-form" action="' + window.location.origin + '/" method="get"></form>');
-                    var $searchInput = $('<input type="text" name="adc_search" placeholder="Buscar..." class="adc-inline-search-input">');
+                    var $searchForm = $('<form class="adc-inline-search-form" action="' + homeUrl + '" method="get" data-language="' + language + '"></form>');
+                    var $searchInput = $('<input type="text" name="adc_search" placeholder="' + placeholderText + '" class="adc-inline-search-input">');
                     var $searchButton = $('<button type="submit" class="adc-inline-search-button" style="background:transparent !important; border:none !important; color:#ffffff !important; box-shadow:none !important; outline:none !important;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></button>');
 
                     $searchForm.append($searchInput).append($searchButton);
@@ -741,38 +773,20 @@
 
                     $searchLink.data('search-initialized', true);
                 });
-
-                this.ensureFontAwesome();
-            },
-
-            ensureFontAwesome: function () {
-                if ($('link[href*="font-awesome"]').length) {
-                    return;
-                }
-
-                $('<link>').attr({
-                    rel: 'stylesheet',
-                    href: 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css',
-                    integrity: 'sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==',
-                    crossorigin: 'anonymous'
-                }).appendTo('head');
             },
 
             removeAutofocus: function () {
-                // Remove autofocus from search inputs to prevent unwanted keyboard popups
                 setTimeout(function () {
                     document.querySelectorAll('.adc-inline-search-input').forEach(function (input) {
                         if (document.activeElement === input) {
                             input.blur();
                         }
-                        // Remove autofocus attribute if present
                         input.removeAttribute('autofocus');
                     });
                 }, 100);
             },
 
             bindSearchEvents: function () {
-                // Enhanced search form handling
                 ADCVideo.cache.$document.on('submit', '.adc-search-form, .adc-inline-search-form', function (e) {
                     var $form = $(this);
                     var $input = $form.find('input[name="adc_search"]');
@@ -781,14 +795,10 @@
                     if (searchTerm === '') {
                         e.preventDefault();
                         $input.focus();
-                        ADCVideo.utils.log('Empty search prevented');
                         return false;
                     }
-
-                    ADCVideo.utils.log('Search form submitted: ' + searchTerm);
                 });
 
-                // Handle search input focus/blur effects
                 ADCVideo.cache.$document.on('focus', '.adc-inline-search-input', function () {
                     var $form = $(this).closest('.adc-inline-search-form');
                     $form.addClass('adc-search-focused');
@@ -798,93 +808,52 @@
                     var $form = $(this).closest('.adc-inline-search-form');
                     $form.removeClass('adc-search-focused');
                 });
-            },
-
-            // AJAX search functionality (if needed)
-            performAjaxSearch: function (query, callback) {
-                if (!query || query.trim() === '') {
-                    ADCVideo.utils.log('Empty search query', 'warn');
-                    return;
-                }
-
-                ADCVideo.utils.log('Performing AJAX search: ' + query);
-
-                var ajaxUrl = typeof adc_config !== 'undefined' ? adc_config.ajax_url : '/wp-admin/admin-ajax.php';
-                var nonce = typeof adc_config !== 'undefined' ? adc_config.nonce : '';
-
-                $.ajax({
-                    url: ajaxUrl,
-                    type: 'GET',
-                    data: {
-                        action: 'adc_search',
-                        search: query,
-                        nonce: nonce
-                    },
-                    success: function (response) {
-                        ADCVideo.utils.log('Search results received');
-                        if (response.success && callback) {
-                            callback(response.data);
-                        }
-                    },
-                    error: function (xhr, status, error) {
-                        ADCVideo.utils.log('Search AJAX error: ' + error, 'error');
-                    }
-                });
             }
         },
 
-        // Events Module - Consolidated event handling
+        // Events Module
         events: {
             initialized: false,
 
             init: function () {
                 if (this.initialized) return;
 
-                ADCVideo.utils.log('Initializing event handlers');
-
                 this.bindKeyboardEvents();
                 this.bindButtonEvents();
                 this.bindGeneralEvents();
-                this.bindLazyLoading();
 
                 this.initialized = true;
             },
 
             bindKeyboardEvents: function () {
-                // Enhanced keyboard shortcuts
                 ADCVideo.cache.$document.on('keydown.adc-video', function (e) {
                     var player = ADCVideo.state.player;
                     if (!player) return;
 
-                    // Only apply shortcuts when not in input fields
                     if ($(e.target).is('input, textarea, select')) return;
 
                     switch (e.keyCode) {
-                        case 37: // Left arrow - Rewind
+                        case 37: // Left arrow
                             player.currentTime(Math.max(0, player.currentTime() - 10));
                             e.preventDefault();
-                            ADCVideo.utils.log('Keyboard rewind');
                             break;
 
-                        case 39: // Right arrow - Fast forward
+                        case 39: // Right arrow
                             player.currentTime(Math.min(player.duration(), player.currentTime() + 10));
                             e.preventDefault();
-                            ADCVideo.utils.log('Keyboard fast forward');
                             break;
 
-                        case 32: // Spacebar - Play/Pause
+                        case 32: // Spacebar
                             if (player.paused()) {
                                 player.play();
-                                ADCVideo.utils.log('Keyboard play');
                             } else {
                                 player.pause();
-                                ADCVideo.utils.log('Keyboard pause');
                             }
                             e.preventDefault();
                             break;
 
-                        case 70: // F key - Fullscreen
-                            if (e.ctrlKey || e.metaKey) return; // Allow Ctrl+F for find
+                        case 70: // F key
+                            if (e.ctrlKey || e.metaKey) return;
 
                             if (player.isFullscreen()) {
                                 player.exitFullscreen();
@@ -892,50 +861,35 @@
                                 player.requestFullscreen();
                             }
                             e.preventDefault();
-                            ADCVideo.utils.log('Keyboard fullscreen toggle');
                             break;
 
-                        case 77: // M key - Mute
-                            if (e.ctrlKey || e.metaKey) return; // Allow Ctrl+M
+                        case 77: // M key
+                            if (e.ctrlKey || e.metaKey) return;
 
                             player.muted(!player.muted());
                             e.preventDefault();
-                            ADCVideo.utils.log('Keyboard mute toggle');
                             break;
                     }
                 });
 
-                // Global escape key handler
                 ADCVideo.cache.$document.on('keydown.adc-escape', function (e) {
                     if (e.key === 'Escape' || e.keyCode === 27) {
-                        // Close dropdowns
                         $('.adc-wp-programs-dropdown').slideUp(200);
                         $('.dropdown-arrow').css('transform', 'rotate(0deg)');
 
-                        // Cancel autoplay
                         if (ADCVideo.state.countdownInterval) {
                             ADCVideo.autoplay.cancelAutoplay();
                         }
-
-                        // Close any search boxes
-                        var searchBox = document.getElementById('adc-search-box');
-                        if (searchBox && searchBox.style.display !== 'none') {
-                            searchBox.style.display = 'none';
-                        }
-
-                        ADCVideo.utils.log('Escape key pressed - closed overlays');
                     }
                 });
             },
 
             bindButtonEvents: function () {
-                // Autoplay cancel button
                 ADCVideo.cache.$document.on('click.adc-video', '#adc-cancel-autoplay', function (e) {
                     e.preventDefault();
                     ADCVideo.autoplay.cancelAutoplay();
                 });
 
-                // Smooth scroll for navigation links
                 ADCVideo.cache.$document.on('click.adc-video', '.adc-nav-item', function (e) {
                     var href = this.getAttribute('href');
                     if (href && href.startsWith('#')) {
@@ -945,12 +899,10 @@
                             $('html, body').animate({
                                 scrollTop: target.offset().top - 100
                             }, 500);
-                            ADCVideo.utils.log('Smooth scroll to: ' + href);
                         }
                     }
                 });
 
-                // Enhanced button hover effects
                 ADCVideo.cache.$document.on('mouseenter.adc-video', '.adc-back-button, .adc-view-all-button, .adc-view-more-button', function () {
                     $(this).addClass('adc-button-hover');
                 }).on('mouseleave.adc-video', '.adc-back-button, .adc-view-all-button, .adc-view-more-button', function () {
@@ -959,586 +911,124 @@
             },
 
             bindGeneralEvents: function () {
-                // Window resize handler - debounced
                 var resizeHandler = ADCVideo.utils.debounce(function () {
-                    ADCVideo.utils.log('Window resized, updating layout');
-
-                    // Update player if exists
                     if (ADCVideo.state.player) {
                         ADCVideo.state.player.trigger('resize');
                     }
 
-                    // Close mobile dropdowns on orientation change
                     $('.adc-wp-programs-dropdown').slideUp(200);
                     $('.dropdown-arrow').css('transform', 'rotate(0deg)');
                 }, 250);
 
                 ADCVideo.cache.$window.on('resize.adc-video', resizeHandler);
 
-                // Page visibility change handler
                 document.addEventListener('visibilitychange', function () {
                     if (document.hidden) {
-                        // Pause video when page becomes hidden
                         if (ADCVideo.state.player && !ADCVideo.state.player.paused()) {
                             ADCVideo.state.player.pause();
-                            ADCVideo.utils.log('Video paused - page hidden');
                         }
                     }
                 });
 
-                // Handle orientation change on mobile
                 ADCVideo.cache.$window.on('orientationchange.adc-video', function () {
                     setTimeout(function () {
-                        // Close dropdowns after orientation change
                         $('.adc-wp-programs-dropdown').slideUp(200);
                         $('.dropdown-arrow').css('transform', 'rotate(0deg)');
-
-                        ADCVideo.utils.log('Orientation changed - reset UI');
                     }, 100);
                 });
-            },
-
-            bindLazyLoading: function () {
-                // Enhanced lazy loading with Intersection Observer
-                if ('IntersectionObserver' in window) {
-                    var imageObserver = new IntersectionObserver(function (entries, observer) {
-                        entries.forEach(function (entry) {
-                            if (entry.isIntersecting) {
-                                var image = entry.target;
-                                if (image.dataset.src) {
-                                    image.src = image.dataset.src;
-                                    image.classList.remove('lazy');
-                                    image.classList.add('lazy-loaded');
-                                    imageObserver.unobserve(image);
-                                    ADCVideo.utils.log('Lazy loaded image: ' + image.dataset.src);
-                                }
-                            }
-                        });
-                    }, {
-                        rootMargin: '50px 0px',
-                        threshold: 0.1
-                    });
-
-                    // Observe all lazy images
-                    var lazyImages = document.querySelectorAll('img.lazy');
-                    lazyImages.forEach(function (img) {
-                        imageObserver.observe(img);
-                    });
-
-                    ADCVideo.utils.log('Lazy loading initialized for ' + lazyImages.length + ' images');
-                } else {
-                    // Fallback for older browsers
-                    var lazyImages = document.querySelectorAll('img.lazy');
-                    lazyImages.forEach(function (img) {
-                        if (img.dataset.src) {
-                            img.src = img.dataset.src;
-                            img.classList.remove('lazy');
-                            img.classList.add('lazy-loaded');
-                        }
-                    });
-                    ADCVideo.utils.log('Lazy loading fallback applied');
-                }
             }
         },
 
-        // Cleanup Module - Handle duplicates and cleanup
-        cleanup: {
-            initialized: false,
-
-            init: function () {
-                if (this.initialized) return;
-
-                ADCVideo.utils.log('Initializing cleanup system');
-
-                this.cleanupDuplicatedResults();
-                this.cleanupOldElements();
-
-                this.initialized = true;
-            },
-
-            cleanupDuplicatedResults: function () {
-                // Check if we're on a search page
-                if (window.location.search.indexOf('adc_search=') === -1) return;
-
-                setTimeout(function () {
-                    // Remove duplicated search result containers
-                    var searchContainers = document.querySelectorAll('.adc-search-results-container');
-                    if (searchContainers.length > 1) {
-                        ADCVideo.utils.log('Removing ' + (searchContainers.length - 1) + ' duplicate search containers');
-                        for (var i = 1; i < searchContainers.length; i++) {
-                            if (searchContainers[i].parentNode) {
-                                searchContainers[i].parentNode.removeChild(searchContainers[i]);
-                            }
-                        }
-                    }
-
-                    // Remove duplicate recommendation titles
-                    var recommendedTitles = document.querySelectorAll('.adc-recommended-title');
-                    if (recommendedTitles.length > 1) {
-                        ADCVideo.utils.log('Removing ' + (recommendedTitles.length - 1) + ' duplicate recommendation titles');
-                        for (var j = 1; j < recommendedTitles.length; j++) {
-                            if (recommendedTitles[j].parentNode) {
-                                recommendedTitles[j].parentNode.removeChild(recommendedTitles[j]);
-                            }
-                        }
-                    }
-
-                    // Remove redundant "no results" messages
-                    var noResultsElements = document.querySelectorAll('.adc-search-no-results');
-                    if (noResultsElements.length > 0) {
-                        ADCVideo.utils.log('Removing ' + noResultsElements.length + ' redundant no-results messages');
-                        noResultsElements.forEach(function (element) {
-                            if (element.parentNode) {
-                                element.parentNode.removeChild(element);
-                            }
-                        });
-                    }
-                }, 500);
-            },
-
-            cleanupOldElements: function () {
-                // Remove old dropdown arrows that might be orphaned
-                $('.dropdown-arrow').each(function () {
-                    var $this = $(this);
-                    var $parent = $this.closest('li');
-                    if (!$parent.length || !$parent.hasClass('adc-programs-menu-trigger')) {
-                        $this.remove();
-                        ADCVideo.utils.log('Removed orphaned dropdown arrow');
-                    }
-                });
-
-                // Remove old dropdown containers without proper parent references
-                $('.adc-wp-programs-dropdown').each(function () {
-                    var $this = $(this);
-                    var $parentLi = $this.closest('li');
-
-                    if (!$parentLi.length || !$parentLi.hasClass('adc-programs-menu-trigger')) {
-                        $this.remove();
-                        ADCVideo.utils.log('Removed orphaned dropdown container');
-                    }
-                });
-            }
-        },
-
-        // Analytics Module - Optional tracking
-        analytics: {
-            track: function (category, action, label) {
-                if (typeof gtag !== 'undefined') {
-                    gtag('event', action, {
-                        'event_category': category,
-                        'event_label': label
-                    });
-                    ADCVideo.utils.log('Analytics tracked: ' + category + ' > ' + action + ' > ' + label);
-                }
-            },
-
-            trackVideoPlay: function (videoTitle) {
-                this.track('Video', 'play', videoTitle);
-            },
-
-            trackVideoComplete: function (videoTitle) {
-                this.track('Video', 'complete', videoTitle);
-            },
-
-            trackSearch: function (searchTerm) {
-                this.track('Search', 'search', searchTerm);
-            },
-
-            trackProgramView: function (programName) {
-                this.track('Program', 'view', programName);
-            }
-        },
-
-        // Performance Module - Monitor and optimize performance
-        performance: {
-            startTime: null,
-
-            init: function () {
-                this.startTime = performance.now();
-                ADCVideo.utils.log('Performance monitoring started');
-            },
-
-            logInitTime: function () {
-                if (this.startTime) {
-                    var elapsed = performance.now() - this.startTime;
-                    ADCVideo.utils.log('Total initialization time: ' + elapsed.toFixed(2) + 'ms');
-                }
-            },
-
-            measureFunction: function (fn, name) {
-                return function () {
-                    var start = performance.now();
-                    var result = fn.apply(this, arguments);
-                    var elapsed = performance.now() - start;
-                    ADCVideo.utils.log(name + ' executed in ' + elapsed.toFixed(2) + 'ms');
-                    return result;
-                };
-            }
-        },
-
-        // Destroy method - Clean shutdown
+        // Destroy method
         destroy: function () {
-            ADCVideo.utils.log('Destroying ADC Video instance');
-
-            // Clear intervals
             if (this.state.countdownInterval) {
                 clearInterval(this.state.countdownInterval);
                 this.state.countdownInterval = null;
             }
 
-            // Dispose video player
             if (this.state.player) {
                 try {
                     this.state.player.dispose();
                     this.state.player = null;
                 } catch (e) {
-                    ADCVideo.utils.log('Error disposing player: ' + e.message, 'warn');
+                    // Ignore errors
                 }
             }
 
-            // Remove event listeners
             this.cache.$document.off('.adc-video .programs-menu .programs-menu-outside .programs-menu-li');
             this.cache.$window.off('.adc-video');
 
-            // Reset state
             this.state.isInitialized = false;
             this.menu.initialized = false;
             this.search.initialized = false;
             this.events.initialized = false;
-            this.cleanup.initialized = false;
-
-            ADCVideo.utils.log('ADC Video destroyed successfully');
         }
     };
 
-    // Global utility functions (maintained for backwards compatibility)
-
-    /**
-     * Toggle search box function - Enhanced
-     */
-    window.toggleSearchBox = function () {
-        var searchBox = document.getElementById('adc-search-box');
-        if (searchBox) {
-            if (searchBox.style.display === 'none' || searchBox.style.display === '') {
-                searchBox.style.display = 'block';
-                var input = searchBox.querySelector('.adc-search-input');
-                if (input) {
-                    setTimeout(function () { input.focus(); }, 100);
-                }
-                ADCVideo.utils.log('Search box opened');
-            } else {
-                searchBox.style.display = 'none';
-                ADCVideo.utils.log('Search box closed');
-            }
-        }
-    };
-
-    /**
-     * Global slugify function (for external use) - Optimized
-     */
-    window.slugify = function (text) {
-        return ADCVideo.utils.slugify(text);
-    };
-
-    /**
-     * Enhanced error handling for the entire application
-     */
-    window.addEventListener('error', function (e) {
-        if (e.error) {
-            ADCVideo.utils.log('Global error caught: ' + e.error.message, 'error');
-        }
-
-        // Don't break the application on errors
-        e.preventDefault();
-        return true;
-    });
-
-    /**
-     * Initialize ADC Video - Multiple initialization strategies
-     */
+    // Initialize ADC Video
     function initializeADCVideo() {
-        // Performance monitoring
-        ADCVideo.performance.init();
-
-        // Prevent multiple initializations
         if (window.ADCVideoInitialized) {
-            ADCVideo.utils.log('Already initialized globally, skipping');
             return;
         }
 
-        console.log('🚀 Starting ADC Video initialization');
-
-        // Get configuration from localized script
         var config = {};
         if (typeof adc_config !== 'undefined') {
             config = {
                 autoplayEnabled: adc_config.autoplay === '1',
                 autoplayCountdown: parseInt(adc_config.countdown) || 5,
-                debug: window.location.search.indexOf('adc_debug=1') !== -1
-            };
-            ADCVideo.utils.log('Configuration loaded from adc_config');
-        } else {
-            // Fallback configuration
-            config = {
-                autoplayEnabled: true,
-                autoplayCountdown: 5,
-                debug: window.location.search.indexOf('adc_debug=1') !== -1
-            };
-            ADCVideo.utils.log('Using fallback configuration');
-
-            // Create fallback adc_config for compatibility
-            window.adc_config = {
-                ajax_url: '/wp-admin/admin-ajax.php',
-                nonce: '',
-                autoplay: '1',
-                countdown: '5'
+                debug: adc_config.debug === true || adc_config.debug === '1'
             };
         }
 
-        // Initialize ADC Video with configuration
         try {
             ADCVideo.init(config);
             window.ADCVideoInitialized = true;
-            ADCVideo.performance.logInitTime();
-            console.log('✅ ADC Video initialized successfully');
         } catch (error) {
-            console.error('❌ Initialization error:', error.message);
-            ADCVideo.utils.log('Initialization error: ' + error.message, 'error');
+            // Silently fail
         }
     }
 
-    /**
-     * DOM Ready initialization - Enhanced with multiple fallbacks
-     */
+    // Multiple initialization strategies
     function handleDOMReady() {
         if (document.readyState === "interactive" || document.readyState === "complete") {
-            console.log('✅ DOM ready, initializing immediately');
             initializeADCVideo();
         } else {
-            console.log('⏳ DOM not ready, waiting...');
-            // Try again after a short delay
             setTimeout(function () {
                 if (document.readyState === "interactive" || document.readyState === "complete") {
                     initializeADCVideo();
                 } else {
-                    // Final fallback - force init after 2 seconds
                     setTimeout(initializeADCVideo, 2000);
                 }
             }, 50);
         }
     }
 
-    /**
-     * Multiple initialization strategies for maximum compatibility
-     */
-
-    // Strategy 1: Immediate initialization if DOM is already ready
+    // Initialize
     handleDOMReady();
 
-    // Strategy 2: jQuery document ready (if jQuery is available)
     if (typeof $ !== 'undefined') {
         $(document).ready(function () {
             if (!window.ADCVideoInitialized) {
-                console.log('📚 jQuery document ready triggered');
                 initializeADCVideo();
             }
         });
     }
 
-    // Strategy 3: Native DOMContentLoaded event
     if (document.addEventListener) {
         document.addEventListener('DOMContentLoaded', function () {
             if (!window.ADCVideoInitialized) {
-                console.log('📄 DOMContentLoaded event triggered');
                 initializeADCVideo();
             }
         });
     }
 
-    // Strategy 4: Window load event (final fallback)
     window.addEventListener('load', function () {
         if (!window.ADCVideoInitialized) {
-            console.log('🔄 Window load event triggered (fallback)');
             initializeADCVideo();
         }
     });
 
-    /**
-     * Handle page unload - Cleanup
-     */
-    window.addEventListener('beforeunload', function () {
-        if (window.ADCVideoInitialized && ADCVideo.destroy) {
-            ADCVideo.destroy();
-        }
-    });
-
-    /**
-     * Developer tools - Available in console when debug is enabled
-     */
-    if (window.location.search.indexOf('adc_debug=1') !== -1) {
-        window.ADCVideoDebug = {
-            getState: function () {
-                return ADCVideo.state;
-            },
-            getConfig: function () {
-                return ADCVideo.config;
-            },
-            getCache: function () {
-                return ADCVideo.cache;
-            },
-            reinit: function () {
-                if (ADCVideo.destroy) {
-                    ADCVideo.destroy();
-                }
-                window.ADCVideoInitialized = false;
-                initializeADCVideo();
-            },
-            testMenu: function () {
-                ADCVideo.menu.setupProgramsMenu();
-            },
-            testSearch: function (query) {
-                ADCVideo.search.performAjaxSearch(query || 'test', function (results) {
-                    console.log('Search results:', results);
-                });
-            },
-            trackEvent: function (category, action, label) {
-                ADCVideo.analytics.track(category, action, label);
-            },
-            forceMenuSetup: function () {
-                console.log('🔧 Forcing menu setup...');
-                ADCVideo.menu.setupProgramsMenu();
-                ADCVideo.menu.configureExistingElements();
-                console.log('✅ Menu setup complete');
-            }
-        };
-
-        console.log('%cADC Video Debug Mode Enabled', 'color: #6EC1E4; font-size: 16px; font-weight: bold;');
-        console.log('Available debug functions:', Object.keys(window.ADCVideoDebug));
-        console.log('Use ADCVideoDebug.reinit() to reinitialize');
-        console.log('Use ADCVideoDebug.getState() to inspect current state');
-        console.log('Use ADCVideoDebug.forceMenuSetup() to force menu configuration');
-    }
-
-    /**
-     * Expose ADC Video to global scope for external access
-     */
+    // Expose ADC Video to global scope
     window.ADCVideo = ADCVideo;
 
-    /**
-     * Legacy support - Maintain backwards compatibility
-     */
-    window.ADCVideoLegacy = {
-        // Legacy function names that might be used elsewhere
-        initPlayer: function () {
-            if (ADCVideo.player && ADCVideo.player.init) {
-                ADCVideo.player.init();
-            }
-        },
-        initMenu: function () {
-            if (ADCVideo.menu && ADCVideo.menu.init) {
-                ADCVideo.menu.init();
-            }
-        },
-        cancelAutoplay: function () {
-            if (ADCVideo.autoplay && ADCVideo.autoplay.cancelAutoplay) {
-                ADCVideo.autoplay.cancelAutoplay();
-            }
-        }
-    };
-
 })(jQuery);
-
-/**
- * Standalone functions that don't require jQuery (for compatibility)
- */
-
-/**
- * Enhanced global escape key handler
- */
-document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' || e.keyCode === 27) {
-        // Close search box
-        var searchBox = document.getElementById('adc-search-box');
-        if (searchBox && searchBox.style.display !== 'none') {
-            searchBox.style.display = 'none';
-        }
-
-        // Close dropdowns (if jQuery is available)
-        if (typeof jQuery !== 'undefined') {
-            jQuery('.adc-wp-programs-dropdown').slideUp(200);
-            jQuery('.dropdown-arrow').css('transform', 'rotate(0deg)');
-        }
-
-        // Close any modal overlays
-        var overlays = document.querySelectorAll('.adc-modal-overlay, .adc-popup-overlay');
-        overlays.forEach(function (overlay) {
-            overlay.style.display = 'none';
-        });
-    }
-});
-
-/**
- * Enhanced console information for developers
- */
-if (window.console && window.console.log) {
-    console.log('%cADC Video Display v2.1', 'color: #6EC1E4; font-size: 14px; font-weight: bold;');
-    console.log('🎥 Enhanced video player with autoplay and custom controls');
-    console.log('🔍 Optimized search functionality');
-    console.log('📱 Mobile-responsive dropdown menus');
-    console.log('⚡ Performance optimized and modular architecture');
-    console.log('🔧 Add ?adc_debug=1 to URL for debug mode');
-}
-
-/**
- * Feature detection and polyfills
- */
-(function () {
-    // Check for required features
-    var missingFeatures = [];
-
-    if (!window.addEventListener) {
-        missingFeatures.push('addEventListener');
-    }
-
-    if (!window.JSON) {
-        missingFeatures.push('JSON');
-    }
-
-    if (!Array.prototype.forEach) {
-        missingFeatures.push('Array.forEach');
-    }
-
-    if (missingFeatures.length > 0) {
-        console.warn('[ADC Video] Missing features detected:', missingFeatures.join(', '));
-        console.warn('[ADC Video] Some functionality may not work properly in this browser');
-    }
-
-    // Simple polyfill for Array.forEach if missing
-    if (!Array.prototype.forEach) {
-        Array.prototype.forEach = function (callback, thisArg) {
-            for (var i = 0; i < this.length; i++) {
-                callback.call(thisArg, this[i], i, this);
-            }
-        };
-    }
-})();
-
-/**
- * Performance monitoring (if enabled)
- */
-if (window.performance && window.performance.mark) {
-    performance.mark('adc-video-script-end');
-
-    // Log script loading time after initialization
-    setTimeout(function () {
-        try {
-            performance.measure('adc-video-script-load', 'adc-video-script-start', 'adc-video-script-end');
-            var measure = performance.getEntriesByName('adc-video-script-load')[0];
-            if (measure && window.ADCVideo && window.ADCVideo.utils) {
-                window.ADCVideo.utils.log('Script loading time: ' + measure.duration.toFixed(2) + 'ms');
-            }
-        } catch (e) {
-            // Ignore performance measurement errors
-        }
-    }, 1000);
-}
