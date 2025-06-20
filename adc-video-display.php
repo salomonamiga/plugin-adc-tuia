@@ -491,7 +491,14 @@ class ADC_Video_Display
         $output .= '<a href="' . esc_url($home_url) . '" class="adc-back-button">' . $back_text[$this->language] . '</a>';
         $output .= '</div>';
 
+        /* ORIGINAL
         // NUEVO: Mostrar clip promocional si existe
+          if (isset($category['clip']) && !empty($category['clip'])) {
+           $output .= $this->render_promotional_clip($category);
+           }
+        */
+
+        // MUESTRA - NUEVO: Mostrar clip promocional si existe
         if (isset($category['clip']) && !empty($category['clip'])) {
             $output .= $this->render_promotional_clip($category);
         }
@@ -502,6 +509,10 @@ class ADC_Video_Display
             $temp_category['clip'] = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
             $output .= $this->render_promotional_clip($temp_category);
         }
+
+        // HASTA AQUI LA MUESTRA DEMO
+
+        
 
         // Videos per row setting
         $videos_per_row = isset($this->options['videos_per_row']) ? $this->options['videos_per_row'] : '4';
@@ -549,7 +560,6 @@ class ADC_Video_Display
      */
     private function render_promotional_clip($category)
     {
-
         $output = '<div class="adc-promotional-clip-section">';
 
         // Video.js for promotional clip
