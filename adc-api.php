@@ -394,8 +394,6 @@ class ADC_API
         return isset($video['video']) ? $video['video'] : '';
     }
 
-    /** ESTO LO ARREGLO CODEX, SI NO FUNCIONA, REVISAR */
-
     /**
      * Get season names mapping
      */
@@ -585,9 +583,6 @@ class ADC_API
         return $grouped;
     }
 
-    /** hasta aqui arreglo */
-
-
     /**
      * Group search results by category
      */
@@ -612,6 +607,171 @@ class ADC_API
     }
 
     /**
+     * NUEVOS MÉTODOS PARA ADMIN - Cache Management
+     */
+
+    /**
+     * Get cache statistics for admin dashboard
+     */
+    public function get_cache_stats()
+    {
+        global $wpdb;
+        
+        // Count transients for this language
+        $transient_count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+            '_transient_timeout_%' . $this->language . '%',
+            '_transient_%' . $this->language . '%'
+        ));
+
+        // Calculate approximate cache size
+        $cache_size = $wpdb->get_var($wpdb->prepare(
+            "SELECT SUM(LENGTH(option_value)) FROM {$wpdb->options} WHERE option_name LIKE %s",
+            '_transient_%' . $this->language . '%'
+        ));
+
+        // Determine environment
+        $environment = (defined('WP_DEBUG') && WP_DEBUG) ? 'development' : 'production';
+
+        return array(
+            'transient_count' => intval($transient_count / 2), // Divide by 2 because each transient has timeout
+            'cache_size_kb' => round(intval($cache_size) / 1024, 2),
+            'environment' => $environment,
+            'language' => $this->language,
+            'last_update' => current_time('mysql')
+        );
+    }
+
+    /**
+     * Health check for system status
+     */
+    public function health_check()
+    {
+        $health = array(
+            'overall' => 'healthy',
+            'api_connection' => false,
+            'programs_count' => 0,
+            'materials_count' => 0,
+            'cache_status' => 'ok',
+            'last_check' => current_time('mysql')
+        );
+
+        try {
+            // Test API connection
+            $connection_test = $this->test_connection();
+            $health['api_connection'] = $connection_test['success'];
+            
+            if ($connection_test['success']) {
+                $health['programs_count'] = $connection_test['programs_count'];
+                
+                // Count total materials
+                $programs = $this->get_programs();
+                $total_materials = 0;
+                foreach ($programs as $program) {
+                    $materials = $this->get_materials($program['id']);
+                    $total_materials += count($materials);
+                }
+                $health['materials_count'] = $total_materials;
+            } else {
+                $health['overall'] = 'unhealthy';
+            }
+
+            // Check cache status
+            $cache_stats = $this->get_cache_stats();
+            if ($cache_stats['transient_count'] === 0) {
+                $health['cache_status'] = 'empty';
+                $health['overall'] = 'degraded';
+            }
+
+        } catch (Exception $e) {
+            $health['overall'] = 'unhealthy';
+            $health['error'] = $e->getMessage();
+        }
+
+        return $health;
+    }
+
+    /**
+     * Clear all cache for this language
+     */
+    public function clear_all_cache()
+    {
+        global $wpdb;
+        
+        // Clear WordPress transients for this language
+        $wpdb->query($wpdb->prepare(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+            '_transient_timeout_%' . $this->language . '%',
+            '_transient_%' . $this->language . '%'
+        ));
+
+        // Clear internal cache
+        $this->cache = array();
+
+        // Clear object cache if available
+        if (function_exists('wp_cache_flush')) {
+            wp_cache_flush();
+        }
+
+        return true;
+    }
+
+    /**
+     * Refresh specific cache type
+     */
+    public function refresh_cache($cache_type)
+    {
+        global $wpdb;
+        
+        switch ($cache_type) {
+            case 'programs':
+                // Clear programs cache
+                $wpdb->query($wpdb->prepare(
+                    "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+                    '_transient_programs_%' . $this->language . '%'
+                ));
+                break;
+                
+            case 'materials':
+                // Clear materials cache
+                $wpdb->query($wpdb->prepare(
+                    "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+                    '_transient_materials_%' . $this->language . '%'
+                ));
+                break;
+                
+            case 'search':
+                // Clear search cache
+                $wpdb->query($wpdb->prepare(
+                    "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+                    '_transient_search_%' . $this->language . '%'
+                ));
+                break;
+                
+            case 'menu':
+                // Clear menu cache
+                $wpdb->query($wpdb->prepare(
+                    "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+                    '_transient_programs_menu_%' . $this->language . '%'
+                ));
+                break;
+                
+            default:
+                // Clear all if type not recognized
+                return $this->clear_all_cache();
+        }
+
+        // Clear related internal cache
+        foreach ($this->cache as $key => $value) {
+            if (strpos($key, $cache_type) !== false) {
+                unset($this->cache[$key]);
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Check if API is configured
      */
     public function is_configured()
@@ -627,35 +787,46 @@ class ADC_API
         if (!$this->is_configured()) {
             return array(
                 'success' => false,
-                'error' => 'API no configurada - Token o URL faltante'
+                'error' => 'API no configurada - Token o URL faltante',
+                'error_type' => 'configuration'
             );
         }
 
         // Clear cache for testing
         $this->cache = array();
 
+        $start_time = microtime(true);
         $programs = $this->get_programs();
+        $end_time = microtime(true);
 
         if ($programs === false) {
             return array(
                 'success' => false,
-                'error' => 'Error al conectar con la API'
+                'error' => 'Error al conectar con la API',
+                'error_type' => 'connection'
             );
         }
 
         // Test materials endpoint with first program
         $materials_test = true;
+        $materials_count = 0;
         if (!empty($programs)) {
             $first_program = $programs[0];
             $materials = $this->get_materials($first_program['id']);
             $materials_test = $materials !== false;
+            $materials_count = is_array($materials) ? count($materials) : 0;
         }
+
+        $response_time = round(($end_time - $start_time) * 1000); // Convert to milliseconds
 
         return array(
             'success' => true,
             'programs_count' => count($programs),
             'materials_test' => $materials_test,
-            'language' => $this->get_language_name()
+            'materials_count' => $materials_count,
+            'language' => $this->get_language_name(),
+            'response_time' => $response_time,
+            'cache_time' => time()
         );
     }
 
@@ -679,5 +850,186 @@ class ADC_API
         );
 
         return isset($texts[$this->language]) ? $texts[$this->language] : 'Próximamente';
+    }
+
+    /**
+     * Enhanced cache management - Get cache key with language prefix
+     */
+    private function get_cache_key($base_key)
+    {
+        return $this->language . '_' . $base_key;
+    }
+
+    /**
+     * Enhanced cache management - Set transient with language prefix
+     */
+    private function set_cache_transient($key, $data, $expiration = 300)
+    {
+        $cache_key = $this->get_cache_key($key);
+        set_transient($cache_key, $data, $expiration);
+        
+        // Also store in internal cache
+        $this->cache[$cache_key] = $data;
+    }
+
+    /**
+     * Enhanced cache management - Get transient with language prefix
+     */
+    private function get_cache_transient($key)
+    {
+        $cache_key = $this->get_cache_key($key);
+        
+        // Check internal cache first
+        if (isset($this->cache[$cache_key])) {
+            return $this->cache[$cache_key];
+        }
+        
+        // Check WordPress transient
+        $data = get_transient($cache_key);
+        if ($data !== false) {
+            $this->cache[$cache_key] = $data;
+            return $data;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Enhanced cache management - Delete transient with language prefix
+     */
+    private function delete_cache_transient($key)
+    {
+        $cache_key = $this->get_cache_key($key);
+        delete_transient($cache_key);
+        unset($this->cache[$cache_key]);
+    }
+
+    /**
+     * Get cache statistics for debugging
+     */
+    public function get_debug_cache_info()
+    {
+        if (!$this->debug_mode) {
+            return array();
+        }
+
+        return array(
+            'internal_cache_count' => count($this->cache),
+            'internal_cache_keys' => array_keys($this->cache),
+            'language' => $this->language,
+            'section' => $this->section,
+            'api_configured' => $this->is_configured()
+        );
+    }
+
+    /**
+     * Force refresh all data for this language
+     */
+    public function force_refresh_all()
+    {
+        // Clear all caches
+        $this->clear_all_cache();
+        
+        // Pre-load essential data
+        $programs = $this->get_programs();
+        $menu_programs = $this->get_all_programs_for_menu();
+        
+        return array(
+            'programs_loaded' => count($programs),
+            'menu_programs_loaded' => count($menu_programs),
+            'language' => $this->language,
+            'timestamp' => current_time('mysql')
+        );
+    }
+
+    /**
+     * Get API status summary
+     */
+    public function get_api_status()
+    {
+        $status = array(
+            'configured' => $this->is_configured(),
+            'language' => $this->language,
+            'section' => $this->section,
+            'api_url' => $this->api_url,
+            'has_token' => !empty($this->api_token),
+            'cache_count' => count($this->cache)
+        );
+
+        if ($status['configured']) {
+            $connection_test = $this->test_connection();
+            $status['connection'] = $connection_test['success'];
+            $status['programs_available'] = isset($connection_test['programs_count']) ? $connection_test['programs_count'] : 0;
+        } else {
+            $status['connection'] = false;
+            $status['programs_available'] = 0;
+        }
+
+        return $status;
+    }
+
+    /**
+     * Validate API response structure
+     */
+    private function validate_api_response($data, $required_fields = array('data'))
+    {
+        if (!is_array($data)) {
+            return false;
+        }
+
+        foreach ($required_fields as $field) {
+            if (!isset($data[$field])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Log API errors if debug mode is enabled
+     */
+    private function log_api_error($message, $context = array())
+    {
+        if ($this->debug_mode && function_exists('error_log')) {
+            $log_message = 'ADC API Error (' . $this->language . '): ' . $message;
+            if (!empty($context)) {
+                $log_message .= ' Context: ' . json_encode($context);
+            }
+            error_log($log_message);
+        }
+    }
+
+    /**
+     * Get formatted error message based on language
+     */
+    public function get_error_message($error_type)
+    {
+        $messages = array(
+            'es' => array(
+                'no_connection' => 'No se pudo conectar con la API',
+                'no_programs' => 'No se encontraron programas',
+                'no_materials' => 'No se encontraron videos',
+                'invalid_response' => 'Respuesta inválida de la API',
+                'not_configured' => 'API no configurada'
+            ),
+            'en' => array(
+                'no_connection' => 'Could not connect to API',
+                'no_programs' => 'No programs found',
+                'no_materials' => 'No videos found',
+                'invalid_response' => 'Invalid API response',
+                'not_configured' => 'API not configured'
+            ),
+            'he' => array(
+                'no_connection' => 'לא ניתן להתחבר ל-API',
+                'no_programs' => 'לא נמצאו תוכניות',
+                'no_materials' => 'לא נמצאו סרטונים',
+                'invalid_response' => 'תגובת API לא תקפה',
+                'not_configured' => 'API לא מוגדר'
+            )
+        );
+
+        $lang_messages = isset($messages[$this->language]) ? $messages[$this->language] : $messages['es'];
+        return isset($lang_messages[$error_type]) ? $lang_messages[$error_type] : 'Error desconocido';
     }
 }
