@@ -498,7 +498,7 @@ class ADC_Video_Display
            }
         */
 
-        // MUESTRA - NUEVO: Mostrar clip promocional si existe
+        // DEMO - NUEVO: Mostrar clip promocional si existe
         if (isset($category['clip']) && !empty($category['clip'])) {
             $output .= $this->render_promotional_clip($category);
         }
@@ -510,9 +510,9 @@ class ADC_Video_Display
             $output .= $this->render_promotional_clip($temp_category);
         }
 
-        // HASTA AQUI LA MUESTRA DEMO
+        // HASTA AQUI LA DEMO DEMO
 
-        
+
 
         // Videos per row setting
         $videos_per_row = isset($this->options['videos_per_row']) ? $this->options['videos_per_row'] : '4';
