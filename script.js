@@ -34,7 +34,7 @@
 
         // Utility functions
         utils: {
-            // Single slugify function (unified)
+            // Single unified slugify function
             slugify: function (text) {
                 if (!text) return '';
 
@@ -300,7 +300,7 @@
             }
         },
 
-        // Menu Module - RESTAURADO CON ESTILOS ORIGINALES
+        // Menu Module - OPTIMIZADO - Eliminada función slugify duplicada
         menu: {
             initialized: false,
             observer: null,
@@ -412,14 +412,14 @@
                                 }
 
                                 $.each(programs, function (i, program) {
-                                    var slug = self.slugify(program.name);
+                                    // Usar la función slugify unificada de utils
+                                    var slug = ADCVideo.utils.slugify(program.name);
                                     var url = baseUrl + '?categoria=' + slug;
                                     html += '<a href="' + url + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important; white-space:normal !important; word-wrap:break-word !important; max-width:300px !important; overflow-wrap:break-word !important;">' + program.name + '</a>';
                                 });
 
                                 $dropdown.html(html);
                                 $dropdown.data('programs-loaded', true);
-                                // Mantener los efectos hover...
                             } else {
                                 var errorMsg = 'No hay programas disponibles';
                                 if (response.data && response.data.message) {
@@ -430,7 +430,6 @@
                         }
                     });
                 }
-
 
                 // Función para toggle del dropdown
                 function toggleDropdown($programasLink) {
@@ -572,11 +571,6 @@
                     childList: true,
                     subtree: true
                 });
-            },
-
-            // Función slugify
-            slugify: function (text) {
-                return ADCVideo.utils.slugify(text);
             },
 
             setupSearchReplacements: function () {
