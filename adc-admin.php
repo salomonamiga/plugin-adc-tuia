@@ -56,17 +56,8 @@ class ADC_Admin
             '3.0'
         );
 
-        // Admin specific JavaScript
-        wp_enqueue_script(
-            'adc-admin-script',
-            ADC_PLUGIN_URL . 'admin.js',
-            array('jquery', 'jquery-ui-sortable'),
-            '3.0',
-            true
-        );
-
-        // Localize admin script
-        wp_localize_script('adc-admin-script', 'adc_admin_config', array(
+        // Localize for inline scripts
+        wp_localize_script('jquery', 'adc_admin_config', array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('adc_admin_nonce'),
             'strings' => array(
@@ -141,7 +132,6 @@ class ADC_Admin
         }
 
         $cache_type = isset($_POST['cache_type']) ? sanitize_text_field($_POST['cache_type']) : 'all';
-        $language = isset($_POST['language']) ? sanitize_text_field($_POST['language']) : null;
 
         try {
             // Clear cache based on type
@@ -500,7 +490,7 @@ class ADC_Admin
      */
     public function admin_notices()
     {
-        if (!$this->is_adc_admin_page($_GET['page'] ?? '')) {
+        if (!isset($_GET['page']) || !$this->is_adc_admin_page($_GET['page'])) {
             return;
         }
 
@@ -518,7 +508,7 @@ class ADC_Admin
     }
 
     /**
-     * Display the settings page - MEJORADO con cache y health check
+     * Display the settings page - SIMPLIFICADO
      */
     public function display_settings_page()
     {
@@ -567,7 +557,7 @@ class ADC_Admin
         echo '<div id="adc-cache-status" style="margin-top: 15px;"></div>';
         echo '</div>';
 
-        // Show API status for all languages - MEJORADO
+        // Show API status for all languages
         echo '<div class="card">';
         echo '<h2>Estado de Conexión API por Idioma</h2>';
         echo '<div id="api-status-container">';
@@ -594,7 +584,17 @@ class ADC_Admin
 
         $this->render_usage_info();
 
-        // Add inline CSS for badges
+        // Add inline CSS and JavaScript
+        $this->render_admin_styles_and_scripts();
+
+        echo '</div>';
+    }
+
+    /**
+     * Render admin styles and scripts inline
+     */
+    private function render_admin_styles_and_scripts()
+    {
         echo '<style>
         .adc-dev-badge { background: #ff9800; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; }
         .adc-prod-badge { background: #4caf50; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; }
@@ -607,7 +607,6 @@ class ADC_Admin
         #adc-cache-status.loading, #adc-connection-status.loading { background: #cce7ff; border: 1px solid #99d6ff; color: #0066cc; }
         </style>';
 
-        // Add JavaScript for cache management
         echo '<script>
         jQuery(document).ready(function($) {
             // Clear cache handlers
@@ -621,12 +620,12 @@ class ADC_Admin
                 $("#adc-cache-status").removeClass("success error").addClass("loading").text("Limpiando caché...").show();
                 
                 $.ajax({
-                    url: adc_admin_config.ajax_url,
+                    url: ajaxurl,
                     type: "POST",
                     data: {
                         action: "adc_clear_cache",
                         cache_type: cacheType,
-                        nonce: adc_admin_config.nonce
+                        nonce: "' . wp_create_nonce('adc_admin_nonce') . '"
                     },
                     success: function(response) {
                         if (response.success) {
@@ -656,12 +655,12 @@ class ADC_Admin
                 $("#adc-connection-status").removeClass("success error").addClass("loading").text("Probando conexión para " + language.toUpperCase() + "...").show();
                 
                 $.ajax({
-                    url: adc_admin_config.ajax_url,
+                    url: ajaxurl,
                     type: "POST",
                     data: {
                         action: "adc_test_connection",
                         language: language,
-                        nonce: adc_admin_config.nonce
+                        nonce: "' . wp_create_nonce('adc_admin_nonce') . '"
                     },
                     success: function(response) {
                         if (response.success) {
@@ -689,23 +688,23 @@ class ADC_Admin
                 $("#adc-connection-status").removeClass("success error").addClass("loading").text("Realizando verificación completa del sistema...").show();
                 
                 $.ajax({
-                    url: adc_admin_config.ajax_url,
+                    url: ajaxurl,
                     type: "POST",
                     data: {
                         action: "adc_health_check",
-                        nonce: adc_admin_config.nonce
+                        nonce: "' . wp_create_nonce('adc_admin_nonce') . '"
                     },
                     success: function(response) {
                         if (response.success) {
                             var healthData = response.data;
-                            var message = "Health Check completado:\\n";
+                            var message = "Health Check completado:<br>";
                             
                             for (var lang in healthData) {
                                 var health = healthData[lang];
-                                message += lang.toUpperCase() + ": " + health.overall + "\\n";
+                                message += lang.toUpperCase() + ": " + health.overall + "<br>";
                             }
                             
-                            $("#adc-connection-status").removeClass("loading error").addClass("success").html(message.replace(/\\n/g, "<br>"));
+                            $("#adc-connection-status").removeClass("loading error").addClass("success").html(message);
                         } else {
                             $("#adc-connection-status").removeClass("loading success").addClass("error").text("Error en health check: " + response.data);
                         }
@@ -720,8 +719,6 @@ class ADC_Admin
             });
         });
         </script>';
-
-        echo '</div>';
     }
 
     /**
@@ -776,7 +773,7 @@ class ADC_Admin
     }
 
     /**
-     * Helper methods for rendering - MEJORADOS
+     * Helper methods for rendering
      */
     private function render_api_status($api_status, $language)
     {
@@ -880,7 +877,7 @@ class ADC_Admin
 
         echo '</div>';
 
-        // NEW: Clip promocional info
+        // Clip promocional info
         echo '<div style="background: #e8f4fd; padding: 15px; border-left: 4px solid #2196f3; margin-top: 15px;">';
         echo '<h3 style="margin-top: 0; color: #1976d2;"><span style="font-size: 18px;">🎬</span> Clip Promocional</h3>';
         echo '<p><strong>¡Nuevo!</strong> El plugin ahora soporta clips promocionales de programas:</p>';
@@ -924,11 +921,6 @@ class ADC_Admin
         echo '<span class="message">Guardando...</span>';
         echo '</div>';
 
-        $this->render_sortable_script($language);
-    }
-
-    private function render_sortable_script($language)
-    {
         echo '<script>
         jQuery(document).ready(function($) {
             $("#sortable-programs").sortable({
@@ -1001,7 +993,7 @@ class ADC_Admin
     }
 
     /**
-     * Test API connection - MEJORADO
+     * Test API connection
      */
     private function test_api_connection($api)
     {
@@ -1015,8 +1007,7 @@ class ADC_Admin
 
         $result = $api->test_connection();
 
-        // Enhanced response with more details
-        $response = array(
+        return array(
             'connection' => $result['success'],
             'error' => isset($result['error']) ? $result['error'] : null,
             'error_type' => isset($result['error_type']) ? $result['error_type'] : null,
@@ -1025,8 +1016,6 @@ class ADC_Admin
             'response_time' => isset($result['response_time']) ? $result['response_time'] : null,
             'cache_time' => isset($result['cache_time']) ? $result['cache_time'] : null
         );
-
-        return $response;
     }
 
     /**
