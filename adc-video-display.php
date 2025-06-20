@@ -500,7 +500,6 @@ class ADC_Video_Display
             // Crear datos temporales para el clip
             $temp_category = $category;
             $temp_category['clip'] = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-            $temp_category['description'] = 'Esta es una descripción temporal del programa para mostrar cómo se ve el clip promocional.';
             $output .= $this->render_promotional_clip($temp_category);
         }
 
@@ -550,14 +549,8 @@ class ADC_Video_Display
      */
     private function render_promotional_clip($category)
     {
-        $promo_text = array(
-            'es' => 'Acerca de este programa',
-            'en' => 'About this program',
-            'he' => 'אודות התוכנית הזו'
-        );
 
         $output = '<div class="adc-promotional-clip-section">';
-        $output .= '<h2 class="adc-promotional-clip-title">' . $promo_text[$this->language] . '</h2>';
 
         // Video.js for promotional clip
         $output .= '<link href="https://unpkg.com/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">';
