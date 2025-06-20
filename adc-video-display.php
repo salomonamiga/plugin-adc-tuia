@@ -436,7 +436,7 @@ class ADC_Video_Display
     }
 
     /**
-     * Display videos from a category
+     * Display videos from a category - MEJORADO CON SOPORTE PARA CLIP PROMOCIONAL
      */
     private function display_category_videos($category_slug)
     {
@@ -491,6 +491,11 @@ class ADC_Video_Display
         $output .= '<a href="' . esc_url($home_url) . '" class="adc-back-button">' . $back_text[$this->language] . '</a>';
         $output .= '</div>';
 
+        // NUEVO: Mostrar clip promocional si existe
+        if (isset($category['clip']) && !empty($category['clip'])) {
+            $output .= $this->render_promotional_clip($category);
+        }
+
         // Videos per row setting
         $videos_per_row = isset($this->options['videos_per_row']) ? $this->options['videos_per_row'] : '4';
 
@@ -528,6 +533,56 @@ class ADC_Video_Display
 
             $output .= '</div></div>';
         }
+
+        return $output;
+    }
+
+    /**
+     * NUEVO: Render promotional clip for category
+     */
+    private function render_promotional_clip($category)
+    {
+        $promo_text = array(
+            'es' => 'Acerca de este programa',
+            'en' => 'About this program',
+            'he' => 'אודות התוכנית הזו'
+        );
+
+        $output = '<div class="adc-promotional-clip-section">';
+        $output .= '<h2 class="adc-promotional-clip-title">' . $promo_text[$this->language] . '</h2>';
+        
+        // Video.js for promotional clip
+        $output .= '<link href="https://unpkg.com/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">';
+        $output .= '<script src="https://unpkg.com/video.js@8.10.0/dist/video.min.js"></script>';
+
+        $clip_id = 'adc-promo-player-' . uniqid();
+        
+        $output .= '<div class="adc-promotional-video-player" style="position:relative; padding-top:56.25%; margin-bottom:30px;">';
+        $output .= '<video id="' . $clip_id . '" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" style="position:absolute; top:0; left:0; width:100%; height:100%;" data-setup="{}">';
+        $output .= '<source src="' . esc_url($category['clip']) . '" type="video/mp4">';
+        $output .= '</video>';
+        $output .= '</div>';
+
+        // JavaScript for promotional clip player
+        $output .= '<script>
+        document.addEventListener("DOMContentLoaded", function() {
+            if (typeof videojs !== "undefined" && document.getElementById("' . $clip_id . '")) {
+                var promoPlayer = videojs("' . $clip_id . '");
+                promoPlayer.ready(function() {
+                    promoPlayer.volume(0.7);
+                });
+            }
+        });
+        </script>';
+
+        // Add description if available
+        if (isset($category['description']) && !empty($category['description'])) {
+            $output .= '<div class="adc-category-description">';
+            $output .= '<p>' . esc_html($category['description']) . '</p>';
+            $output .= '</div>';
+        }
+
+        $output .= '</div>';
 
         return $output;
     }

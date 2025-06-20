@@ -1,7 +1,7 @@
 <?php
 /**
  * ADC Video Display - Admin Settings
- * Version: 3.0 - Multiidioma
+ * Version: 3.0 - Multiidioma con caché optimizado y mejoras UX
  * 
  * Maneja toda la configuración de administración del plugin
  */
@@ -30,6 +30,9 @@ class ADC_Admin
 
         // AJAX handlers
         add_action('wp_ajax_adc_update_program_order', array($this, 'ajax_update_program_order'));
+        add_action('wp_ajax_adc_clear_cache', array($this, 'ajax_clear_cache'));
+        add_action('wp_ajax_adc_test_connection', array($this, 'ajax_test_connection'));
+        add_action('wp_ajax_adc_health_check', array($this, 'ajax_health_check'));
     }
 
     /**
@@ -65,7 +68,18 @@ class ADC_Admin
         // Localize admin script
         wp_localize_script('adc-admin-script', 'adc_admin_config', array(
             'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('adc_admin_nonce')
+            'nonce' => wp_create_nonce('adc_admin_nonce'),
+            'strings' => array(
+                'clearing_cache' => 'Limpiando caché...',
+                'cache_cleared' => 'Caché limpiado exitosamente',
+                'cache_error' => 'Error al limpiar caché',
+                'testing_connection' => 'Probando conexión...',
+                'connection_success' => 'Conexión exitosa',
+                'connection_error' => 'Error de conexión',
+                'health_checking' => 'Verificando estado del sistema...',
+                'health_success' => 'Sistema funcionando correctamente',
+                'health_error' => 'Se detectaron problemas en el sistema'
+            )
         ));
     }
 
@@ -112,6 +126,114 @@ class ADC_Admin
         update_option('adc_programs_order_' . $language, $sanitized_order);
 
         wp_send_json_success('Order updated successfully');
+    }
+
+    /**
+     * AJAX handler to clear cache
+     */
+    public function ajax_clear_cache()
+    {
+        check_ajax_referer('adc_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+
+        $cache_type = isset($_POST['cache_type']) ? sanitize_text_field($_POST['cache_type']) : 'all';
+        $language = isset($_POST['language']) ? sanitize_text_field($_POST['language']) : null;
+
+        try {
+            // Clear cache based on type
+            foreach ($this->languages as $lang) {
+                $api = new ADC_API($lang);
+                
+                switch ($cache_type) {
+                    case 'all':
+                        $api->clear_all_cache();
+                        break;
+                    case 'programs':
+                        $api->refresh_cache('programs');
+                        break;
+                    case 'materials':
+                        $api->refresh_cache('materials');
+                        break;
+                    case 'search':
+                        $api->refresh_cache('search');
+                        break;
+                    case 'menu':
+                        $api->refresh_cache('menu');
+                        break;
+                    default:
+                        $api->clear_all_cache();
+                }
+            }
+
+            wp_send_json_success(array(
+                'message' => 'Cache cleared successfully',
+                'type' => $cache_type,
+                'timestamp' => current_time('mysql')
+            ));
+
+        } catch (Exception $e) {
+            wp_send_json_error('Error clearing cache: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * AJAX handler to test API connection
+     */
+    public function ajax_test_connection()
+    {
+        check_ajax_referer('adc_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+
+        $language = isset($_POST['language']) ? sanitize_text_field($_POST['language']) : 'es';
+
+        if (!in_array($language, $this->languages)) {
+            wp_send_json_error('Invalid language');
+            return;
+        }
+
+        $api = new ADC_API($language);
+        $result = $api->test_connection();
+
+        if ($result['success']) {
+            wp_send_json_success($result);
+        } else {
+            wp_send_json_error($result);
+        }
+    }
+
+    /**
+     * AJAX handler for health check
+     */
+    public function ajax_health_check()
+    {
+        check_ajax_referer('adc_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+
+        try {
+            $health_results = array();
+            
+            foreach ($this->languages as $lang) {
+                $api = new ADC_API($lang);
+                $health_results[$lang] = $api->health_check();
+            }
+
+            wp_send_json_success($health_results);
+
+        } catch (Exception $e) {
+            wp_send_json_error('Error performing health check: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -389,29 +511,79 @@ class ADC_Admin
         if (isset($_GET['order-updated']) && $_GET['order-updated']) {
             echo '<div class="notice notice-success is-dismissible"><p>¡Orden de programas actualizado exitosamente!</p></div>';
         }
+
+        if (isset($_GET['cache-cleared']) && $_GET['cache-cleared']) {
+            echo '<div class="notice notice-success is-dismissible"><p>¡Caché limpiado exitosamente!</p></div>';
+        }
     }
 
     /**
-     * Display the settings page
+     * Display the settings page - MEJORADO con cache y health check
      */
     public function display_settings_page()
     {
         // Test API connection for each language
         $api_status = array();
+        $cache_stats = array();
+        
         foreach ($this->languages as $lang) {
             $api = new ADC_API($lang);
             $api_status[$lang] = $this->test_api_connection($api);
+            $cache_stats[$lang] = $api->get_cache_stats();
         }
 
         echo '<div class="wrap">';
         echo '<h1>ADC Video Display - Configuración</h1>';
 
-        // Show API status for all languages
+        // Add cache management section
+        echo '<div class="card" style="margin-bottom: 20px;">';
+        echo '<h2>Gestión de Caché y Sistema</h2>';
+        
+        // Cache controls
+        echo '<div style="margin-bottom: 15px;">';
+        echo '<button id="adc-clear-all-cache" class="button button-secondary" data-cache-type="all">Limpiar Todo el Caché</button> ';
+        echo '<button id="adc-clear-programs-cache" class="button button-secondary" data-cache-type="programs">Limpiar Caché de Programas</button> ';
+        echo '<button id="adc-clear-search-cache" class="button button-secondary" data-cache-type="search">Limpiar Caché de Búsquedas</button> ';
+        echo '<button id="adc-health-check" class="button button-secondary">Verificar Estado del Sistema</button>';
+        echo '</div>';
+
+        // Cache statistics
+        echo '<div id="cache-stats">';
+        echo '<h3>Estadísticas de Caché</h3>';
+        echo '<table class="widefat" style="max-width: 600px;">';
+        echo '<thead><tr><th>Idioma</th><th>Entradas</th><th>Tamaño (KB)</th><th>Ambiente</th></tr></thead>';
+        echo '<tbody>';
+        foreach ($cache_stats as $lang => $stats) {
+            echo '<tr>';
+            echo '<td>' . strtoupper($lang) . '</td>';
+            echo '<td>' . $stats['transient_count'] . '</td>';
+            echo '<td>' . $stats['cache_size_kb'] . '</td>';
+            echo '<td><span class="' . ($stats['environment'] === 'development' ? 'adc-dev-badge' : 'adc-prod-badge') . '">' . ucfirst($stats['environment']) . '</span></td>';
+            echo '</tr>';
+        }
+        echo '</tbody></table>';
+        echo '</div>';
+
+        echo '<div id="adc-cache-status" style="margin-top: 15px;"></div>';
+        echo '</div>';
+
+        // Show API status for all languages - MEJORADO
         echo '<div class="card">';
         echo '<h2>Estado de Conexión API por Idioma</h2>';
+        echo '<div id="api-status-container">';
         foreach ($api_status as $lang => $status) {
             $this->render_api_status($status, $lang);
         }
+        echo '</div>';
+        
+        // Test connection buttons
+        echo '<div style="margin-top: 15px;">';
+        foreach ($this->languages as $lang) {
+            echo '<button class="button button-secondary adc-test-connection" data-language="' . $lang . '" style="margin-right: 10px;">Probar ' . strtoupper($lang) . '</button>';
+        }
+        echo '</div>';
+        
+        echo '<div id="adc-connection-status" style="margin-top: 15px;"></div>';
         echo '</div>';
 
         echo '<form method="post" action="options.php">';
@@ -421,6 +593,133 @@ class ADC_Admin
         echo '</form>';
 
         $this->render_usage_info();
+
+        // Add inline CSS for badges
+        echo '<style>
+        .adc-dev-badge { background: #ff9800; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; }
+        .adc-prod-badge { background: #4caf50; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; }
+        .adc-status-healthy { color: #4caf50; font-weight: bold; }
+        .adc-status-unhealthy { color: #f44336; font-weight: bold; }
+        .adc-status-degraded { color: #ff9800; font-weight: bold; }
+        #adc-cache-status, #adc-connection-status { padding: 10px; border-radius: 4px; display: none; }
+        #adc-cache-status.success, #adc-connection-status.success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        #adc-cache-status.error, #adc-connection-status.error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        #adc-cache-status.loading, #adc-connection-status.loading { background: #cce7ff; border: 1px solid #99d6ff; color: #0066cc; }
+        </style>';
+
+        // Add JavaScript for cache management
+        echo '<script>
+        jQuery(document).ready(function($) {
+            // Clear cache handlers
+            $("[id^=adc-clear-]").on("click", function(e) {
+                e.preventDefault();
+                var button = $(this);
+                var cacheType = button.data("cache-type");
+                var originalText = button.text();
+                
+                button.prop("disabled", true).text("Limpiando...");
+                $("#adc-cache-status").removeClass("success error").addClass("loading").text("Limpiando caché...").show();
+                
+                $.ajax({
+                    url: adc_admin_config.ajax_url,
+                    type: "POST",
+                    data: {
+                        action: "adc_clear_cache",
+                        cache_type: cacheType,
+                        nonce: adc_admin_config.nonce
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $("#adc-cache-status").removeClass("loading error").addClass("success").text("Caché limpiado exitosamente");
+                            setTimeout(function() { location.reload(); }, 1500);
+                        } else {
+                            $("#adc-cache-status").removeClass("loading success").addClass("error").text("Error: " + response.data);
+                        }
+                    },
+                    error: function() {
+                        $("#adc-cache-status").removeClass("loading success").addClass("error").text("Error de conexión");
+                    },
+                    complete: function() {
+                        button.prop("disabled", false).text(originalText);
+                    }
+                });
+            });
+            
+            // Test connection handlers
+            $(".adc-test-connection").on("click", function(e) {
+                e.preventDefault();
+                var button = $(this);
+                var language = button.data("language");
+                var originalText = button.text();
+                
+                button.prop("disabled", true).text("Probando...");
+                $("#adc-connection-status").removeClass("success error").addClass("loading").text("Probando conexión para " + language.toUpperCase() + "...").show();
+                
+                $.ajax({
+                    url: adc_admin_config.ajax_url,
+                    type: "POST",
+                    data: {
+                        action: "adc_test_connection",
+                        language: language,
+                        nonce: adc_admin_config.nonce
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $("#adc-connection-status").removeClass("loading error").addClass("success").text("Conexión exitosa para " + language.toUpperCase() + " - " + response.data.programs_count + " programas encontrados");
+                        } else {
+                            $("#adc-connection-status").removeClass("loading success").addClass("error").text("Error en " + language.toUpperCase() + ": " + response.data.error);
+                        }
+                    },
+                    error: function() {
+                        $("#adc-connection-status").removeClass("loading success").addClass("error").text("Error de conexión para " + language.toUpperCase());
+                    },
+                    complete: function() {
+                        button.prop("disabled", false).text(originalText);
+                    }
+                });
+            });
+            
+            // Health check handler
+            $("#adc-health-check").on("click", function(e) {
+                e.preventDefault();
+                var button = $(this);
+                var originalText = button.text();
+                
+                button.prop("disabled", true).text("Verificando...");
+                $("#adc-connection-status").removeClass("success error").addClass("loading").text("Realizando verificación completa del sistema...").show();
+                
+                $.ajax({
+                    url: adc_admin_config.ajax_url,
+                    type: "POST",
+                    data: {
+                        action: "adc_health_check",
+                        nonce: adc_admin_config.nonce
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            var healthData = response.data;
+                            var message = "Health Check completado:\\n";
+                            
+                            for (var lang in healthData) {
+                                var health = healthData[lang];
+                                message += lang.toUpperCase() + ": " + health.overall + "\\n";
+                            }
+                            
+                            $("#adc-connection-status").removeClass("loading error").addClass("success").html(message.replace(/\\n/g, "<br>"));
+                        } else {
+                            $("#adc-connection-status").removeClass("loading success").addClass("error").text("Error en health check: " + response.data);
+                        }
+                    },
+                    error: function() {
+                        $("#adc-connection-status").removeClass("loading success").addClass("error").text("Error de conexión en health check");
+                    },
+                    complete: function() {
+                        button.prop("disabled", false).text(originalText);
+                    }
+                });
+            });
+        });
+        </script>';
 
         echo '</div>';
     }
@@ -477,7 +776,7 @@ class ADC_Admin
     }
 
     /**
-     * Helper methods for rendering
+     * Helper methods for rendering - MEJORADOS
      */
     private function render_api_status($api_status, $language)
     {
@@ -487,18 +786,33 @@ class ADC_Admin
             'he' => 'עברית'
         );
 
-        echo '<div style="margin-bottom: 20px; padding: 10px; border-left: 4px solid ' . ($api_status['connection'] ? '#46b450' : '#dc3232') . ';">';
-        echo '<h3 style="margin-top: 0;">' . $language_names[$language] . '</h3>';
+        $status_class = $api_status['connection'] ? 'adc-status-healthy' : 'adc-status-unhealthy';
+        $status_icon = $api_status['connection'] ? '✓' : '✗';
+
+        echo '<div style="margin-bottom: 20px; padding: 15px; border-left: 4px solid ' . ($api_status['connection'] ? '#46b450' : '#dc3232') . '; background: ' . ($api_status['connection'] ? '#f0f8f0' : '#fdf0f0') . ';">';
+        echo '<h3 style="margin-top: 0; display: flex; align-items: center;"><span class="' . $status_class . '">' . $status_icon . '</span> <span style="margin-left: 8px;">' . $language_names[$language] . '</span></h3>';
 
         if ($api_status['connection']) {
-            echo '<p><strong>Estado:</strong> Conexión exitosa ✓</p>';
+            echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">';
+            
             if (isset($api_status['programs_count'])) {
-                echo '<p>Programas disponibles: ' . $api_status['programs_count'] . '</p>';
+                echo '<div><strong>Programas:</strong> ' . $api_status['programs_count'] . '</div>';
             }
+            if (isset($api_status['materials_count'])) {
+                echo '<div><strong>Videos:</strong> ' . $api_status['materials_count'] . '</div>';
+            }
+            if (isset($api_status['response_time'])) {
+                echo '<div><strong>Tiempo:</strong> ' . $api_status['response_time'] . 'ms</div>';
+            }
+            if (isset($api_status['cache_time'])) {
+                echo '<div><strong>Caché:</strong> ' . round($api_status['cache_time'] / 60) . ' min</div>';
+            }
+            
+            echo '</div>';
         } else {
-            echo '<p><strong>Estado:</strong> Error de conexión ✗</p>';
-            if (isset($api_status['error'])) {
-                echo '<p>Error: ' . esc_html($api_status['error']) . '</p>';
+            echo '<p><strong>Error:</strong> ' . esc_html($api_status['error']) . '</p>';
+            if (isset($api_status['error_type'])) {
+                echo '<p><strong>Tipo:</strong> ' . esc_html($api_status['error_type']) . '</p>';
             }
         }
         echo '</div>';
@@ -509,42 +823,75 @@ class ADC_Admin
         echo '<div class="card" style="margin-top: 30px;">';
         echo '<h2>Información de Uso</h2>';
 
+        echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">';
+        
+        // Shortcodes
+        echo '<div>';
         echo '<h3>Shortcodes disponibles:</h3>';
         echo '<ul>';
         echo '<li><code>[adc_content]</code> - Muestra el contenido en Español</li>';
         echo '<li><code>[adc_content_en]</code> - Muestra el contenido en Inglés</li>';
         echo '<li><code>[adc_content_he]</code> - Muestra el contenido en Hebreo</li>';
         echo '</ul>';
+        echo '</div>';
 
+        // Menu configuration
+        echo '<div>';
         echo '<h3>Configuración de Menús:</h3>';
         echo '<h4>Para PROGRAMAS:</h4>';
-        echo '<ul>';
-        echo '<li>Español: Texto "PROGRAMAS_ES" + Clase CSS "adc-programs-menu-trigger"</li>';
-        echo '<li>Inglés: Texto "PROGRAMAS_EN" + Clase CSS "adc-programs-menu-trigger-en"</li>';
-        echo '<li>Hebreo: Texto "PROGRAMAS_HE" + Clase CSS "adc-programs-menu-trigger-he"</li>';
+        echo '<ul style="font-size: 12px;">';
+        echo '<li>Español: Texto "PROGRAMAS_ES" + Clase "adc-programs-menu-trigger"</li>';
+        echo '<li>Inglés: Texto "PROGRAMAS_EN" + Clase "adc-programs-menu-trigger-en"</li>';
+        echo '<li>Hebreo: Texto "PROGRAMAS_HE" + Clase "adc-programs-menu-trigger-he"</li>';
         echo '</ul>';
 
         echo '<h4>Para BUSCADOR:</h4>';
-        echo '<ul>';
-        echo '<li>Español: Texto "BUSCADOR_ES" + Clase CSS "adc-search-menu-trigger"</li>';
-        echo '<li>Inglés: Texto "BUSCADOR_EN" + Clase CSS "adc-search-menu-trigger-en"</li>';
-        echo '<li>Hebreo: Texto "BUSCADOR_HE" + Clase CSS "adc-search-menu-trigger-he"</li>';
+        echo '<ul style="font-size: 12px;">';
+        echo '<li>Español: Texto "BUSCADOR_ES" + Clase "adc-search-menu-trigger"</li>';
+        echo '<li>Inglés: Texto "BUSCADOR_EN" + Clase "adc-search-menu-trigger-en"</li>';
+        echo '<li>Hebreo: Texto "BUSCADOR_HE" + Clase "adc-search-menu-trigger-he"</li>';
         echo '</ul>';
+        echo '</div>';
 
+        echo '</div>';
+
+        echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">';
+        
+        // URLs
+        echo '<div>';
         echo '<h3>URLs del Sistema:</h3>';
         echo '<ul>';
         echo '<li>Español: <code>https://tuia.tv/</code></li>';
         echo '<li>Inglés: <code>https://tuia.tv/en/</code></li>';
         echo '<li>Hebreo: <code>https://tuia.tv/he/</code></li>';
         echo '</ul>';
+        echo '</div>';
 
+        // URL Structure
+        echo '<div>';
         echo '<h3>Estructura de URLs:</h3>';
-        echo '<ul>';
-        echo '<li>Listado de programas: <code>/?</code> o <code>/en/?</code> o <code>/he/?</code></li>';
-        echo '<li>Ver programa: <code>/?categoria=nombre-programa</code></li>';
-        echo '<li>Ver video: <code>/?categoria=nombre-programa&video=nombre-video</code></li>';
+        echo '<ul style="font-size: 12px;">';
+        echo '<li>Listado: <code>/?</code> o <code>/en/?</code> o <code>/he/?</code></li>';
+        echo '<li>Programa: <code>/?categoria=nombre-programa</code></li>';
+        echo '<li>Video: <code>/?categoria=programa&video=nombre-video</code></li>';
         echo '<li>Búsqueda: <code>/?adc_search=término</code></li>';
         echo '</ul>';
+        echo '</div>';
+
+        echo '</div>';
+
+        // NEW: Clip promocional info
+        echo '<div style="background: #e8f4fd; padding: 15px; border-left: 4px solid #2196f3; margin-top: 15px;">';
+        echo '<h3 style="margin-top: 0; color: #1976d2;"><span style="font-size: 18px;">🎬</span> Clip Promocional</h3>';
+        echo '<p><strong>¡Nuevo!</strong> El plugin ahora soporta clips promocionales de programas:</p>';
+        echo '<ul>';
+        echo '<li>Se muestran automáticamente cuando el campo <code>clip</code> está disponible en la API</li>';
+        echo '<li>Aparecen en la página del programa antes de los videos de temporadas</li>';
+        echo '<li>Funcionan para los 3 idiomas (ES, EN, HE)</li>';
+        echo '<li>Incluyen reproductor Video.js integrado</li>';
+        echo '</ul>';
+        echo '<p><em>Nota: Los clips se configuran en el sistema ADC y aparecerán automáticamente cuando estén listos.</em></p>';
+        echo '</div>';
 
         echo '</div>';
     }
@@ -654,31 +1001,32 @@ class ADC_Admin
     }
 
     /**
-     * Test API connection
+     * Test API connection - MEJORADO
      */
     private function test_api_connection($api)
     {
         if (!$api->is_configured()) {
             return array(
                 'connection' => false,
-                'error' => 'API no configurada - Token o URL faltante'
+                'error' => 'API no configurada - Token o URL faltante',
+                'error_type' => 'configuration'
             );
         }
 
         $result = $api->test_connection();
 
-        // Add programs list for admin display
-        if ($result['success']) {
-            $programs = $api->get_programs();
-            $result['programs'] = $programs;
-        }
-
-        return array(
+        // Enhanced response with more details
+        $response = array(
             'connection' => $result['success'],
             'error' => isset($result['error']) ? $result['error'] : null,
+            'error_type' => isset($result['error_type']) ? $result['error_type'] : null,
             'programs_count' => isset($result['programs_count']) ? $result['programs_count'] : 0,
-            'programs' => isset($result['programs']) ? $result['programs'] : array()
+            'materials_count' => isset($result['materials_count']) ? $result['materials_count'] : 0,
+            'response_time' => isset($result['response_time']) ? $result['response_time'] : null,
+            'cache_time' => isset($result['cache_time']) ? $result['cache_time'] : null
         );
+
+        return $response;
     }
 
     /**
