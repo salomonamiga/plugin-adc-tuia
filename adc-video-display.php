@@ -492,9 +492,17 @@ class ADC_Video_Display
         $output .= '</div>';
 
         // NUEVO: Mostrar clip promocional si existe
-        if (isset($category['clip']) && !empty($category['clip'])) {
-            $output .= $this->render_promotional_clip($category);
-        }
+if (isset($category['clip']) && !empty($category['clip'])) {
+    $output .= $this->render_promotional_clip($category);
+} 
+// TEMPORAL: Para probar el clip promocional - REMOVER DESPUÉS
+else if ($category['name'] === 'NOMBRE_DEL_PROGRAMA_A_PROBAR') {
+    // Crear datos temporales para el clip
+    $temp_category = $category;
+    $temp_category['clip'] = 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4';
+    $temp_category['description'] = 'Esta es una descripción temporal del programa para mostrar cómo se ve el clip promocional.';
+    $output .= $this->render_promotional_clip($temp_category);
+}
 
         // Videos per row setting
         $videos_per_row = isset($this->options['videos_per_row']) ? $this->options['videos_per_row'] : '4';
