@@ -41,7 +41,7 @@ class ADC_Video_Display
 
         // Register hooks
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
-        
+
         // Register shortcodes for each language
         add_shortcode('adc_content', array($this, 'display_content_es'));
         add_shortcode('adc_content_en', array($this, 'display_content_en'));
@@ -50,7 +50,7 @@ class ADC_Video_Display
         // AJAX handlers
         add_action('wp_ajax_adc_search', array($this, 'handle_ajax_search'));
         add_action('wp_ajax_nopriv_adc_search', array($this, 'handle_ajax_search'));
-        
+
         add_action('wp_ajax_adc_get_programs_menu', array($this, 'handle_ajax_get_programs_menu'));
         add_action('wp_ajax_nopriv_adc_get_programs_menu', array($this, 'handle_ajax_get_programs_menu'));
 
@@ -130,7 +130,7 @@ class ADC_Video_Display
         try {
             // Create API instance for the specific language
             $api = new ADC_API($language);
-            
+
             // Verificar que la API esté configurada
             if (!$api->is_configured()) {
                 wp_send_json_error('API not configured');
@@ -139,7 +139,7 @@ class ADC_Video_Display
 
             // Get programs for menu
             $programs = $api->get_all_programs_for_menu();
-            
+
             if (empty($programs)) {
                 wp_send_json_error('No programs found');
                 return;
@@ -247,7 +247,7 @@ class ADC_Video_Display
                 'en' => 'We couldn\'t find what you were looking for, but you might be interested in these videos:',
                 'he' => 'לא מצאנו את מה שחיפשת, אבל אולי הסרטונים האלה יעניינו אותך:'
             );
-            
+
             $output .= '<h2 class="adc-recommended-title">' . $no_results_text[$this->language] . '</h2>';
             $output .= $this->get_recommended_videos();
         } else {
@@ -256,7 +256,7 @@ class ADC_Video_Display
                 'en' => 'Search results for',
                 'he' => 'תוצאות חיפוש עבור'
             );
-            
+
             $output .= '<h1 class="adc-search-results-title">' . $results_text[$this->language] . ': "' . esc_html($search_term) . '"</h1>';
             $output .= '<div class="adc-recommended-videos">';
 
@@ -328,7 +328,7 @@ class ADC_Video_Display
             'en' => 'Program',
             'he' => 'תוכנית'
         );
-        
+
         $duration_text = array(
             'es' => 'Duración',
             'en' => 'Duration',
@@ -388,7 +388,7 @@ class ADC_Video_Display
     private function render_category_card($program)
     {
         $slug = $this->slugify($program['name']);
-        
+
         // Check if this program has videos
         $has_videos = $this->api->program_has_videos($program['id']);
         $is_coming_soon = !$has_videos && isset($program['cover']) && !empty($program['cover']);
@@ -414,7 +414,7 @@ class ADC_Video_Display
         // Add coming soon overlay
         if ($is_coming_soon) {
             $coming_soon_text = $this->api->get_coming_soon_text();
-            
+
             $output .= '<div class="adc-coming-soon-overlay">';
             $output .= '<span class="adc-coming-soon-text">' . esc_html($coming_soon_text) . '</span>';
             $output .= '<div class="adc-coming-soon-lock">🔒</div>';
@@ -492,17 +492,17 @@ class ADC_Video_Display
         $output .= '</div>';
 
         // NUEVO: Mostrar clip promocional si existe
-if (isset($category['clip']) && !empty($category['clip'])) {
-    $output .= $this->render_promotional_clip($category);
-} 
-// TEMPORAL: Para probar el clip promocional - REMOVER DESPUÉS
-else if ($category['name'] === 'NOMBRE_DEL_PROGRAMA_A_PROBAR') {
-    // Crear datos temporales para el clip
-    $temp_category = $category;
-    $temp_category['clip'] = 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4';
-    $temp_category['description'] = 'Esta es una descripción temporal del programa para mostrar cómo se ve el clip promocional.';
-    $output .= $this->render_promotional_clip($temp_category);
-}
+        if (isset($category['clip']) && !empty($category['clip'])) {
+            $output .= $this->render_promotional_clip($category);
+        }
+        // TEMPORAL: Para probar el clip promocional - REMOVER DESPUÉS
+        else if ($category['name'] === 'Historias del Tanaj') {
+            // Crear datos temporales para el clip
+            $temp_category = $category;
+            $temp_category['clip'] = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+            $temp_category['description'] = 'Esta es una descripción temporal del programa para mostrar cómo se ve el clip promocional.';
+            $output .= $this->render_promotional_clip($temp_category);
+        }
 
         // Videos per row setting
         $videos_per_row = isset($this->options['videos_per_row']) ? $this->options['videos_per_row'] : '4';
@@ -558,13 +558,13 @@ else if ($category['name'] === 'NOMBRE_DEL_PROGRAMA_A_PROBAR') {
 
         $output = '<div class="adc-promotional-clip-section">';
         $output .= '<h2 class="adc-promotional-clip-title">' . $promo_text[$this->language] . '</h2>';
-        
+
         // Video.js for promotional clip
         $output .= '<link href="https://unpkg.com/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">';
         $output .= '<script src="https://unpkg.com/video.js@8.10.0/dist/video.min.js"></script>';
 
         $clip_id = 'adc-promo-player-' . uniqid();
-        
+
         $output .= '<div class="adc-promotional-video-player" style="position:relative; padding-top:56.25%; margin-bottom:30px;">';
         $output .= '<video id="' . $clip_id . '" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" style="position:absolute; top:0; left:0; width:100%; height:100%;" data-setup="{}">';
         $output .= '<source src="' . esc_url($category['clip']) . '" type="video/mp4">';
@@ -667,8 +667,8 @@ else if ($category['name'] === 'NOMBRE_DEL_PROGRAMA_A_PROBAR') {
         // Video title and back button container
         $output .= '<div class="adc-video-header">';
         $output .= '<h1 class="adc-video-main-title">' . esc_html($video['title']) . '</h1>';
-        $output .= '<a href="?categoria=' . esc_attr($category_slug) . '" class="adc-back-program-button">' . 
-                   $back_text[$this->language] . ' ' . esc_html($category['name']) . '</a>';
+        $output .= '<a href="?categoria=' . esc_attr($category_slug) . '" class="adc-back-program-button">' .
+            $back_text[$this->language] . ' ' . esc_html($category['name']) . '</a>';
         $output .= '</div>';
 
         // Video.js
@@ -688,19 +688,19 @@ else if ($category['name'] === 'NOMBRE_DEL_PROGRAMA_A_PROBAR') {
                 'en' => 'Next video in',
                 'he' => 'הסרטון הבא בעוד'
             );
-            
+
             $seconds_text = array(
                 'es' => 'segundos',
                 'en' => 'seconds',
                 'he' => 'שניות'
             );
-            
+
             $watch_now_text = array(
                 'es' => 'Ver ahora',
                 'en' => 'Watch now',
                 'he' => 'צפה עכשיו'
             );
-            
+
             $cancel_text = array(
                 'es' => 'Cancelar',
                 'en' => 'Cancel',
@@ -723,7 +723,7 @@ else if ($category['name'] === 'NOMBRE_DEL_PROGRAMA_A_PROBAR') {
                 'en' => 'Watch next video',
                 'he' => 'צפה בסרטון הבא'
             );
-            
+
             $output .= '<div class="adc-next-button-container">';
             $output .= '<a href="' . esc_url($next_url) . '" class="adc-view-all-button">' . $next_button_text[$this->language] . '</a>';
             $output .= '</div>';
@@ -923,7 +923,7 @@ else if ($category['name'] === 'NOMBRE_DEL_PROGRAMA_A_PROBAR') {
         $text = preg_replace('/[-]+/', '-', $text);
         // Trim dashes from beginning and end
         $text = trim($text, '-');
-        
+
         return $text;
     }
 }
@@ -935,9 +935,9 @@ function adc_video_display_init()
     if (defined('ADC_VIDEO_DISPLAY_INITIALIZED')) {
         return;
     }
-    
+
     define('ADC_VIDEO_DISPLAY_INITIALIZED', true);
-    
+
     // Create main instance (for backward compatibility)
     new ADC_Video_Display();
 }
