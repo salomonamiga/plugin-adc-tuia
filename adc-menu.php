@@ -1,9 +1,9 @@
 <?php
 /**
  * ADC Video Display - Menu Handler
- * Version: 3.0 - Multiidioma
+ * Version: 3.0 - Multiidioma (ES/EN únicamente)
  * 
- * Maneja la funcionalidad del menú desplegable para los 3 idiomas
+ * Maneja la funcionalidad del menú desplegable para los 2 idiomas
  */
 
 // Prevent direct access
@@ -19,10 +19,9 @@ class ADC_Menu {
      * Constructor
      */
     public function __construct() {
-        // Register shortcodes for menus in different languages
+        // Register shortcodes for menus in different languages (only ES and EN)
         add_shortcode('adc_programs_menu', array($this, 'render_programs_menu'));
         add_shortcode('adc_programs_menu_en', array($this, 'render_programs_menu_en'));
-        add_shortcode('adc_programs_menu_he', array($this, 'render_programs_menu_he'));
         
         // AJAX handlers for each language
         add_action('wp_ajax_adc_get_programs_menu', array($this, 'ajax_get_programs'));
@@ -47,24 +46,11 @@ class ADC_Menu {
     }
     
     /**
-     * Render programs dropdown menu for Hebrew
-     */
-    public function render_programs_menu_he($atts) {
-        return $this->render_programs_menu_generic('he', $atts);
-    }
-    
-    /**
      * Generic render programs dropdown menu
      */
     private function render_programs_menu_generic($language, $atts) {
-        $default_texts = array(
-            'es' => 'Programas',
-            'en' => 'Programs',
-            'he' => 'תוכניות'
-        );
-        
         $atts = shortcode_atts(array(
-            'text' => $default_texts[$language],
+            'text' => ADC_Utils::get_text('programs', $language),
             'class' => 'adc-dropdown-menu',
             'show_count' => false
         ), $atts);
@@ -99,21 +85,13 @@ class ADC_Menu {
         $programs = $this->get_cached_programs_for_menu($language);
         
         if (empty($programs)) {
-            $no_programs_text = array(
-                'es' => 'No hay programas disponibles',
-                'en' => 'No programs available',
-                'he' => 'אין תוכניות זמינות'
-            );
-            $output .= '<div class="adc-dropdown-empty" role="menuitem">' . $no_programs_text[$language] . '</div>';
+            $output .= '<div class="adc-dropdown-empty" role="menuitem">' . ADC_Utils::get_text('no_programs', $language) . '</div>';
         } else {
-            $base_url = home_url('/');
-            if ($language !== 'es') {
-                $base_url .= $language . '/';
-            }
+            $base_url = ADC_Utils::get_base_url($language);
             
             foreach ($programs as $program) {
-                $slug = $this->slugify($program['name']);
-                $url = $base_url . '?categoria=' . $slug;
+                $slug = ADC_Utils::slugify($program['name']);
+                $url = ADC_Utils::build_category_url($slug, $language);
                 
                 $output .= '<a href="' . esc_url($url) . '" role="menuitem" class="adc-dropdown-item">';
                 $output .= '<span class="adc-program-name">' . esc_html($program['name']) . '</span>';
@@ -142,16 +120,7 @@ class ADC_Menu {
             }
         }
         
-        $language = isset($_POST['language']) ? sanitize_text_field($_POST['language']) : 'es';
-        
-        // Validate language
-        if (!in_array($language, array('es', 'en', 'he'))) {
-            wp_send_json_error(array(
-                'message' => 'Invalid language',
-                'code' => 'INVALID_LANGUAGE'
-            ));
-            return;
-        }
+        $language = isset($_POST['language']) ? ADC_Utils::validate_language($_POST['language']) : 'es';
         
         try {
             // Create API instance for the language
@@ -203,7 +172,7 @@ class ADC_Menu {
      * Get programs with caching
      */
     private function get_cached_programs_for_menu($language) {
-        $cache_key = 'programs_menu_' . $language;
+        $cache_key = ADC_Utils::get_cache_key('programs_menu', $language);
         
         // Check internal cache first
         if (isset($this->cache[$cache_key])) {
@@ -237,26 +206,6 @@ class ADC_Menu {
         $programs = $this->get_cached_programs_for_menu($language);
         return count($programs);
     }
-    
-    /**
-     * Convert title to slug
-     */
-    private function slugify($text) {
-        // Remove accents
-        $text = remove_accents($text);
-        // Convert to lowercase
-        $text = strtolower($text);
-        // Remove any character that is not alphanumeric, space, or dash
-        $text = preg_replace('/[^a-z0-9\s-]/', '', $text);
-        // Replace spaces with dashes
-        $text = preg_replace('/[\s]+/', '-', $text);
-        // Replace multiple dashes with a single dash
-        $text = preg_replace('/[-]+/', '-', $text);
-        // Trim dashes from beginning and end
-        $text = trim($text, '-');
-        
-        return $text;
-    }
 
     /**
      * WordPress menu integration
@@ -269,10 +218,10 @@ class ADC_Menu {
      * Clear menu cache
      */
     public function clear_cache() {
-        $languages = array('es', 'en', 'he');
+        $languages = ADC_Utils::get_valid_languages();
         
         foreach ($languages as $language) {
-            $cache_key = 'programs_menu_' . $language;
+            $cache_key = ADC_Utils::get_cache_key('programs_menu', $language);
             delete_transient($cache_key);
             unset($this->cache[$cache_key]);
         }
@@ -287,9 +236,9 @@ class ADC_Menu {
             'transient_cache_keys' => array()
         );
         
-        $languages = array('es', 'en', 'he');
+        $languages = ADC_Utils::get_valid_languages();
         foreach ($languages as $language) {
-            $cache_key = 'programs_menu_' . $language;
+            $cache_key = ADC_Utils::get_cache_key('programs_menu', $language);
             $transient_exists = get_transient($cache_key) !== false;
             $stats['transient_cache_keys'][$cache_key] = $transient_exists;
         }
@@ -299,7 +248,7 @@ class ADC_Menu {
 }
 
 /**
- * Programs Menu Widget Class - Enhanced for multilanguage
+ * Programs Menu Widget Class - Enhanced for multilanguage (ES/EN only)
  */
 class ADC_Programs_Menu_Widget extends WP_Widget {
     
@@ -311,7 +260,7 @@ class ADC_Programs_Menu_Widget extends WP_Widget {
             'adc_programs_menu_widget',
             'ADC Programs Menu',
             array(
-                'description' => 'Menú desplegable de programas ADC - Multiidioma',
+                'description' => 'Menú desplegable de programas ADC - Multiidioma (ES/EN)',
                 'classname' => 'adc-programs-menu-widget'
             )
         );
@@ -328,7 +277,7 @@ class ADC_Programs_Menu_Widget extends WP_Widget {
         }
         
         // Get language
-        $language = !empty($instance['language']) ? $instance['language'] : 'es';
+        $language = !empty($instance['language']) ? ADC_Utils::validate_language($instance['language']) : 'es';
         
         // Configure shortcode attributes
         $shortcode_atts = array();
@@ -349,8 +298,6 @@ class ADC_Programs_Menu_Widget extends WP_Widget {
         $shortcode_name = 'adc_programs_menu';
         if ($language === 'en') {
             $shortcode_name = 'adc_programs_menu_en';
-        } elseif ($language === 'he') {
-            $shortcode_name = 'adc_programs_menu_he';
         }
         
         $shortcode = '[' . $shortcode_name;
@@ -389,7 +336,6 @@ class ADC_Programs_Menu_Widget extends WP_Widget {
                     name="<?php echo esc_attr($this->get_field_name('language')); ?>">
                 <option value="es" <?php selected($language, 'es'); ?>>Español</option>
                 <option value="en" <?php selected($language, 'en'); ?>>English</option>
-                <option value="he" <?php selected($language, 'he'); ?>>עברית</option>
             </select>
         </p>
         <p>
@@ -430,7 +376,7 @@ class ADC_Programs_Menu_Widget extends WP_Widget {
         $instance['menu_text'] = (!empty($new_instance['menu_text'])) ? sanitize_text_field($new_instance['menu_text']) : 'Programas';
         $instance['show_count'] = (!empty($new_instance['show_count'])) ? '1' : '0';
         $instance['custom_class'] = (!empty($new_instance['custom_class'])) ? sanitize_html_class($new_instance['custom_class']) : '';
-        $instance['language'] = (!empty($new_instance['language']) && in_array($new_instance['language'], array('es', 'en', 'he'))) 
+        $instance['language'] = (!empty($new_instance['language']) && ADC_Utils::is_valid_language($new_instance['language'])) 
                                 ? $new_instance['language'] : 'es';
         
         // Clear cache when widget is updated

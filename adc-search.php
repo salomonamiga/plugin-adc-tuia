@@ -1,9 +1,9 @@
 <?php
 /**
  * ADC Video Display - Search Handler
- * Version: 3.0 - Multiidioma
+ * Version: 3.0 - Multiidioma (ES/EN únicamente)
  * 
- * Maneja la funcionalidad de búsqueda para los 3 idiomas
+ * Maneja la funcionalidad de búsqueda para los 2 idiomas
  */
 
 // Prevent direct access
@@ -22,10 +22,9 @@ class ADC_Search {
     public function __construct() {
         $this->options = get_option('adc-video-display');
         
-        // Register shortcodes for each language
+        // Register shortcodes for each language (only ES and EN)
         add_shortcode('adc_search_form', array($this, 'render_search_form'));
         add_shortcode('adc_search_form_en', array($this, 'render_search_form_en'));
-        add_shortcode('adc_search_form_he', array($this, 'render_search_form_he'));
         
         // AJAX handlers
         add_action('wp_ajax_adc_search_videos', array($this, 'ajax_search_videos'));
@@ -56,26 +55,11 @@ class ADC_Search {
         }
         
         // Detect language from URL
-        $language = $this->detect_language();
+        $language = ADC_Utils::detect_language();
         
         // Add search results to content
         $search_results = $this->display_search_results($language);
         return $content . $search_results;
-    }
-    
-    /**
-     * Detect language from URL
-     */
-    private function detect_language() {
-        $uri = $_SERVER['REQUEST_URI'];
-        
-        if (strpos($uri, '/en/') !== false) {
-            return 'en';
-        } elseif (strpos($uri, '/he/') !== false) {
-            return 'he';
-        }
-        
-        return 'es';
     }
     
     /**
@@ -93,31 +77,12 @@ class ADC_Search {
     }
     
     /**
-     * Render search form for Hebrew
-     */
-    public function render_search_form_he($atts) {
-        return $this->render_search_form_generic('he', $atts);
-    }
-    
-    /**
      * Generic render search form
      */
     private function render_search_form_generic($language, $atts) {
-        $default_placeholders = array(
-            'es' => 'Buscar videos...',
-            'en' => 'Search videos...',
-            'he' => 'חיפוש סרטונים...'
-        );
-        
-        $default_button_texts = array(
-            'es' => 'Buscar',
-            'en' => 'Search',
-            'he' => 'חיפוש'
-        );
-        
         $atts = shortcode_atts(array(
-            'placeholder' => $default_placeholders[$language],
-            'button_text' => $default_button_texts[$language],
+            'placeholder' => ADC_Utils::get_text('search_placeholder', $language),
+            'button_text' => ADC_Utils::get_text('search', $language),
             'class' => 'adc-search-form',
             'results_page' => $this->get_results_page_url($language),
             'show_suggestions' => 'false',
@@ -176,13 +141,8 @@ class ADC_Search {
             }
         }
         
-        $search_term = isset($_POST['search']) ? sanitize_text_field($_POST['search']) : '';
-        $language = isset($_POST['language']) ? sanitize_text_field($_POST['language']) : 'es';
-        
-        // Validate language
-        if (!in_array($language, array('es', 'en', 'he'))) {
-            $language = 'es';
-        }
+        $search_term = isset($_POST['search']) ? ADC_Utils::sanitize_search_term($_POST['search']) : '';
+        $language = isset($_POST['language']) ? ADC_Utils::validate_language($_POST['language']) : 'es';
         
         if (empty($search_term) || strlen($search_term) < 2) {
             wp_send_json_error(array(
@@ -240,15 +200,10 @@ class ADC_Search {
      * Display search results
      */
     private function display_search_results($language = 'es') {
-        $search_term = sanitize_text_field($_GET['adc_search']);
+        $search_term = ADC_Utils::sanitize_search_term($_GET['adc_search']);
         
         if (empty($search_term)) {
-            $error_texts = array(
-                'es' => 'Por favor ingresa un término de búsqueda válido.',
-                'en' => 'Please enter a valid search term.',
-                'he' => 'אנא הזן מונח חיפוש תקף.'
-            );
-            return '<div class="adc-search-error">' . $error_texts[$language] . '</div>';
+            return '<div class="adc-search-error">' . ADC_Utils::get_text('invalid_search_term', $language) . '</div>';
         }
         
         // Get results with caching
@@ -287,14 +242,6 @@ class ADC_Search {
                 'suggestion_2' => 'Try more general words',
                 'suggestion_3' => 'Use synonyms or related terms',
                 'recommended_title' => 'You might be interested in these videos:'
-            ),
-            'he' => array(
-                'title' => 'לא נמצאו תוצאות עבור',
-                'suggestions_title' => 'הצעות לשיפור החיפוש:',
-                'suggestion_1' => 'בדוק שאין שגיאות כתיב',
-                'suggestion_2' => 'נסה מילים כלליות יותר',
-                'suggestion_3' => 'השתמש במילים נרדפות או מונחים קשורים',
-                'recommended_title' => 'אולי יעניינו אותך הסרטונים האלה:'
             )
         );
         
@@ -342,11 +289,6 @@ class ADC_Search {
                 'results_for' => 'Results for',
                 'found' => 'Found',
                 'results' => 'result(s)'
-            ),
-            'he' => array(
-                'results_for' => 'תוצאות עבור',
-                'found' => 'נמצאו',
-                'results' => 'תוצאות'
             )
         );
         
@@ -409,26 +351,10 @@ class ADC_Search {
      * Render a single video card
      */
     private function render_video_card($video, $language) {
-        $category_slug = $this->slugify($video['category']);
-        $video_slug = $this->slugify($video['title']);
+        $category_slug = ADC_Utils::slugify($video['category']);
+        $video_slug = ADC_Utils::slugify($video['title']);
         
-        $base_url = home_url('/');
-        if ($language !== 'es') {
-            $base_url .= $language . '/';
-        }
-        $url = $base_url . '?categoria=' . $category_slug . '&video=' . $video_slug;
-        
-        $program_text = array(
-            'es' => 'Programa',
-            'en' => 'Program',
-            'he' => 'תוכנית'
-        );
-        
-        $duration_text = array(
-            'es' => 'Duración',
-            'en' => 'Duration',
-            'he' => 'משך'
-        );
+        $url = ADC_Utils::build_video_url($category_slug, $video_slug, $language);
         
         $api = new ADC_API($language);
         
@@ -437,7 +363,7 @@ class ADC_Search {
         
         // Thumbnail with lazy loading
         $output .= '<div class="adc-search-thumbnail">';
-        $thumbnail_url = $api->get_thumbnail_url($video['id']);
+        $thumbnail_url = ADC_Utils::get_thumbnail_url($video['id']);
         $output .= '<img src="' . esc_url($thumbnail_url) . '" alt="' . esc_attr($video['title']) . '" loading="lazy">';
         $output .= '<div class="adc-search-play-icon" aria-hidden="true"></div>';
         $output .= '</div>';
@@ -445,11 +371,11 @@ class ADC_Search {
         // Video info
         $output .= '<div class="adc-search-info">';
         $output .= '<h3 class="adc-search-title">' . esc_html($video['title']) . '</h3>';
-        $output .= '<div class="adc-search-program">' . $program_text[$language] . ': ' . esc_html($video['category']) . '</div>';
+        $output .= '<div class="adc-search-program">' . ADC_Utils::get_text('program', $language) . ': ' . esc_html($video['category']) . '</div>';
         
         // Enhanced duration display
-        $formatted_duration = $api->format_duration($video['duration']);
-        $output .= '<div class="adc-search-duration">' . $duration_text[$language] . ': ' . esc_html($formatted_duration) . '</div>';
+        $formatted_duration = ADC_Utils::format_duration($video['duration']);
+        $output .= '<div class="adc-search-duration">' . ADC_Utils::get_text('duration', $language) . ': ' . esc_html($formatted_duration) . '</div>';
         
         $output .= '</div>';
         $output .= '</a>';
@@ -462,7 +388,7 @@ class ADC_Search {
      * Get recommended videos for empty search results
      */
     private function get_recommended_videos($language, $limit = 8) {
-        $cache_key = 'recommended_videos_' . $language . '_' . $limit;
+        $cache_key = ADC_Utils::get_cache_key('recommended_videos_' . $limit, $language);
         
         // Check cache
         if (isset($this->cache[$cache_key])) {
@@ -521,7 +447,7 @@ class ADC_Search {
      * Get search results with caching
      */
     private function get_cached_search_results($search_term, $language) {
-        $cache_key = 'search_' . md5($search_term . '_' . $language);
+        $cache_key = ADC_Utils::get_cache_key('search_' . md5($search_term), $language);
         
         // Check internal cache
         if (isset($this->cache[$cache_key])) {
@@ -575,26 +501,6 @@ class ADC_Search {
     }
     
     /**
-     * Convert title to slug
-     */
-    private function slugify($text) {
-        // Remove accents
-        $text = remove_accents($text);
-        // Convert to lowercase
-        $text = strtolower($text);
-        // Remove any character that is not alphanumeric, space, or dash
-        $text = preg_replace('/[^a-z0-9\s-]/', '', $text);
-        // Replace spaces with dashes
-        $text = preg_replace('/[\s]+/', '-', $text);
-        // Replace multiple dashes with a single dash
-        $text = preg_replace('/[-]+/', '-', $text);
-        // Trim dashes from beginning and end
-        $text = trim($text, '-');
-        
-        return $text;
-    }
-    
-    /**
      * Helper methods
      */
     private function is_search_enabled() {
@@ -602,11 +508,7 @@ class ADC_Search {
     }
     
     private function get_results_page_url($language) {
-        $base_url = home_url('/');
-        if ($language !== 'es') {
-            $base_url .= $language . '/';
-        }
-        return $base_url;
+        return ADC_Utils::get_base_url($language);
     }
     
     /**
@@ -619,7 +521,7 @@ class ADC_Search {
             
             // If it looks like an ADC search, redirect to ADC search
             if (!empty($search_term) && !isset($_GET['adc_search'])) {
-                $language = $this->detect_language();
+                $language = ADC_Utils::detect_language();
                 $redirect_url = $this->get_results_page_url($language);
                 $redirect_url = add_query_arg('adc_search', urlencode($search_term), $redirect_url);
                 wp_redirect($redirect_url, 302);
@@ -635,7 +537,14 @@ class ADC_Search {
         // Clear all search-related transients
         global $wpdb;
         
-        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_search_%' OR option_name LIKE '_transient_recommended_videos_%'");
+        $languages = ADC_Utils::get_valid_languages();
+        foreach ($languages as $lang) {
+            $wpdb->query($wpdb->prepare(
+                "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+                '_transient_' . $lang . '_search_%',
+                '_transient_' . $lang . '_recommended_videos_%'
+            ));
+        }
         
         // Clear internal cache
         $this->cache = array();
