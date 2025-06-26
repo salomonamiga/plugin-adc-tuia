@@ -1,7 +1,7 @@
 <?php
 /**
  * ADC Video Display - Admin Settings
- * Version: 3.0 - Multiidioma con caché optimizado y mejoras UX
+ * Version: 3.0 - Multiidioma (ES/EN únicamente) con caché optimizado y mejoras UX
  * 
  * Maneja toda la configuración de administración del plugin
  */
@@ -15,11 +15,12 @@ class ADC_Admin
 {
     private $plugin_name = 'adc-video-display';
     private $options;
-    private $languages = array('es', 'en', 'he');
+    private $languages;
 
     public function __construct()
     {
         $this->options = get_option($this->plugin_name);
+        $this->languages = ADC_Utils::get_valid_languages();
 
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'init_settings'));
@@ -82,8 +83,7 @@ class ADC_Admin
         $adc_pages = array(
             'toplevel_page_' . $this->plugin_name,
             'adc-videos_page_' . $this->plugin_name . '-order-es',
-            'adc-videos_page_' . $this->plugin_name . '-order-en',
-            'adc-videos_page_' . $this->plugin_name . '-order-he'
+            'adc-videos_page_' . $this->plugin_name . '-order-en'
         );
 
         return in_array($hook, $adc_pages);
@@ -102,13 +102,7 @@ class ADC_Admin
         }
 
         $program_order = isset($_POST['program_order']) ? $_POST['program_order'] : array();
-        $language = isset($_POST['language']) ? sanitize_text_field($_POST['language']) : 'es';
-
-        // Validate language
-        if (!in_array($language, $this->languages)) {
-            wp_send_json_error('Invalid language');
-            return;
-        }
+        $language = isset($_POST['language']) ? ADC_Utils::validate_language($_POST['language']) : 'es';
 
         // Sanitize - ensure we only have integers
         $sanitized_order = array_map('intval', $program_order);
@@ -137,7 +131,7 @@ class ADC_Admin
             // Clear cache based on type
             foreach ($this->languages as $lang) {
                 $api = new ADC_API($lang);
-                
+
                 switch ($cache_type) {
                     case 'all':
                         $api->clear_all_cache();
@@ -182,12 +176,7 @@ class ADC_Admin
             return;
         }
 
-        $language = isset($_POST['language']) ? sanitize_text_field($_POST['language']) : 'es';
-
-        if (!in_array($language, $this->languages)) {
-            wp_send_json_error('Invalid language');
-            return;
-        }
+        $language = isset($_POST['language']) ? ADC_Utils::validate_language($_POST['language']) : 'es';
 
         $api = new ADC_API($language);
         $result = $api->test_connection();
@@ -213,7 +202,7 @@ class ADC_Admin
 
         try {
             $health_results = array();
-            
+
             foreach ($this->languages as $lang) {
                 $api = new ADC_API($lang);
                 $health_results[$lang] = $api->health_check();
@@ -241,7 +230,7 @@ class ADC_Admin
             30
         );
 
-        // Add submenu for program ordering - one for each language
+        // Add submenu for program ordering - one for each language (only ES and EN)
         add_submenu_page(
             $this->plugin_name,
             'Ordenar Programas (Español)',
@@ -258,15 +247,6 @@ class ADC_Admin
             'manage_options',
             $this->plugin_name . '-order-en',
             array($this, 'display_program_order_page_en')
-        );
-
-        add_submenu_page(
-            $this->plugin_name,
-            'Ordenar Programas (עברית)',
-            'Ordenar (HE)',
-            'manage_options',
-            $this->plugin_name . '-order-he',
-            array($this, 'display_program_order_page_he')
         );
     }
 
@@ -515,7 +495,7 @@ class ADC_Admin
         // Test API connection for each language
         $api_status = array();
         $cache_stats = array();
-        
+
         foreach ($this->languages as $lang) {
             $api = new ADC_API($lang);
             $api_status[$lang] = $this->test_api_connection($api);
@@ -528,7 +508,7 @@ class ADC_Admin
         // Add cache management section
         echo '<div class="card" style="margin-bottom: 20px;">';
         echo '<h2>Gestión de Caché y Sistema</h2>';
-        
+
         // Cache controls
         echo '<div style="margin-bottom: 15px;">';
         echo '<button id="adc-clear-all-cache" class="button button-secondary" data-cache-type="all">Limpiar Todo el Caché</button> ';
@@ -565,14 +545,14 @@ class ADC_Admin
             $this->render_api_status($status, $lang);
         }
         echo '</div>';
-        
+
         // Test connection buttons
         echo '<div style="margin-top: 15px;">';
         foreach ($this->languages as $lang) {
             echo '<button class="button button-secondary adc-test-connection" data-language="' . $lang . '" style="margin-right: 10px;">Probar ' . strtoupper($lang) . '</button>';
         }
         echo '</div>';
-        
+
         echo '<div id="adc-connection-status" style="margin-top: 15px;"></div>';
         echo '</div>';
 
@@ -722,7 +702,7 @@ class ADC_Admin
     }
 
     /**
-     * Display program order pages for each language
+     * Display program order pages for each language (only ES and EN)
      */
     public function display_program_order_page_es()
     {
@@ -732,11 +712,6 @@ class ADC_Admin
     public function display_program_order_page_en()
     {
         $this->display_program_order_page('en');
-    }
-
-    public function display_program_order_page_he()
-    {
-        $this->display_program_order_page('he');
     }
 
     /**
@@ -755,8 +730,7 @@ class ADC_Admin
 
         $language_names = array(
             'es' => 'Español',
-            'en' => 'English',
-            'he' => 'עברית'
+            'en' => 'English'
         );
 
         echo '<div class="wrap">';
@@ -779,8 +753,7 @@ class ADC_Admin
     {
         $language_names = array(
             'es' => 'Español',
-            'en' => 'English',
-            'he' => 'עברית'
+            'en' => 'English'
         );
 
         $status_class = $api_status['connection'] ? 'adc-status-healthy' : 'adc-status-unhealthy';
@@ -791,7 +764,7 @@ class ADC_Admin
 
         if ($api_status['connection']) {
             echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">';
-            
+
             if (isset($api_status['programs_count'])) {
                 echo '<div><strong>Programas:</strong> ' . $api_status['programs_count'] . '</div>';
             }
@@ -804,7 +777,7 @@ class ADC_Admin
             if (isset($api_status['cache_time'])) {
                 echo '<div><strong>Caché:</strong> ' . round($api_status['cache_time'] / 60) . ' min</div>';
             }
-            
+
             echo '</div>';
         } else {
             echo '<p><strong>Error:</strong> ' . esc_html($api_status['error']) . '</p>';
@@ -821,14 +794,13 @@ class ADC_Admin
         echo '<h2>Información de Uso</h2>';
 
         echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">';
-        
+
         // Shortcodes
         echo '<div>';
         echo '<h3>Shortcodes disponibles:</h3>';
         echo '<ul>';
         echo '<li><code>[adc_content]</code> - Muestra el contenido en Español</li>';
         echo '<li><code>[adc_content_en]</code> - Muestra el contenido en Inglés</li>';
-        echo '<li><code>[adc_content_he]</code> - Muestra el contenido en Hebreo</li>';
         echo '</ul>';
         echo '</div>';
 
@@ -839,28 +811,25 @@ class ADC_Admin
         echo '<ul style="font-size: 12px;">';
         echo '<li>Español: Texto "PROGRAMAS_ES" + Clase "adc-programs-menu-trigger"</li>';
         echo '<li>Inglés: Texto "PROGRAMAS_EN" + Clase "adc-programs-menu-trigger-en"</li>';
-        echo '<li>Hebreo: Texto "PROGRAMAS_HE" + Clase "adc-programs-menu-trigger-he"</li>';
         echo '</ul>';
 
         echo '<h4>Para BUSCADOR:</h4>';
         echo '<ul style="font-size: 12px;">';
         echo '<li>Español: Texto "BUSCADOR_ES" + Clase "adc-search-menu-trigger"</li>';
         echo '<li>Inglés: Texto "BUSCADOR_EN" + Clase "adc-search-menu-trigger-en"</li>';
-        echo '<li>Hebreo: Texto "BUSCADOR_HE" + Clase "adc-search-menu-trigger-he"</li>';
         echo '</ul>';
         echo '</div>';
 
         echo '</div>';
 
         echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">';
-        
+
         // URLs
         echo '<div>';
         echo '<h3>URLs del Sistema:</h3>';
         echo '<ul>';
         echo '<li>Español: <code>https://tuia.tv/</code></li>';
         echo '<li>Inglés: <code>https://tuia.tv/en/</code></li>';
-        echo '<li>Hebreo: <code>https://tuia.tv/he/</code></li>';
         echo '</ul>';
         echo '</div>';
 
@@ -868,7 +837,7 @@ class ADC_Admin
         echo '<div>';
         echo '<h3>Estructura de URLs:</h3>';
         echo '<ul style="font-size: 12px;">';
-        echo '<li>Listado: <code>/?</code> o <code>/en/?</code> o <code>/he/?</code></li>';
+        echo '<li>Listado: <code>/?</code> o <code>/en/?</code></li>';
         echo '<li>Programa: <code>/?categoria=nombre-programa</code></li>';
         echo '<li>Video: <code>/?categoria=programa&video=nombre-video</code></li>';
         echo '<li>Búsqueda: <code>/?adc_search=término</code></li>';
@@ -884,7 +853,7 @@ class ADC_Admin
         echo '<ul>';
         echo '<li>Se muestran automáticamente cuando el campo <code>clip</code> está disponible en la API</li>';
         echo '<li>Aparecen en la página del programa antes de los videos de temporadas</li>';
-        echo '<li>Funcionan para los 3 idiomas (ES, EN, HE)</li>';
+        echo '<li>Funcionan para los 2 idiomas (ES, EN)</li>';
         echo '<li>Incluyen reproductor Video.js integrado</li>';
         echo '</ul>';
         echo '<p><em>Nota: Los clips se configuran en el sistema ADC y aparecerán automáticamente cuando estén listos.</em></p>';

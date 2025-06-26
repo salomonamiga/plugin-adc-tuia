@@ -1,7 +1,7 @@
 <?php
 /**
  * ADC Video Display - API Handler
- * Version: 3.0 - Multiidioma
+ * Version: 3.0 - Multiidioma (ES/EN únicamente)
  * 
  * Maneja todas las peticiones API a TuTorah TV
  */
@@ -32,8 +32,8 @@ class ADC_API
         $this->debug_mode = isset($options['debug_mode']) ? $options['debug_mode'] : false;
         
         // Set language and corresponding section
-        $this->language = $language;
-        $this->section = $this->get_section_by_language($language);
+        $this->language = ADC_Utils::validate_language($language);
+        $this->section = $this->get_section_by_language($this->language);
     }
 
     /**
@@ -43,8 +43,7 @@ class ADC_API
     {
         $sections = array(
             'es' => '5', // Español - IA
-            'en' => '6', // Inglés
-            'he' => '7'  // Hebreo
+            'en' => '6'  // Inglés
         );
 
         return isset($sections[$language]) ? $sections[$language] : '5';
@@ -110,7 +109,7 @@ class ADC_API
      */
     public function get_programs()
     {
-        $cache_key = 'programs_' . $this->language . '_' . $this->section;
+        $cache_key = ADC_Utils::get_cache_key('programs_' . $this->section, $this->language);
         $endpoint = '/ia/categories';
         $data = $this->make_request($endpoint, array(), $cache_key);
 
@@ -126,7 +125,7 @@ class ADC_API
      */
     public function get_all_programs_from_api()
     {
-        $cache_key = 'all_programs_' . $this->language . '_' . $this->section;
+        $cache_key = ADC_Utils::get_cache_key('all_programs_' . $this->section, $this->language);
         $endpoint = '/ia/categories/all';
         $data = $this->make_request($endpoint, array(), $cache_key);
 
@@ -158,8 +157,7 @@ class ADC_API
     {
         $suffixes = array(
             '5' => '_ia.png',     // Español
-            '6' => '_en.png',     // Inglés
-            '7' => '_he.png'      // Hebreo
+            '6' => '_en.png'      // Inglés
         );
 
         return isset($suffixes[$this->section]) ? $suffixes[$this->section] : '_ia.png';
@@ -170,7 +168,7 @@ class ADC_API
      */
     public function get_materials($program_id)
     {
-        $cache_key = 'materials_' . $this->language . '_' . $program_id;
+        $cache_key = ADC_Utils::get_cache_key('materials_' . $program_id, $this->language);
         $endpoint = '/ia/categories/materials';
         $params = array('category' => $program_id);
 
@@ -234,7 +232,7 @@ class ADC_API
      */
     public function get_material_by_id($material_id)
     {
-        $cache_key = 'material_' . $this->language . '_' . $material_id;
+        $cache_key = ADC_Utils::get_cache_key('material_' . $material_id, $this->language);
         $endpoint = '/advanced-search/materials';
         $params = array('id' => $material_id);
 
@@ -344,13 +342,7 @@ class ADC_API
      */
     public function get_language_name()
     {
-        $names = array(
-            'es' => 'Español',
-            'en' => 'English',
-            'he' => 'עברית'
-        );
-
-        return isset($names[$this->language]) ? $names[$this->language] : 'Español';
+        return ADC_Utils::get_language_name($this->language);
     }
 
     /**
@@ -358,24 +350,7 @@ class ADC_API
      */
     public function format_duration($duration)
     {
-        if (empty($duration)) {
-            return '';
-        }
-
-        $parts = explode(':', $duration);
-
-        if (count($parts) == 3) {
-            $hours = intval($parts[0]);
-            $minutes = intval($parts[1]);
-
-            if ($hours > 0) {
-                return $hours . 'h ' . $minutes . 'min';
-            } else {
-                return $minutes . ' min';
-            }
-        }
-
-        return $duration;
+        return ADC_Utils::format_duration($duration);
     }
 
     /**
@@ -383,7 +358,7 @@ class ADC_API
      */
     public function get_thumbnail_url($video_id)
     {
-        return "https://s3apics.streamgates.net/TutorahTV_Thumbs/{$video_id}_50.jpg";
+        return ADC_Utils::get_thumbnail_url($video_id);
     }
 
     /**
@@ -486,48 +461,6 @@ class ADC_API
                     38 => 'Jaguim - Hebreo',
                     39 => 'Jaguim - Ingles',
                     40 => 'Jaguim'
-                ),
-                'he' => array(
-                    1  => 'עונה 1',
-                    2  => 'עונה 2',
-                    3  => 'עונה 3',
-                    4  => 'עונה 4',
-                    5  => 'עונה 5',
-                    6  => 'Bereshit',
-                    7  => 'Shemot',
-                    8  => 'Vaikra',
-                    9  => 'Bamidbar',
-                    10 => 'Debarim',
-                    11 => 'Pesaj',
-                    12 => 'Lag Baomer',
-                    13 => 'Shabuot',
-                    14 => 'Rosh Hashana',
-                    15 => 'Kipur',
-                    16 => 'Sucot',
-                    17 => 'Simjat Torah',
-                    18 => 'Januca',
-                    19 => 'Tu Bishvat',
-                    20 => 'Purim',
-                    21 => 'Ayunos',
-                    22 => 'Bereshit - Español',
-                    23 => 'Bereshit - Hebreo',
-                    24 => 'Bereshit - Ingles',
-                    25 => 'Shemot - Español',
-                    26 => 'Shemot - Hebreo',
-                    27 => 'Shemot - Ingles',
-                    28 => 'Vaikra - Español',
-                    29 => 'Vaikra - Hebreo',
-                    30 => 'Vaikra - Ingles',
-                    31 => 'Bamidbar - Español',
-                    32 => 'Bamidbar - Hebreo',
-                    33 => 'Bamidbar - Ingles',
-                    34 => 'Debarim - Español',
-                    35 => 'Debarim - Hebreo',
-                    36 => 'Debarim - Ingles',
-                    37 => 'Jaguim - Español',
-                    38 => 'Jaguim - Hebreo',
-                    39 => 'Jaguim - Ingles',
-                    40 => 'Jaguim'
                 )
             );
         }
@@ -551,8 +484,7 @@ class ADC_API
 
         $default = array(
             'es' => 'Temporada ',
-            'en' => 'Season ',
-            'he' => 'עונה '
+            'en' => 'Season '
         );
 
         $prefix = isset($default[$language]) ? $default[$language] : 'Temporada ';
@@ -728,7 +660,7 @@ class ADC_API
                 // Clear programs cache
                 $wpdb->query($wpdb->prepare(
                     "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-                    '_transient_programs_%' . $this->language . '%'
+                    '_transient_%' . $this->language . '_programs_%'
                 ));
                 break;
                 
@@ -736,7 +668,7 @@ class ADC_API
                 // Clear materials cache
                 $wpdb->query($wpdb->prepare(
                     "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-                    '_transient_materials_%' . $this->language . '%'
+                    '_transient_%' . $this->language . '_materials_%'
                 ));
                 break;
                 
@@ -744,7 +676,7 @@ class ADC_API
                 // Clear search cache
                 $wpdb->query($wpdb->prepare(
                     "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-                    '_transient_search_%' . $this->language . '%'
+                    '_transient_%' . $this->language . '_search_%'
                 ));
                 break;
                 
@@ -752,7 +684,7 @@ class ADC_API
                 // Clear menu cache
                 $wpdb->query($wpdb->prepare(
                     "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-                    '_transient_programs_menu_%' . $this->language . '%'
+                    '_transient_%' . $this->language . '_programs_menu_%'
                 ));
                 break;
                 
@@ -843,13 +775,7 @@ class ADC_API
      */
     public function get_coming_soon_text()
     {
-        $texts = array(
-            'es' => 'Próximamente',
-            'en' => 'Coming Soon',
-            'he' => 'בקרוב'
-        );
-
-        return isset($texts[$this->language]) ? $texts[$this->language] : 'Próximamente';
+        return ADC_Utils::get_text('coming_soon', $this->language);
     }
 
     /**
@@ -857,7 +783,7 @@ class ADC_API
      */
     private function get_cache_key($base_key)
     {
-        return $this->language . '_' . $base_key;
+        return ADC_Utils::get_cache_key($base_key, $this->language);
     }
 
     /**
@@ -991,12 +917,8 @@ class ADC_API
      */
     private function log_api_error($message, $context = array())
     {
-        if ($this->debug_mode && function_exists('error_log')) {
-            $log_message = 'ADC API Error (' . $this->language . '): ' . $message;
-            if (!empty($context)) {
-                $log_message .= ' Context: ' . json_encode($context);
-            }
-            error_log($log_message);
+        if ($this->debug_mode) {
+            ADC_Utils::debug_log('API Error (' . $this->language . '): ' . $message, $context);
         }
     }
 
@@ -1019,13 +941,6 @@ class ADC_API
                 'no_materials' => 'No videos found',
                 'invalid_response' => 'Invalid API response',
                 'not_configured' => 'API not configured'
-            ),
-            'he' => array(
-                'no_connection' => 'לא ניתן להתחבר ל-API',
-                'no_programs' => 'לא נמצאו תוכניות',
-                'no_materials' => 'לא נמצאו סרטונים',
-                'invalid_response' => 'תגובת API לא תקפה',
-                'not_configured' => 'API לא מוגדר'
             )
         );
 
