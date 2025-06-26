@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: ADC Video Display
- * Description: Muestra videos desde el sistema ADC en WordPress - Multiidioma
+ * Description: Muestra videos desde el sistema ADC en WordPress - Multiidioma (ES/EN)
  * Version: 3.0
  * Author: TuTorah Development Team
  */
@@ -16,6 +16,7 @@ define('ADC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('ADC_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 // Include required files
+require_once ADC_PLUGIN_DIR . 'adc-utils.php';
 require_once ADC_PLUGIN_DIR . 'adc-api.php';
 require_once ADC_PLUGIN_DIR . 'adc-admin.php';
 require_once ADC_PLUGIN_DIR . 'adc-menu.php';
@@ -36,16 +37,15 @@ class ADC_Video_Display
     public function __construct($language = 'es')
     {
         $this->options = get_option('adc-video-display');
-        $this->language = $language;
-        $this->api = new ADC_API($language);
+        $this->language = ADC_Utils::validate_language($language);
+        $this->api = new ADC_API($this->language);
 
         // Register hooks
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
 
-        // Register shortcodes for each language
+        // Register shortcodes for each language (only ES and EN)
         add_shortcode('adc_content', array($this, 'display_content_es'));
         add_shortcode('adc_content_en', array($this, 'display_content_en'));
-        add_shortcode('adc_content_he', array($this, 'display_content_he'));
 
         // AJAX handlers
         add_action('wp_ajax_adc_search', array($this, 'handle_ajax_search'));
@@ -99,7 +99,7 @@ class ADC_Video_Display
         check_ajax_referer('adc_nonce', 'nonce');
 
         $search_term = sanitize_text_field($_POST['search']);
-        $language = isset($_POST['language']) ? sanitize_text_field($_POST['language']) : 'es';
+        $language = isset($_POST['language']) ? ADC_Utils::validate_language($_POST['language']) : 'es';
 
         if (empty($search_term)) {
             wp_send_json_error('No search term provided');
@@ -125,7 +125,7 @@ class ADC_Video_Display
             }
         }
 
-        $language = isset($_POST['language']) ? sanitize_text_field($_POST['language']) : 'es';
+        $language = isset($_POST['language']) ? ADC_Utils::validate_language($_POST['language']) : 'es';
 
         try {
             // Create API instance for the specific language
@@ -177,13 +177,6 @@ class ADC_Video_Display
         return $this->display_content($atts);
     }
 
-    public function display_content_he($atts)
-    {
-        $this->language = 'he';
-        $this->api = new ADC_API('he');
-        return $this->display_content($atts);
-    }
-
     /**
      * Main content display handler
      */
@@ -230,7 +223,7 @@ class ADC_Video_Display
      */
     private function display_search_results()
     {
-        $search_term = sanitize_text_field($_GET['adc_search']);
+        $search_term = ADC_Utils::sanitize_search_term($_GET['adc_search']);
 
         if (empty($search_term)) {
             return '<div class="adc-error">Por favor ingresa un término de búsqueda.</div>';
@@ -241,28 +234,15 @@ class ADC_Video_Display
         $output = '<div class="adc-search-results-container">';
 
         if (empty($results)) {
-            // Get language-specific text
-            $no_results_text = array(
-                'es' => 'No encontramos lo que buscabas, pero quizás te interesen estos videos:',
-                'en' => 'We couldn\'t find what you were looking for, but you might be interested in these videos:',
-                'he' => 'לא מצאנו את מה שחיפשת, אבל אולי הסרטונים האלה יעניינו אותך:'
-            );
-
-            $output .= '<h2 class="adc-recommended-title">' . $no_results_text[$this->language] . '</h2>';
+            $output .= '<h2 class="adc-recommended-title">' . ADC_Utils::get_text('recommended_videos', $this->language) . '</h2>';
             $output .= $this->get_recommended_videos();
         } else {
-            $results_text = array(
-                'es' => 'Resultados de búsqueda para',
-                'en' => 'Search results for',
-                'he' => 'תוצאות חיפוש עבור'
-            );
-
-            $output .= '<h1 class="adc-search-results-title">' . $results_text[$this->language] . ': "' . esc_html($search_term) . '"</h1>';
+            $output .= '<h1 class="adc-search-results-title">' . ADC_Utils::get_text('search_results_for', $this->language) . ': "' . esc_html($search_term) . '"</h1>';
             $output .= '<div class="adc-recommended-videos">';
 
             foreach ($results as $video) {
-                $category_slug = $this->slugify($video['category']);
-                $video_slug = $this->slugify($video['title']);
+                $category_slug = ADC_Utils::slugify($video['category']);
+                $video_slug = ADC_Utils::slugify($video['title']);
                 $url = '?categoria=' . $category_slug . '&video=' . $video_slug;
                 $output .= $this->render_video_card($video, $url);
             }
@@ -308,8 +288,8 @@ class ADC_Video_Display
         $output = '<div class="adc-recommended-videos">';
 
         foreach ($recommended_videos as $video) {
-            $program_slug = $this->slugify($video['category']);
-            $video_slug = $this->slugify($video['title']);
+            $program_slug = ADC_Utils::slugify($video['category']);
+            $video_slug = ADC_Utils::slugify($video['title']);
             $url = '?categoria=' . $program_slug . '&video=' . $video_slug;
             $output .= $this->render_video_card($video, $url);
         }
@@ -323,29 +303,17 @@ class ADC_Video_Display
      */
     private function render_video_card($video, $url)
     {
-        $program_text = array(
-            'es' => 'Programa',
-            'en' => 'Program',
-            'he' => 'תוכנית'
-        );
-
-        $duration_text = array(
-            'es' => 'Duración',
-            'en' => 'Duration',
-            'he' => 'משך'
-        );
-
         $output = '<div class="adc-search-video-item">';
         $output .= '<a href="' . esc_url($url) . '" class="adc-search-video-link">';
         $output .= '<div class="adc-search-thumbnail">';
-        $output .= '<img src="' . esc_url($this->api->get_thumbnail_url($video['id'])) . '" alt="' . esc_attr($video['title']) . '">';
+        $output .= '<img src="' . esc_url(ADC_Utils::get_thumbnail_url($video['id'])) . '" alt="' . esc_attr($video['title']) . '">';
         $output .= '<div class="adc-search-play-icon"></div>';
         $output .= '</div>';
 
         $output .= '<div class="adc-search-info">';
         $output .= '<h3 class="adc-search-title">' . esc_html($video['title']) . '</h3>';
-        $output .= '<div class="adc-search-program">' . $program_text[$this->language] . ': ' . esc_html($video['category']) . '</div>';
-        $output .= '<div class="adc-search-duration">' . $duration_text[$this->language] . ': ' . esc_html($video['duration']) . '</div>';
+        $output .= '<div class="adc-search-program">' . ADC_Utils::get_text('program', $this->language) . ': ' . esc_html($video['category']) . '</div>';
+        $output .= '<div class="adc-search-duration">' . ADC_Utils::get_text('duration', $this->language) . ': ' . esc_html($video['duration']) . '</div>';
         $output .= '</div>';
         $output .= '</a>';
         $output .= '</div>';
@@ -362,12 +330,7 @@ class ADC_Video_Display
         $programs = $this->api->get_programs_with_custom_order();
 
         if (empty($programs)) {
-            $no_programs_text = array(
-                'es' => 'No se encontraron programas disponibles.',
-                'en' => 'No programs available.',
-                'he' => 'אין תוכניות זמינות.'
-            );
-            return '<div class="adc-error">' . $no_programs_text[$this->language] . '</div>';
+            return '<div class="adc-error">' . ADC_Utils::get_text('no_programs', $this->language) . '</div>';
         }
 
         $output = '<div class="adc-categories-grid">';
@@ -387,7 +350,7 @@ class ADC_Video_Display
      */
     private function render_category_card($program)
     {
-        $slug = $this->slugify($program['name']);
+        $slug = ADC_Utils::slugify($program['name']);
 
         // Check if this program has videos
         $has_videos = $this->api->program_has_videos($program['id']);
@@ -413,10 +376,8 @@ class ADC_Video_Display
 
         // Add coming soon overlay
         if ($is_coming_soon) {
-            $coming_soon_text = $this->api->get_coming_soon_text();
-
             $output .= '<div class="adc-coming-soon-overlay">';
-            $output .= '<span class="adc-coming-soon-text">' . esc_html($coming_soon_text) . '</span>';
+            $output .= '<span class="adc-coming-soon-text">' . esc_html(ADC_Utils::get_text('coming_soon', $this->language)) . '</span>';
             $output .= '<div class="adc-coming-soon-lock">🔒</div>';
             $output .= '</div>';
         }
@@ -445,58 +406,32 @@ class ADC_Video_Display
         $category = null;
 
         foreach ($programs as $program) {
-            if ($this->slugify($program['name']) == $category_slug) {
+            if (ADC_Utils::slugify($program['name']) == $category_slug) {
                 $category = $program;
                 break;
             }
         }
 
         if (!$category) {
-            $not_found_text = array(
-                'es' => 'Categoría no encontrada.',
-                'en' => 'Category not found.',
-                'he' => 'קטגוריה לא נמצאה.'
-            );
-            return '<div class="adc-error">' . $not_found_text[$this->language] . '</div>';
+            return '<div class="adc-error">' . ADC_Utils::get_text('category_not_found', $this->language) . '</div>';
         }
 
         // Get materials
         $materials = $this->api->get_materials($category['id']);
 
         if (empty($materials)) {
-            $no_videos_text = array(
-                'es' => 'No se encontraron videos en esta categoría.',
-                'en' => 'No videos found in this category.',
-                'he' => 'לא נמצאו סרטונים בקטגוריה זו.'
-            );
-            return '<div class="adc-error">' . $no_videos_text[$this->language] . '</div>';
+            return '<div class="adc-error">' . ADC_Utils::get_text('no_videos', $this->language) . '</div>';
         }
 
         // Group by season
         $seasons = $this->api->group_materials_by_season($materials);
 
-        $home_url = home_url('/');
-        if ($this->language !== 'es') {
-            $home_url .= $this->language . '/';
-        }
-
-        $back_text = array(
-            'es' => 'Volver a Programas',
-            'en' => 'Back to Programs',
-            'he' => 'חזרה לתוכניות'
-        );
+        $home_url = ADC_Utils::get_base_url($this->language);
 
         $output = '<div class="adc-category-header">';
         $output .= '<h1 class="adc-category-title">' . esc_html($category['name']) . '</h1>';
-        $output .= '<a href="' . esc_url($home_url) . '" class="adc-back-button">' . $back_text[$this->language] . '</a>';
+        $output .= '<a href="' . esc_url($home_url) . '" class="adc-back-button">' . ADC_Utils::get_text('back_to_programs', $this->language) . '</a>';
         $output .= '</div>';
-
-        /* ORIGINAL
-        // NUEVO: Mostrar clip promocional si existe
-          if (isset($category['clip']) && !empty($category['clip'])) {
-           $output .= $this->render_promotional_clip($category);
-           }
-        */
 
         // DEMO - NUEVO: Mostrar clip promocional si existe
         if (isset($category['clip']) && !empty($category['clip'])) {
@@ -510,10 +445,6 @@ class ADC_Video_Display
             $output .= $this->render_promotional_clip($temp_category);
         }
 
-        // HASTA AQUI LA DEMO DEMO
-
-
-
         // Videos per row setting
         $videos_per_row = isset($this->options['videos_per_row']) ? $this->options['videos_per_row'] : '4';
 
@@ -525,14 +456,8 @@ class ADC_Video_Display
             $output .= '<div class="adc-videos-row cols-' . $videos_per_row . '">';
 
             foreach ($season_videos as $video) {
-                $video_slug = $this->slugify($video['title']);
-                $thumbnail_url = $this->api->get_thumbnail_url($video['id']);
-
-                $duration_text = array(
-                    'es' => 'Duración',
-                    'en' => 'Duration',
-                    'he' => 'משך'
-                );
+                $video_slug = ADC_Utils::slugify($video['title']);
+                $thumbnail_url = ADC_Utils::get_thumbnail_url($video['id']);
 
                 $output .= '<div class="adc-video-item">';
                 $output .= '<a href="?categoria=' . esc_attr($category_slug) . '&video=' . esc_attr($video_slug) . '" class="adc-video-link">';
@@ -543,7 +468,7 @@ class ADC_Video_Display
 
                 $output .= '<div class="adc-video-info">';
                 $output .= '<h3 class="adc-video-title">' . esc_html($video['title']) . '</h3>';
-                $output .= '<span class="adc-video-duration">' . $duration_text[$this->language] . ': ' . esc_html($video['duration']) . '</span>';
+                $output .= '<span class="adc-video-duration">' . ADC_Utils::get_text('duration', $this->language) . ': ' . esc_html($video['duration']) . '</span>';
                 $output .= '</div>';
                 $output .= '</a>';
                 $output .= '</div>';
@@ -608,19 +533,14 @@ class ADC_Video_Display
         $category = null;
 
         foreach ($programs as $program) {
-            if ($this->slugify($program['name']) == $category_slug) {
+            if (ADC_Utils::slugify($program['name']) == $category_slug) {
                 $category = $program;
                 break;
             }
         }
 
         if (!$category) {
-            $not_found_text = array(
-                'es' => 'Categoría no encontrada.',
-                'en' => 'Category not found.',
-                'he' => 'קטגוריה לא נמצאה.'
-            );
-            return '<div class="adc-error">' . $not_found_text[$this->language] . '</div>';
+            return '<div class="adc-error">' . ADC_Utils::get_text('category_not_found', $this->language) . '</div>';
         }
 
         // Find video
@@ -629,7 +549,7 @@ class ADC_Video_Display
         $video_index = -1;
 
         for ($i = 0; $i < count($materials); $i++) {
-            if ($this->slugify($materials[$i]['title']) == $video_slug) {
+            if (ADC_Utils::slugify($materials[$i]['title']) == $video_slug) {
                 $video = $materials[$i];
                 $video_index = $i;
                 break;
@@ -637,12 +557,7 @@ class ADC_Video_Display
         }
 
         if (!$video) {
-            $video_not_found_text = array(
-                'es' => 'Video no encontrado.',
-                'en' => 'Video not found.',
-                'he' => 'הסרטון לא נמצא.'
-            );
-            return '<div class="adc-error">' . $video_not_found_text[$this->language] . '</div>';
+            return '<div class="adc-error">' . ADC_Utils::get_text('video_not_found', $this->language) . '</div>';
         }
 
         // Find next video
@@ -650,20 +565,9 @@ class ADC_Video_Display
         $next_url = '';
         if ($video_index < count($materials) - 1) {
             $next_video = $materials[$video_index + 1];
-            $next_slug = $this->slugify($next_video['title']);
-            $base_url = home_url('/');
-            if ($this->language !== 'es') {
-                $base_url .= $this->language . '/';
-            }
-            $next_url = $base_url . '?categoria=' . $category_slug . '&video=' . $next_slug;
+            $next_slug = ADC_Utils::slugify($next_video['title']);
+            $next_url = ADC_Utils::build_video_url($category_slug, $next_slug, $this->language);
         }
-
-        // Back button text
-        $back_text = array(
-            'es' => 'Volver a',
-            'en' => 'Back to',
-            'he' => 'חזרה ל'
-        );
 
         $output = '<div class="adc-video-container">';
 
@@ -671,7 +575,7 @@ class ADC_Video_Display
         $output .= '<div class="adc-video-header">';
         $output .= '<h1 class="adc-video-main-title">' . esc_html($video['title']) . '</h1>';
         $output .= '<a href="?categoria=' . esc_attr($category_slug) . '" class="adc-back-program-button">' .
-            $back_text[$this->language] . ' ' . esc_html($category['name']) . '</a>';
+            ADC_Utils::get_text('back_to', $this->language) . ' ' . esc_html($category['name']) . '</a>';
         $output .= '</div>';
 
         // Video.js
@@ -686,34 +590,10 @@ class ADC_Video_Display
 
         // Autoplay overlay
         if ($next_url) {
-            $next_text = array(
-                'es' => 'Siguiente video en',
-                'en' => 'Next video in',
-                'he' => 'הסרטון הבא בעוד'
-            );
-
-            $seconds_text = array(
-                'es' => 'segundos',
-                'en' => 'seconds',
-                'he' => 'שניות'
-            );
-
-            $watch_now_text = array(
-                'es' => 'Ver ahora',
-                'en' => 'Watch now',
-                'he' => 'צפה עכשיו'
-            );
-
-            $cancel_text = array(
-                'es' => 'Cancelar',
-                'en' => 'Cancel',
-                'he' => 'ביטול'
-            );
-
             $output .= '<div id="adc-next-overlay">';
-            $output .= '<p>' . $next_text[$this->language] . ' <span id="adc-countdown">5</span> ' . $seconds_text[$this->language] . '...</p>';
-            $output .= '<a href="' . esc_url($next_url) . '">' . $watch_now_text[$this->language] . '</a><br>';
-            $output .= '<button id="adc-cancel-autoplay">' . $cancel_text[$this->language] . '</button>';
+            $output .= '<p>' . ADC_Utils::get_text('next_video_in', $this->language) . ' <span id="adc-countdown">5</span> ' . ADC_Utils::get_text('seconds', $this->language) . '...</p>';
+            $output .= '<a href="' . esc_url($next_url) . '">' . ADC_Utils::get_text('watch_now', $this->language) . '</a><br>';
+            $output .= '<button id="adc-cancel-autoplay">' . ADC_Utils::get_text('cancel', $this->language) . '</button>';
             $output .= '</div>';
         }
 
@@ -721,49 +601,31 @@ class ADC_Video_Display
 
         // Next button
         if ($next_url) {
-            $next_button_text = array(
-                'es' => 'Ver siguiente video',
-                'en' => 'Watch next video',
-                'he' => 'צפה בסרטון הבא'
-            );
-
             $output .= '<div class="adc-next-button-container">';
-            $output .= '<a href="' . esc_url($next_url) . '" class="adc-view-all-button">' . $next_button_text[$this->language] . '</a>';
+            $output .= '<a href="' . esc_url($next_url) . '" class="adc-view-all-button">' . ADC_Utils::get_text('watch_next_video', $this->language) . '</a>';
             $output .= '</div>';
         }
 
         // Related videos
         $related_videos = $this->get_smart_related_videos($materials, $video_index, 8);
 
-        $more_videos_text = array(
-            'es' => 'Más videos de',
-            'en' => 'More videos from',
-            'he' => 'סרטונים נוספים מ'
-        );
-
-        $output .= '<h2 class="adc-related-videos-title">' . $more_videos_text[$this->language] . ' ' . esc_html($category['name']) . '</h2>';
+        $output .= '<h2 class="adc-related-videos-title">' . ADC_Utils::get_text('more_videos_from', $this->language) . ' ' . esc_html($category['name']) . '</h2>';
         $output .= '<div class="adc-related-videos-grid">';
         $output .= '<div class="adc-videos-row" id="adc-related-videos-container">';
 
         foreach ($related_videos as $index => $related_video) {
-            $related_slug = $this->slugify($related_video['title']);
-
-            $duration_text = array(
-                'es' => 'Duración',
-                'en' => 'Duration',
-                'he' => 'משך'
-            );
+            $related_slug = ADC_Utils::slugify($related_video['title']);
 
             $output .= '<div class="adc-video-item adc-related-video-item">';
             $output .= '<a href="?categoria=' . esc_attr($category_slug) . '&video=' . esc_attr($related_slug) . '" class="adc-video-link">';
             $output .= '<div class="adc-video-thumbnail">';
-            $output .= '<img src="' . esc_url($this->api->get_thumbnail_url($related_video['id'])) . '" alt="' . esc_attr($related_video['title']) . '">';
+            $output .= '<img src="' . esc_url(ADC_Utils::get_thumbnail_url($related_video['id'])) . '" alt="' . esc_attr($related_video['title']) . '">';
             $output .= '<div class="adc-video-play-icon"></div>';
             $output .= '</div>';
 
             $output .= '<div class="adc-video-info">';
             $output .= '<h3 class="adc-video-title">' . esc_html($related_video['title']) . '</h3>';
-            $output .= '<span class="adc-video-duration">' . $duration_text[$this->language] . ': ' . esc_html($related_video['duration']) . '</span>';
+            $output .= '<span class="adc-video-duration">' . ADC_Utils::get_text('duration', $this->language) . ': ' . esc_html($related_video['duration']) . '</span>';
             $output .= '</div>';
             $output .= '</a>';
             $output .= '</div>';
@@ -908,27 +770,6 @@ class ADC_Video_Display
 
         return $related;
     }
-
-    /**
-     * Convert title to slug
-     */
-    private function slugify($text)
-    {
-        // Remove accents
-        $text = remove_accents($text);
-        // Convert to lowercase
-        $text = strtolower($text);
-        // Remove any character that is not alphanumeric, space, or dash
-        $text = preg_replace('/[^a-z0-9\s-]/', '', $text);
-        // Replace spaces with dashes
-        $text = preg_replace('/[\s]+/', '-', $text);
-        // Replace multiple dashes with a single dash
-        $text = preg_replace('/[-]+/', '-', $text);
-        // Trim dashes from beginning and end
-        $text = trim($text, '-');
-
-        return $text;
-    }
 }
 
 // Initialize plugin
@@ -964,10 +805,9 @@ function adc_video_display_activate()
 
     add_option('adc-video-display', $default_options);
 
-    // Initialize program order options for each language
+    // Initialize program order options for each language (only ES and EN now)
     add_option('adc_programs_order_es', array());
     add_option('adc_programs_order_en', array());
-    add_option('adc_programs_order_he', array());
 }
 
 // Deactivation hook
