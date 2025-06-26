@@ -1,6 +1,6 @@
 /**
  * ADC Video Display - Frontend JavaScript
- * Version: 3.0 - Multiidioma Optimizado
+ * Version: 3.0 - Multiidioma Optimizado (ES/EN únicamente)
  */
 
 (function ($) {
@@ -58,15 +58,19 @@
                     .replace(/-+$/, '');
             },
 
-            // Detect language from URL
+            // Detect language from URL (only ES/EN)
             detectLanguage: function () {
                 var path = window.location.pathname;
                 if (path.indexOf('/en/') !== -1) {
                     return 'en';
-                } else if (path.indexOf('/he/') !== -1) {
-                    return 'he';
                 }
                 return 'es';
+            },
+
+            // Validate language (only ES/EN)
+            validateLanguage: function (language) {
+                var validLanguages = ['es', 'en'];
+                return validLanguages.indexOf(language) !== -1 ? language : 'es';
             },
 
             // Format duration from seconds to MM:SS
@@ -93,6 +97,15 @@
             getUrlParam: function (param) {
                 var urlParams = new URLSearchParams(window.location.search);
                 return urlParams.get(param);
+            },
+
+            // Get base URL for language
+            getBaseUrl: function (language) {
+                var baseUrl = window.location.origin + '/';
+                if (language !== 'es') {
+                    baseUrl += language + '/';
+                }
+                return baseUrl;
             }
         },
 
@@ -300,7 +313,7 @@
             }
         },
 
-        // Menu Module - OPTIMIZADO - Eliminada función slugify duplicada
+        // Menu Module - OPTIMIZADO - Solo ES/EN
         menu: {
             initialized: false,
             observer: null,
@@ -406,10 +419,7 @@
 
                             if (programs.length > 0) {
                                 var html = '';
-                                var baseUrl = window.location.origin + '/';
-                                if (language !== 'es') {
-                                    baseUrl += language + '/';
-                                }
+                                var baseUrl = ADCVideo.utils.getBaseUrl(language);
 
                                 $.each(programs, function (i, program) {
                                     // Usar la función slugify unificada de utils
@@ -461,7 +471,7 @@
                     }
                 }
 
-                // Configurar elementos existentes al inicializar
+                // Configurar elementos existentes al inicializar - Solo ES/EN
                 // Español
                 $('a:contains("PROGRAMAS_ES"), .adc-programs-menu-trigger a').each(function () {
                     var $this = $(this);
@@ -480,28 +490,17 @@
                     }
                 });
 
-                // Hebreo
-                $('a:contains("PROGRAMAS_HE"), .adc-programs-menu-trigger-he a').each(function () {
-                    var $this = $(this);
-                    if ($this.text().trim() === 'PROGRAMAS_HE' || $this.hasClass('adc-programs-menu-trigger-he')) {
-                        $this.text('תוכניות');
-                        setupProgramsElement($this, 'he');
-                    }
-                });
-
                 // Usar delegación de eventos para manejar clicks
                 $(document).on('click.programs-menu', 'a', function (e) {
                     var $this = $(this);
                     var text = $this.text().trim();
                     var language = null;
 
-                    // Detectar idioma por texto o clase
+                    // Detectar idioma por texto o clase - Solo ES/EN
                     if (text === 'PROGRAMAS' || text === 'PROGRAMAS_ES' || $this.parent().hasClass('adc-programs-menu-trigger')) {
                         language = 'es';
                     } else if (text === 'PROGRAMS' || text === 'PROGRAMAS_EN' || $this.parent().hasClass('adc-programs-menu-trigger-en')) {
                         language = 'en';
-                    } else if (text === 'תוכניות' || text === 'PROGRAMAS_HE' || $this.parent().hasClass('adc-programs-menu-trigger-he')) {
-                        language = 'he';
                     }
 
                     if (language) {
@@ -512,7 +511,6 @@
                             // Actualizar texto si es necesario
                             if (text === 'PROGRAMAS_ES') $this.text('PROGRAMAS');
                             else if (text === 'PROGRAMAS_EN') $this.text('PROGRAMS');
-                            else if (text === 'PROGRAMAS_HE') $this.text('תוכניות');
 
                             setupProgramsElement($this, language);
                         }
@@ -523,7 +521,7 @@
 
                 // Cerrar dropdowns al hacer click fuera
                 $(document).on('click.programs-menu-outside', function (e) {
-                    if (!$(e.target).closest('.adc-wp-programs-dropdown, a:contains("PROGRAMAS"), a:contains("PROGRAMS"), a:contains("תוכניות"), .adc-programs-menu-trigger, .adc-programs-menu-trigger-en, .adc-programs-menu-trigger-he').length) {
+                    if (!$(e.target).closest('.adc-wp-programs-dropdown, a:contains("PROGRAMAS"), a:contains("PROGRAMS"), .adc-programs-menu-trigger, .adc-programs-menu-trigger-en').length) {
                         $('.adc-wp-programs-dropdown').slideUp(200);
                         $('.dropdown-arrow').css('transform', 'rotate(0deg)');
                     }
@@ -545,14 +543,11 @@
                                 var $this = $(this);
                                 var text = $this.text().trim();
 
-                                if (text === 'PROGRAMAS_ES' || text === 'PROGRAMAS_EN' || text === 'PROGRAMAS_HE') {
+                                if (text === 'PROGRAMAS_ES' || text === 'PROGRAMAS_EN') {
                                     var language = 'es';
                                     if (text === 'PROGRAMAS_EN') {
                                         language = 'en';
                                         $this.text('PROGRAMS');
-                                    } else if (text === 'PROGRAMAS_HE') {
-                                        language = 'he';
-                                        $this.text('תוכניות');
                                     } else {
                                         $this.text('PROGRAMAS');
                                     }
@@ -574,22 +569,19 @@
             },
 
             setupSearchReplacements: function () {
-                // Buscar elementos BUSCADOR y reemplazarlos con formulario de búsqueda
+                // Buscar elementos BUSCADOR y reemplazarlos con formulario de búsqueda - Solo ES/EN
                 document.querySelectorAll('a').forEach(function (link) {
                     var text = link.textContent.trim();
                     var language = 'es';
                     var placeholderText = 'Buscar...';
 
-                    // Detectar idioma y configurar texto
+                    // Detectar idioma y configurar texto - Solo ES/EN
                     if (text === 'BUSCADOR_ES' || link.classList.contains('adc-search-menu-trigger')) {
                         language = 'es';
                         placeholderText = 'Buscar...';
                     } else if (text === 'BUSCADOR_EN' || link.classList.contains('adc-search-menu-trigger-en')) {
                         language = 'en';
                         placeholderText = 'Search...';
-                    } else if (text === 'BUSCADOR_HE' || link.classList.contains('adc-search-menu-trigger-he')) {
-                        language = 'he';
-                        placeholderText = 'חיפוש...';
                     } else {
                         return; // No es un link de búsqueda
                     }
@@ -597,10 +589,7 @@
                     var searchContainer = document.createElement('div');
                     searchContainer.className = 'adc-menu-search-container';
 
-                    var homeUrl = window.location.origin + '/';
-                    if (language !== 'es') {
-                        homeUrl += language + '/';
-                    }
+                    var homeUrl = ADCVideo.utils.getBaseUrl(language);
 
                     searchContainer.innerHTML =
                         '<form class="adc-inline-search-form" action="' + homeUrl + '" method="get" data-language="' + language + '">' +
@@ -673,16 +662,13 @@
                     var language = null;
                     var placeholderText = '';
 
-                    // Detectar idioma
+                    // Detectar idioma - Solo ES/EN
                     if (text === 'BUSCADOR_ES' || text === 'BUSCADOR' || $searchLink.parent().hasClass('adc-search-menu-trigger')) {
                         language = 'es';
                         placeholderText = 'Buscar...';
                     } else if (text === 'BUSCADOR_EN' || text === 'SEARCH' || $searchLink.parent().hasClass('adc-search-menu-trigger-en')) {
                         language = 'en';
                         placeholderText = 'Search...';
-                    } else if (text === 'BUSCADOR_HE' || text === 'חיפוש' || $searchLink.parent().hasClass('adc-search-menu-trigger-he')) {
-                        language = 'he';
-                        placeholderText = 'חיפוש...';
                     }
 
                     if (!language) {
@@ -696,10 +682,7 @@
                         $parentLi = $searchLink.parent();
                     }
 
-                    var homeUrl = window.location.origin + '/';
-                    if (language !== 'es') {
-                        homeUrl += language + '/';
-                    }
+                    var homeUrl = ADCVideo.utils.getBaseUrl(language);
 
                     // Create enhanced search form
                     var $searchContainer = $('<div class="adc-menu-search-container"></div>');
