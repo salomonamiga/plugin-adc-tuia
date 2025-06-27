@@ -1,6 +1,6 @@
 /**
  * ADC Video Display - Frontend Styles
- * Version: 3.0 - Multiidioma Optimizado
+ * Version: 3.1 - Sistema de Caché Inteligente
  * PARTE 1/3: Layouts, Grids y Contenedores
  */
 
@@ -16,8 +16,8 @@
 }
 
 /* ===================================
-      Grid Layouts - Optimized
-      =================================== */
+         Grid Layouts - Optimized
+         =================================== */
 
 /* Categories Grid (circles) */
 .adc-categories-row {
@@ -55,8 +55,8 @@
 }
 
 /* ===================================
-      Category Cards - Enhanced with Coming Soon
-      =================================== */
+         Category Cards - Enhanced with Coming Soon
+         =================================== */
 .adc-category-card {
     display: flex;
     flex-direction: column;
@@ -175,8 +175,8 @@
 }
 
 /* ===================================
-      Section Headers - Optimized
-      =================================== */
+         Section Headers - Optimized
+         =================================== */
 
 /* Category header */
 .adc-category-header {
@@ -223,8 +223,8 @@
 }
 
 /* ===================================
-      Video Cards - Enhanced
-      =================================== */
+         Video Cards - Enhanced
+         =================================== */
 .adc-video-item {
     width: 100%;
     max-width: 240px;
@@ -344,14 +344,14 @@
 }
 
 /**
- * ADC Video Display - Frontend Styles
- * Version: 3.0 - Multiidioma Optimizado
- * PARTE 2/3: Single Video Page, Botones, Video.js y Autoplay
- */
+    * ADC Video Display - Frontend Styles
+    * Version: 3.1 - Sistema de Caché Inteligente
+    * PARTE 2/3: Single Video Page, Botones, Video.js y Autoplay
+    */
 
 /* ===================================
-   Single Video Page - Enhanced
-   =================================== */
+      Single Video Page - Enhanced
+      =================================== */
 
 /* Video Title and Header Container */
 .adc-video-header {
@@ -412,8 +412,8 @@
 }
 
 /* ===================================
-   Buttons - Enhanced Custom Style
-   =================================== */
+      Buttons - Enhanced Custom Style
+      =================================== */
 .adc-back-button,
 .adc-view-all-button,
 .adc-view-more-button,
@@ -465,8 +465,8 @@
 }
 
 /* ===================================
-   Video.js Player Styles - Enhanced Theme
-   =================================== */
+      Video.js Player Styles - Enhanced Theme
+      =================================== */
 
 /* Control bar background and buttons */
 .video-js .vjs-control-bar {
@@ -560,8 +560,8 @@
 }
 
 /* ===================================
-   Autoplay Overlay - Enhanced
-   =================================== */
+      Autoplay Overlay - Enhanced
+      =================================== */
 #adc-next-overlay {
     display: none;
     position: fixed;
@@ -615,8 +615,8 @@
 }
 
 /* ===================================
-   Search Results - Enhanced
-   =================================== */
+      Search Results - Enhanced with Fallback Support
+      =================================== */
 .adc-search-results {
     margin-top: 20px;
 }
@@ -667,6 +667,86 @@
     grid-template-columns: repeat(4, 1fr);
     gap: 20px;
     margin-bottom: 40px;
+}
+
+/* NEW: Fallback message styling */
+.adc-search-fallback-message {
+    background: #e8f4fd;
+    padding: 15px;
+    border-left: 4px solid #2196f3;
+    margin: 15px 0;
+    border-radius: 4px;
+}
+
+.adc-search-fallback-message p {
+    margin: 0;
+    color: #1976d2;
+    font-size: 16px;
+    line-height: 1.4;
+}
+
+/* NEW: No results section styling */
+.adc-no-results-section {
+    text-align: center;
+    padding: 40px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+.adc-no-results-title {
+    color: #ffffff;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.adc-search-tips {
+    background: rgba(110, 193, 228, 0.1);
+    padding: 20px;
+    border-radius: 8px;
+    margin: 20px auto;
+    max-width: 600px;
+    text-align: left;
+}
+
+.adc-search-tips h3 {
+    color: #6EC1E4;
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.adc-search-tips ul {
+    color: #ffffff;
+    list-style-type: disc;
+    padding-left: 20px;
+}
+
+.adc-search-tips li {
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+/* NEW: Grouped results styling */
+.adc-grouped-results {
+    margin-top: 30px;
+}
+
+.adc-category-group {
+    margin-bottom: 40px;
+}
+
+.adc-category-group-title {
+    color: #6EC1E4;
+    font-size: 20px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(110, 193, 228, 0.3);
+}
+
+.adc-category-videos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
 }
 
 .adc-search-video-item {
@@ -764,14 +844,14 @@
 }
 
 /**
- * ADC Video Display - Frontend Styles
- * Version: 3.0 - Multiidioma Optimizado
- * PARTE 3/3: Dropdowns, Search, Loading, Responsive y Utilities
- */
+    * ADC Video Display - Frontend Styles
+    * Version: 3.1 - Sistema de Caché Inteligente
+    * PARTE 3/3: Dropdowns, Search, Loading, Responsive y Utilities
+    */
 
 /* ===================================
-   Dropdown Menu Styles - Enhanced
-   =================================== */
+      Dropdown Menu Styles - Enhanced
+      =================================== */
 .adc-dropdown-menu {
     position: relative;
     display: inline-block;
@@ -808,8 +888,8 @@
 }
 
 /* ===================================
-   Programs Dropdown Menu Styles - RESTAURADO ORIGINAL
-   =================================== */
+      Programs Dropdown Menu Styles - RESTAURADO ORIGINAL
+      =================================== */
 .has-programs-dropdown {
     position: relative !important;
 }
@@ -1371,6 +1451,26 @@
         width: 16px !important;
         height: 16px !important;
     }
+
+    /* NEW: Mobile fallback message adjustments */
+    .adc-search-fallback-message {
+        padding: 12px;
+        margin: 10px 0;
+        font-size: 14px;
+    }
+
+    .adc-no-results-section {
+        padding: 20px 10px;
+    }
+
+    .adc-search-tips {
+        padding: 15px;
+        margin: 15px 0;
+    }
+
+    .adc-category-videos {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Extra Small Mobile */
@@ -1406,6 +1506,20 @@
         height: 30px;
         bottom: 8px;
         right: 8px;
+    }
+
+    /* NEW: Extra small mobile fallback adjustments */
+    .adc-search-fallback-message {
+        padding: 10px;
+        font-size: 13px;
+    }
+
+    .adc-no-results-title {
+        font-size: 20px;
+    }
+
+    .adc-search-tips ul {
+        font-size: 14px;
     }
 }
 
@@ -1456,6 +1570,42 @@
     margin-top: 20px !important;
 }
 
+/* NEW: Utility classes for fallback styling */
+.adc-fallback-highlight {
+    background: rgba(110, 193, 228, 0.1);
+    border-left: 4px solid #6EC1E4;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 4px;
+}
+
+.adc-info-box {
+    background: #e8f4fd;
+    border: 1px solid #2196f3;
+    color: #1976d2;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+}
+
+.adc-success-box {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+}
+
+.adc-warning-box {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+}
+
 /* Smooth transitions for all interactive elements */
 * {
     transition: transform 0.3s ease, opacity 0.3s ease, color 0.3s ease, background-color 0.3s ease;
@@ -1479,7 +1629,9 @@
     .adc-search-form,
     .adc-dropdown-menu,
     .adc-back-button,
-    .adc-view-all-button {
+    .adc-view-all-button,
+    .adc-search-fallback-message,
+    .adc-no-results-section {
         display: none !important;
     }
 }
