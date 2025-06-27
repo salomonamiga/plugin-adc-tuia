@@ -1,7 +1,7 @@
 <?php
 /**
  * ADC Video Display - Admin Settings
- * Version: 3.0 - Multiidioma (ES/EN únicamente) con caché optimizado y mejoras UX
+ * Version: 3.1 - Sistema de Caché Inteligente
  * 
  * Maneja toda la configuración de administración del plugin
  */

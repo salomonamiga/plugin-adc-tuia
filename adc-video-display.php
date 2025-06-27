@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ADC Video Display
  * Description: Muestra videos desde el sistema ADC en WordPress - Multiidioma (ES/EN)
- * Version: 3.0
+ * Version: 3.1
  * Author: TuTorah Development Team
  */
 
@@ -54,6 +54,10 @@ class ADC_Video_Display
         add_action('wp_ajax_adc_get_programs_menu', array($this, 'handle_ajax_get_programs_menu'));
         add_action('wp_ajax_nopriv_adc_get_programs_menu', array($this, 'handle_ajax_get_programs_menu'));
 
+        // NEW: Webhook endpoint for cache refresh
+        add_action('wp_ajax_adc_webhook_refresh', array($this, 'handle_webhook_cache_refresh'));
+        add_action('wp_ajax_nopriv_adc_webhook_refresh', array($this, 'handle_webhook_cache_refresh'));
+
         // Handle custom URLs
         add_filter('request', array($this, 'handle_custom_urls'));
     }
@@ -68,7 +72,7 @@ class ADC_Video_Display
             'adc-style',
             ADC_PLUGIN_URL . 'style.css',
             array(),
-            '3.0'
+            '3.1'
         );
 
         // Enqueue JavaScript
@@ -76,7 +80,7 @@ class ADC_Video_Display
             'adc-script',
             ADC_PLUGIN_URL . 'script.js',
             array('jquery'),
-            '3.0',
+            '3.1',
             true
         );
 
@@ -87,8 +91,70 @@ class ADC_Video_Display
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('adc_nonce'),
             'search_page' => home_url('/'),
-            'debug' => isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1'
+            'debug' => isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1',
+            'cache_enabled' => $this->is_cache_enabled()
         ));
+    }
+
+    /**
+     * NEW: Handle webhook cache refresh from ADC
+     */
+    public function handle_webhook_cache_refresh()
+    {
+        // Verify token
+        $provided_token = isset($_GET['token']) ? sanitize_text_field($_GET['token']) : '';
+        $stored_token = isset($this->options['webhook_token']) ? $this->options['webhook_token'] : '';
+
+        if (empty($provided_token) || empty($stored_token) || !hash_equals($stored_token, $provided_token)) {
+            wp_send_json_error(array(
+                'message' => 'Invalid or missing token',
+                'code' => 'INVALID_TOKEN'
+            ), 401);
+            return;
+        }
+
+        // Log webhook call if debug mode is enabled
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            error_log('ADC Webhook: Cache refresh triggered by ADC at ' . current_time('mysql'));
+        }
+
+        try {
+            $cleared_languages = array();
+            $total_cleared = 0;
+
+            // Clear cache for all languages
+            foreach (ADC_Utils::get_valid_languages() as $language) {
+                $api = new ADC_API($language);
+                $result = $api->clear_all_cache();
+
+                if ($result) {
+                    $cleared_languages[] = $language;
+                    $total_cleared++;
+                }
+            }
+
+            // Clear WordPress object cache if available
+            if (function_exists('wp_cache_flush')) {
+                wp_cache_flush();
+            }
+
+            // Success response
+            wp_send_json_success(array(
+                'message' => 'Cache cleared successfully',
+                'languages_cleared' => $cleared_languages,
+                'total_languages' => $total_cleared,
+                'timestamp' => current_time('mysql'),
+                'version' => '3.1'
+            ));
+
+        } catch (Exception $e) {
+            // Error response
+            wp_send_json_error(array(
+                'message' => 'Error clearing cache',
+                'error' => $e->getMessage(),
+                'code' => 'CACHE_CLEAR_ERROR'
+            ), 500);
+        }
     }
 
     /**
@@ -306,7 +372,8 @@ class ADC_Video_Display
         $output = '<div class="adc-search-video-item">';
         $output .= '<a href="' . esc_url($url) . '" class="adc-search-video-link">';
         $output .= '<div class="adc-search-thumbnail">';
-        $output .= '<img src="' . esc_url(ADC_Utils::get_thumbnail_url($video['id'])) . '" alt="' . esc_attr($video['title']) . '">';
+        // UPDATED: Add lazy loading to thumbnail
+        $output .= '<img src="' . esc_url(ADC_Utils::get_thumbnail_url($video['id'])) . '" alt="' . esc_attr($video['title']) . '" loading="lazy">';
         $output .= '<div class="adc-search-play-icon"></div>';
         $output .= '</div>';
 
@@ -369,9 +436,10 @@ class ADC_Video_Display
         $output .= '<div class="adc-category-image-circle">';
 
         if (isset($program['cover'])) {
-            $output .= '<img src="' . esc_url($program['cover']) . '" alt="' . esc_attr($program['name']) . '">';
+            // UPDATED: Add lazy loading to category covers
+            $output .= '<img src="' . esc_url($program['cover']) . '" alt="' . esc_attr($program['name']) . '" loading="lazy">';
         } else {
-            $output .= '<img src="' . ADC_PLUGIN_URL . 'assets/img/no-cover.jpg" alt="' . esc_attr($program['name']) . '">';
+            $output .= '<img src="' . ADC_PLUGIN_URL . 'assets/img/no-cover.jpg" alt="' . esc_attr($program['name']) . '" loading="lazy">';
         }
 
         // Add coming soon overlay
@@ -462,7 +530,8 @@ class ADC_Video_Display
                 $output .= '<div class="adc-video-item">';
                 $output .= '<a href="?categoria=' . esc_attr($category_slug) . '&video=' . esc_attr($video_slug) . '" class="adc-video-link">';
                 $output .= '<div class="adc-video-thumbnail">';
-                $output .= '<img src="' . esc_url($thumbnail_url) . '" alt="' . esc_attr($video['title']) . '">';
+                // UPDATED: Add lazy loading to video thumbnails
+                $output .= '<img src="' . esc_url($thumbnail_url) . '" alt="' . esc_attr($video['title']) . '" loading="lazy">';
                 $output .= '<div class="adc-video-play-icon"></div>';
                 $output .= '</div>';
 
@@ -619,7 +688,8 @@ class ADC_Video_Display
             $output .= '<div class="adc-video-item adc-related-video-item">';
             $output .= '<a href="?categoria=' . esc_attr($category_slug) . '&video=' . esc_attr($related_slug) . '" class="adc-video-link">';
             $output .= '<div class="adc-video-thumbnail">';
-            $output .= '<img src="' . esc_url(ADC_Utils::get_thumbnail_url($related_video['id'])) . '" alt="' . esc_attr($related_video['title']) . '">';
+            // UPDATED: Add lazy loading to related video thumbnails
+            $output .= '<img src="' . esc_url(ADC_Utils::get_thumbnail_url($related_video['id'])) . '" alt="' . esc_attr($related_video['title']) . '" loading="lazy">';
             $output .= '<div class="adc-video-play-icon"></div>';
             $output .= '</div>';
 
@@ -770,6 +840,31 @@ class ADC_Video_Display
 
         return $related;
     }
+
+    /**
+     * NEW: Check if cache is enabled in settings
+     */
+    private function is_cache_enabled()
+    {
+        return isset($this->options['enable_cache']) && $this->options['enable_cache'] === '1';
+    }
+
+    /**
+     * NEW: Get cache duration in hours from settings
+     */
+    private function get_cache_duration_hours()
+    {
+        $duration = isset($this->options['cache_duration']) ? floatval($this->options['cache_duration']) : 6;
+        return max(0.5, min(24, $duration)); // Clamp between 30 minutes and 24 hours
+    }
+
+    /**
+     * NEW: Get cache duration in seconds for WordPress transients
+     */
+    public function get_cache_duration_seconds()
+    {
+        return $this->get_cache_duration_hours() * HOUR_IN_SECONDS;
+    }
 }
 
 // Initialize plugin
@@ -791,7 +886,7 @@ add_action('plugins_loaded', 'adc_video_display_init');
 register_activation_hook(__FILE__, 'adc_video_display_activate');
 function adc_video_display_activate()
 {
-    // Create default options
+    // Create default options with NEW cache settings
     $default_options = array(
         'api_token' => '',
         'api_url' => 'https://api.tutorah.tv/v1',
@@ -800,7 +895,11 @@ function adc_video_display_activate()
         'autoplay_countdown' => '5',
         'enable_search' => '1',
         'related_videos_count' => '8',
-        'debug_mode' => '0'
+        'debug_mode' => '0',
+        // NEW: Cache settings with sensible defaults
+        'enable_cache' => '1',
+        'cache_duration' => '6',
+        'webhook_token' => 'adc_' . wp_generate_password(32, false, false)
     );
 
     add_option('adc-video-display', $default_options);
@@ -814,5 +913,5 @@ function adc_video_display_activate()
 register_deactivation_hook(__FILE__, 'adc_video_display_deactivate');
 function adc_video_display_deactivate()
 {
-    // Clean up if needed
+    // Clean up if needed - but preserve settings for reactivation
 }
