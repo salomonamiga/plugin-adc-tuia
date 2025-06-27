@@ -31,9 +31,10 @@ class ADC_Admin
 
         // AJAX handlers
         add_action('wp_ajax_adc_update_program_order', array($this, 'ajax_update_program_order'));
-        add_action('wp_ajax_adc_clear_cache', array($this, 'ajax_clear_cache'));
+        add_action('wp_ajax_adc_clear_all_cache', array($this, 'ajax_clear_all_cache'));
         add_action('wp_ajax_adc_test_connection', array($this, 'ajax_test_connection'));
         add_action('wp_ajax_adc_health_check', array($this, 'ajax_health_check'));
+        add_action('wp_ajax_adc_generate_webhook_token', array($this, 'ajax_generate_webhook_token'));
     }
 
     /**
@@ -70,7 +71,10 @@ class ADC_Admin
                 'connection_error' => 'Error de conexión',
                 'health_checking' => 'Verificando estado del sistema...',
                 'health_success' => 'Sistema funcionando correctamente',
-                'health_error' => 'Se detectaron problemas en el sistema'
+                'health_error' => 'Se detectaron problemas en el sistema',
+                'generating_token' => 'Generando nuevo token...',
+                'token_generated' => 'Token generado exitosamente',
+                'token_error' => 'Error al generar token'
             )
         ));
     }
@@ -114,9 +118,9 @@ class ADC_Admin
     }
 
     /**
-     * AJAX handler to clear cache
+     * AJAX handler to clear ALL cache
      */
-    public function ajax_clear_cache()
+    public function ajax_clear_all_cache()
     {
         check_ajax_referer('adc_admin_nonce', 'nonce');
 
@@ -125,37 +129,20 @@ class ADC_Admin
             return;
         }
 
-        $cache_type = isset($_POST['cache_type']) ? sanitize_text_field($_POST['cache_type']) : 'all';
-
         try {
-            // Clear cache based on type
+            // Clear cache for all languages
             foreach ($this->languages as $lang) {
                 $api = new ADC_API($lang);
+                $api->clear_all_cache();
+            }
 
-                switch ($cache_type) {
-                    case 'all':
-                        $api->clear_all_cache();
-                        break;
-                    case 'programs':
-                        $api->refresh_cache('programs');
-                        break;
-                    case 'materials':
-                        $api->refresh_cache('materials');
-                        break;
-                    case 'search':
-                        $api->refresh_cache('search');
-                        break;
-                    case 'menu':
-                        $api->refresh_cache('menu');
-                        break;
-                    default:
-                        $api->clear_all_cache();
-                }
+            // Clear any WordPress object cache
+            if (function_exists('wp_cache_flush')) {
+                wp_cache_flush();
             }
 
             wp_send_json_success(array(
-                'message' => 'Cache cleared successfully',
-                'type' => $cache_type,
+                'message' => 'Todo el caché ha sido limpiado exitosamente',
                 'timestamp' => current_time('mysql')
             ));
 
@@ -216,6 +203,42 @@ class ADC_Admin
     }
 
     /**
+     * AJAX handler to generate new webhook token
+     */
+    public function ajax_generate_webhook_token()
+    {
+        check_ajax_referer('adc_admin_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Insufficient permissions');
+            return;
+        }
+
+        try {
+            // Generate new secure token
+            $new_token = $this->generate_secure_token();
+
+            // Save to options
+            $current_options = get_option($this->plugin_name, array());
+            $current_options['webhook_token'] = $new_token;
+            update_option($this->plugin_name, $current_options);
+
+            // Return new webhook URL
+            $webhook_url = $this->get_webhook_url($new_token);
+
+            wp_send_json_success(array(
+                'message' => 'Token generado exitosamente',
+                'token' => $new_token,
+                'webhook_url' => $webhook_url,
+                'timestamp' => current_time('mysql')
+            ));
+
+        } catch (Exception $e) {
+            wp_send_json_error('Error generating token: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Add menu item to WordPress admin
      */
     public function add_admin_menu()
@@ -262,6 +285,7 @@ class ADC_Admin
         );
 
         $this->register_api_settings();
+        $this->register_cache_settings();
         $this->register_display_settings();
         $this->register_search_settings();
         $this->register_advanced_settings();
@@ -281,6 +305,25 @@ class ADC_Admin
 
         add_settings_field('api_token', 'Token de API', array($this, 'api_token_callback'), $this->plugin_name, 'api_settings');
         add_settings_field('api_url', 'URL Base de API', array($this, 'api_url_callback'), $this->plugin_name, 'api_settings');
+    }
+
+    /**
+     * Register cache settings section - NUEVA SECCIÓN
+     */
+    private function register_cache_settings()
+    {
+        add_settings_section(
+            'cache_settings',
+            'Sistema de Caché Inteligente',
+            array($this, 'cache_settings_section_callback'),
+            $this->plugin_name
+        );
+
+        add_settings_field('enable_cache', 'Activar Caché', array($this, 'enable_cache_callback'), $this->plugin_name, 'cache_settings');
+        add_settings_field('cache_duration', 'Duración del Caché', array($this, 'cache_duration_callback'), $this->plugin_name, 'cache_settings');
+        add_settings_field('webhook_token', 'Token del Webhook', array($this, 'webhook_token_callback'), $this->plugin_name, 'cache_settings');
+        add_settings_field('webhook_url', 'URL del Webhook', array($this, 'webhook_url_callback'), $this->plugin_name, 'cache_settings');
+        add_settings_field('cache_management', 'Gestión de Caché', array($this, 'cache_management_callback'), $this->plugin_name, 'cache_settings');
     }
 
     /**
@@ -339,6 +382,19 @@ class ADC_Admin
         echo '<p>Configura los datos de conexión a la API de TuTorah TV.</p>';
     }
 
+    public function cache_settings_section_callback()
+    {
+        echo '<p>Configura el sistema de caché inteligente para optimizar el rendimiento del sitio.</p>';
+        echo '<div style="background: #e8f4fd; padding: 15px; border-left: 4px solid #2196f3; margin: 15px 0;">';
+        echo '<h4 style="margin-top: 0; color: #1976d2;">ℹ️ ¿Cómo funciona el caché?</h4>';
+        echo '<ul>';
+        echo '<li><strong>Caché Activado:</strong> Los datos se guardan por el tiempo configurado, haciendo el sitio más rápido</li>';
+        echo '<li><strong>Webhook:</strong> Permite que ADC limpie automáticamente el caché cuando sube contenido nuevo</li>';
+        echo '<li><strong>Token de Seguridad:</strong> Protege tu sitio para que solo ADC pueda usar el webhook</li>';
+        echo '</ul>';
+        echo '</div>';
+    }
+
     public function display_settings_section_callback()
     {
         echo '<p>Configura las opciones de visualización del contenido.</p>';
@@ -355,7 +411,7 @@ class ADC_Admin
     }
 
     /**
-     * Field callbacks
+     * Field callbacks - API
      */
     public function api_token_callback()
     {
@@ -367,6 +423,78 @@ class ADC_Admin
         $this->render_url_field('api_url', 'https://api.tutorah.tv/v1', 'URL base de la API (sin slash final).');
     }
 
+    /**
+     * Field callbacks - CACHE (NUEVOS)
+     */
+    public function enable_cache_callback()
+    {
+        $this->render_checkbox_field('enable_cache', 'Activar sistema de caché (recomendado para mejor rendimiento)');
+    }
+
+    public function cache_duration_callback()
+    {
+        $value = isset($this->options['cache_duration']) ? $this->options['cache_duration'] : '6';
+        $options = array(
+            '0.5' => '30 minutos',
+            '1' => '1 hora',
+            '3' => '3 horas',
+            '6' => '6 horas (recomendado)',
+            '12' => '12 horas',
+            '24' => '24 horas'
+        );
+
+        echo '<select name="' . $this->plugin_name . '[cache_duration]">';
+        foreach ($options as $hours => $label) {
+            echo '<option value="' . $hours . '"' . selected($value, $hours, false) . '>' . $label . '</option>';
+        }
+        echo '</select>';
+        echo '<p class="description">Tiempo que los datos se mantienen en caché antes de actualizarse.</p>';
+    }
+
+    public function webhook_token_callback()
+    {
+        $token = isset($this->options['webhook_token']) ? $this->options['webhook_token'] : '';
+
+        if (empty($token)) {
+            $token = $this->generate_secure_token();
+            $current_options = get_option($this->plugin_name, array());
+            $current_options['webhook_token'] = $token;
+            update_option($this->plugin_name, $current_options);
+        }
+
+        echo '<div style="display: flex; align-items: center; gap: 10px;">';
+        echo '<input type="text" value="' . esc_attr($token) . '" class="regular-text" readonly style="background: #f9f9f9;">';
+        echo '<button type="button" id="adc-generate-token" class="button button-secondary">Generar Nuevo Token</button>';
+        echo '</div>';
+        echo '<p class="description">Token de seguridad para el webhook. Comparte este token con ADC para que puedan limpiar el caché automáticamente.</p>';
+    }
+
+    public function webhook_url_callback()
+    {
+        $token = isset($this->options['webhook_token']) ? $this->options['webhook_token'] : '';
+        $webhook_url = $this->get_webhook_url($token);
+
+        echo '<div style="background: #f0f8f0; padding: 15px; border: 1px solid #46b450; border-radius: 4px;">';
+        echo '<h4 style="margin-top: 0; color: #46b450;">🔗 URL para ADC</h4>';
+        echo '<input type="text" value="' . esc_attr($webhook_url) . '" class="large-text" readonly style="background: white; margin-bottom: 10px;">';
+        echo '<p style="margin: 0;"><strong>Instrucciones:</strong> Envía esta URL completa al equipo de ADC para que configuren el webhook automático.</p>';
+        echo '</div>';
+    }
+
+    public function cache_management_callback()
+    {
+        echo '<div style="margin-top: 10px;">';
+        echo '<button type="button" id="adc-clear-all-cache" class="button button-secondary" style="background: #dc3545; border-color: #dc3545; color: white;">🗑️ Limpiar Todo el Caché</button>';
+        echo '<p class="description">Limpia inmediatamente todo el caché guardado. Útil para forzar la actualización de datos.</p>';
+        echo '</div>';
+
+        // Cache status display
+        echo '<div id="adc-cache-status" style="margin-top: 15px; padding: 10px; border-radius: 4px; display: none;"></div>';
+    }
+
+    /**
+     * Field callbacks - Display
+     */
     public function videos_per_row_callback()
     {
         $value = isset($this->options['videos_per_row']) ? $this->options['videos_per_row'] : '4';
@@ -388,11 +516,17 @@ class ADC_Admin
         $this->render_number_field('autoplay_countdown', 3, 30, 'Segundos antes de reproducir el siguiente video (3-30).');
     }
 
+    /**
+     * Field callbacks - Search
+     */
     public function enable_search_callback()
     {
         $this->render_checkbox_field('enable_search', 'Activar funcionalidad de búsqueda');
     }
 
+    /**
+     * Field callbacks - Advanced
+     */
     public function related_videos_count_callback()
     {
         $this->render_number_field('related_videos_count', 4, 20, 'Cantidad de videos relacionados a mostrar (4-20).');
@@ -450,6 +584,11 @@ class ADC_Admin
         $sanitized['api_token'] = isset($input['api_token']) ? sanitize_text_field($input['api_token']) : '';
         $sanitized['api_url'] = isset($input['api_url']) ? rtrim(esc_url_raw($input['api_url']), '/') : '';
 
+        // Cache Settings
+        $sanitized['enable_cache'] = isset($input['enable_cache']) ? '1' : '0';
+        $sanitized['cache_duration'] = isset($input['cache_duration']) && in_array($input['cache_duration'], array('0.5', '1', '3', '6', '12', '24')) ? $input['cache_duration'] : '6';
+        $sanitized['webhook_token'] = isset($input['webhook_token']) ? sanitize_text_field($input['webhook_token']) : '';
+
         // Display Settings
         $sanitized['videos_per_row'] = isset($input['videos_per_row']) && in_array($input['videos_per_row'], array('3', '4', '5', '6')) ? $input['videos_per_row'] : '4';
         $sanitized['enable_autoplay'] = isset($input['enable_autoplay']) ? '1' : '0';
@@ -488,7 +627,7 @@ class ADC_Admin
     }
 
     /**
-     * Display the settings page - SIMPLIFICADO
+     * Display the settings page - ACTUALIZADA
      */
     public function display_settings_page()
     {
@@ -504,38 +643,6 @@ class ADC_Admin
 
         echo '<div class="wrap">';
         echo '<h1>ADC Video Display - Configuración</h1>';
-
-        // Add cache management section
-        echo '<div class="card" style="margin-bottom: 20px;">';
-        echo '<h2>Gestión de Caché y Sistema</h2>';
-
-        // Cache controls
-        echo '<div style="margin-bottom: 15px;">';
-        echo '<button id="adc-clear-all-cache" class="button button-secondary" data-cache-type="all">Limpiar Todo el Caché</button> ';
-        echo '<button id="adc-clear-programs-cache" class="button button-secondary" data-cache-type="programs">Limpiar Caché de Programas</button> ';
-        echo '<button id="adc-clear-search-cache" class="button button-secondary" data-cache-type="search">Limpiar Caché de Búsquedas</button> ';
-        echo '<button id="adc-health-check" class="button button-secondary">Verificar Estado del Sistema</button>';
-        echo '</div>';
-
-        // Cache statistics
-        echo '<div id="cache-stats">';
-        echo '<h3>Estadísticas de Caché</h3>';
-        echo '<table class="widefat" style="max-width: 600px;">';
-        echo '<thead><tr><th>Idioma</th><th>Entradas</th><th>Tamaño (KB)</th><th>Ambiente</th></tr></thead>';
-        echo '<tbody>';
-        foreach ($cache_stats as $lang => $stats) {
-            echo '<tr>';
-            echo '<td>' . strtoupper($lang) . '</td>';
-            echo '<td>' . $stats['transient_count'] . '</td>';
-            echo '<td>' . $stats['cache_size_kb'] . '</td>';
-            echo '<td><span class="' . ($stats['environment'] === 'development' ? 'adc-dev-badge' : 'adc-prod-badge') . '">' . ucfirst($stats['environment']) . '</span></td>';
-            echo '</tr>';
-        }
-        echo '</tbody></table>';
-        echo '</div>';
-
-        echo '<div id="adc-cache-status" style="margin-top: 15px;"></div>';
-        echo '</div>';
 
         // Show API status for all languages
         echo '<div class="card">';
@@ -556,6 +663,23 @@ class ADC_Admin
         echo '<div id="adc-connection-status" style="margin-top: 15px;"></div>';
         echo '</div>';
 
+        // Cache statistics
+        echo '<div class="card" style="margin-bottom: 20px;">';
+        echo '<h2>Estadísticas de Caché</h2>';
+        echo '<table class="widefat" style="max-width: 600px;">';
+        echo '<thead><tr><th>Idioma</th><th>Entradas</th><th>Tamaño (KB)</th><th>Ambiente</th></tr></thead>';
+        echo '<tbody>';
+        foreach ($cache_stats as $lang => $stats) {
+            echo '<tr>';
+            echo '<td>' . strtoupper($lang) . '</td>';
+            echo '<td>' . $stats['transient_count'] . '</td>';
+            echo '<td>' . $stats['cache_size_kb'] . '</td>';
+            echo '<td><span class="' . ($stats['environment'] === 'development' ? 'adc-dev-badge' : 'adc-prod-badge') . '">' . ucfirst($stats['environment']) . '</span></td>';
+            echo '</tr>';
+        }
+        echo '</tbody></table>';
+        echo '</div>';
+
         echo '<form method="post" action="options.php">';
         settings_fields($this->plugin_name . '_group');
         do_settings_sections($this->plugin_name);
@@ -571,7 +695,7 @@ class ADC_Admin
     }
 
     /**
-     * Render admin styles and scripts inline
+     * Render admin styles and scripts inline - ACTUALIZADO
      */
     private function render_admin_styles_and_scripts()
     {
@@ -589,34 +713,73 @@ class ADC_Admin
 
         echo '<script>
         jQuery(document).ready(function($) {
-            // Clear cache handlers
-            $("[id^=adc-clear-]").on("click", function(e) {
+            // Clear ALL cache handler
+            $("#adc-clear-all-cache").on("click", function(e) {
                 e.preventDefault();
                 var button = $(this);
-                var cacheType = button.data("cache-type");
                 var originalText = button.text();
                 
-                button.prop("disabled", true).text("Limpiando...");
-                $("#adc-cache-status").removeClass("success error").addClass("loading").text("Limpiando caché...").show();
+                button.prop("disabled", true).text("🗑️ Limpiando...");
+                $("#adc-cache-status").removeClass("success error").addClass("loading").text("Limpiando todo el caché...").show();
                 
                 $.ajax({
                     url: ajaxurl,
                     type: "POST",
                     data: {
-                        action: "adc_clear_cache",
-                        cache_type: cacheType,
+                        action: "adc_clear_all_cache",
                         nonce: "' . wp_create_nonce('adc_admin_nonce') . '"
                     },
                     success: function(response) {
                         if (response.success) {
-                            $("#adc-cache-status").removeClass("loading error").addClass("success").text("Caché limpiado exitosamente");
-                            setTimeout(function() { location.reload(); }, 1500);
+                            $("#adc-cache-status").removeClass("loading error").addClass("success").text("✅ " + response.data.message);
+                            setTimeout(function() { location.reload(); }, 2000);
                         } else {
-                            $("#adc-cache-status").removeClass("loading success").addClass("error").text("Error: " + response.data);
+                            $("#adc-cache-status").removeClass("loading success").addClass("error").text("❌ Error: " + response.data);
                         }
                     },
                     error: function() {
-                        $("#adc-cache-status").removeClass("loading success").addClass("error").text("Error de conexión");
+                        $("#adc-cache-status").removeClass("loading success").addClass("error").text("❌ Error de conexión");
+                    },
+                    complete: function() {
+                        button.prop("disabled", false).text(originalText);
+                    }
+                });
+            });
+            
+            // Generate new token handler
+            $("#adc-generate-token").on("click", function(e) {
+                e.preventDefault();
+                var button = $(this);
+                var originalText = button.text();
+                
+                if (!confirm("¿Estás seguro? Esto invalidará el token actual y ADC necesitará actualizar su configuración.")) {
+                    return;
+                }
+                
+                button.prop("disabled", true).text("Generando...");
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: "POST",
+                    data: {
+                        action: "adc_generate_webhook_token",
+                        nonce: "' . wp_create_nonce('adc_admin_nonce') . '"
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Update token field
+                            button.closest("div").find("input[type=\"text\"]").val(response.data.token);
+                            
+                            // Update webhook URL field
+                            $("input[value*=\"adc_webhook_refresh\"]").val(response.data.webhook_url);
+                            
+                            alert("✅ " + response.data.message + "\\n\\nNuevo token: " + response.data.token + "\\n\\nComparte la nueva URL del webhook con ADC.");
+                        } else {
+                            alert("❌ Error: " + response.data);
+                        }
+                    },
+                    error: function() {
+                        alert("❌ Error de conexión");
                     },
                     complete: function() {
                         button.prop("disabled", false).text(originalText);
@@ -644,53 +807,13 @@ class ADC_Admin
                     },
                     success: function(response) {
                         if (response.success) {
-                            $("#adc-connection-status").removeClass("loading error").addClass("success").text("Conexión exitosa para " + language.toUpperCase() + " - " + response.data.programs_count + " programas encontrados");
+                            $("#adc-connection-status").removeClass("loading error").addClass("success").text("✅ Conexión exitosa para " + language.toUpperCase() + " - " + response.data.programs_count + " programas encontrados");
                         } else {
-                            $("#adc-connection-status").removeClass("loading success").addClass("error").text("Error en " + language.toUpperCase() + ": " + response.data.error);
+                            $("#adc-connection-status").removeClass("loading success").addClass("error").text("❌ Error en " + language.toUpperCase() + ": " + response.data.error);
                         }
                     },
                     error: function() {
-                        $("#adc-connection-status").removeClass("loading success").addClass("error").text("Error de conexión para " + language.toUpperCase());
-                    },
-                    complete: function() {
-                        button.prop("disabled", false).text(originalText);
-                    }
-                });
-            });
-            
-            // Health check handler
-            $("#adc-health-check").on("click", function(e) {
-                e.preventDefault();
-                var button = $(this);
-                var originalText = button.text();
-                
-                button.prop("disabled", true).text("Verificando...");
-                $("#adc-connection-status").removeClass("success error").addClass("loading").text("Realizando verificación completa del sistema...").show();
-                
-                $.ajax({
-                    url: ajaxurl,
-                    type: "POST",
-                    data: {
-                        action: "adc_health_check",
-                        nonce: "' . wp_create_nonce('adc_admin_nonce') . '"
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            var healthData = response.data;
-                            var message = "Health Check completado:<br>";
-                            
-                            for (var lang in healthData) {
-                                var health = healthData[lang];
-                                message += lang.toUpperCase() + ": " + health.overall + "<br>";
-                            }
-                            
-                            $("#adc-connection-status").removeClass("loading error").addClass("success").html(message);
-                        } else {
-                            $("#adc-connection-status").removeClass("loading success").addClass("error").text("Error en health check: " + response.data);
-                        }
-                    },
-                    error: function() {
-                        $("#adc-connection-status").removeClass("loading success").addClass("error").text("Error de conexión en health check");
+                        $("#adc-connection-status").removeClass("loading success").addClass("error").text("❌ Error de conexión para " + language.toUpperCase());
                     },
                     complete: function() {
                         button.prop("disabled", false).text(originalText);
@@ -985,6 +1108,22 @@ class ADC_Admin
             'response_time' => isset($result['response_time']) ? $result['response_time'] : null,
             'cache_time' => isset($result['cache_time']) ? $result['cache_time'] : null
         );
+    }
+
+    /**
+     * Generate secure token for webhook
+     */
+    private function generate_secure_token()
+    {
+        return 'adc_' . wp_generate_password(32, false, false);
+    }
+
+    /**
+     * Get webhook URL with token
+     */
+    private function get_webhook_url($token)
+    {
+        return admin_url('admin-ajax.php?action=adc_webhook_refresh&token=' . urlencode($token));
     }
 
     /**
