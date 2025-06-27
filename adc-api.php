@@ -1,7 +1,7 @@
 <?php
 /**
  * ADC Video Display - API Handler
- * Version: 3.0 - Multiidioma (ES/EN únicamente)
+ * Version: 3.1 - Sistema de Caché Inteligente + Retry Automático
  * 
  * Maneja todas las peticiones API a TuTorah TV
  */
@@ -19,18 +19,19 @@ class ADC_API
     private $section;
     private $debug_mode = false;
     private $cache = array();
+    private $options;
 
     /**
      * Constructor
      */
     public function __construct($language = 'es')
     {
-        $options = get_option('adc-video-display');
+        $this->options = get_option('adc-video-display');
 
-        $this->api_token = isset($options['api_token']) ? $options['api_token'] : '';
-        $this->api_url = isset($options['api_url']) ? $options['api_url'] : 'https://api.tutorah.tv/v1';
-        $this->debug_mode = isset($options['debug_mode']) ? $options['debug_mode'] : false;
-        
+        $this->api_token = isset($this->options['api_token']) ? $this->options['api_token'] : '';
+        $this->api_url = isset($this->options['api_url']) ? $this->options['api_url'] : 'https://api.tutorah.tv/v1';
+        $this->debug_mode = isset($this->options['debug_mode']) ? $this->options['debug_mode'] : false;
+
         // Set language and corresponding section
         $this->language = ADC_Utils::validate_language($language);
         $this->section = $this->get_section_by_language($this->language);
@@ -50,13 +51,46 @@ class ADC_API
     }
 
     /**
-     * Make API request with improved error handling and caching
+     * NEW: Check if cache is enabled from admin settings
      */
-    private function make_request($endpoint, $params = array(), $cache_key = null)
+    private function is_cache_enabled()
     {
-        // Check cache first
-        if ($cache_key && isset($this->cache[$cache_key])) {
-            return $this->cache[$cache_key];
+        return isset($this->options['enable_cache']) && $this->options['enable_cache'] === '1';
+    }
+
+    /**
+     * NEW: Get cache duration from admin settings (in seconds)
+     */
+    private function get_cache_duration()
+    {
+        if (!$this->is_cache_enabled()) {
+            return 0; // No cache
+        }
+
+        $hours = isset($this->options['cache_duration']) ? floatval($this->options['cache_duration']) : 6;
+        $hours = max(0.5, min(24, $hours)); // Clamp between 30 minutes and 24 hours
+
+        return intval($hours * HOUR_IN_SECONDS);
+    }
+
+    /**
+     * NEW: Make API request with retry logic and intelligent caching
+     */
+    private function make_request($endpoint, $params = array(), $cache_key = null, $max_retries = 3)
+    {
+        // Check cache first if enabled and cache_key provided
+        if ($cache_key && $this->is_cache_enabled()) {
+            // Check internal cache
+            if (isset($this->cache[$cache_key])) {
+                return $this->cache[$cache_key];
+            }
+
+            // Check WordPress transient
+            $cached_data = get_transient($cache_key);
+            if ($cached_data !== false) {
+                $this->cache[$cache_key] = $cached_data;
+                return $cached_data;
+            }
         }
 
         $url = $this->api_url . $endpoint;
@@ -68,40 +102,116 @@ class ADC_API
         $args = array(
             'headers' => array(
                 'Authorization' => $this->api_token,
-                'User-Agent' => 'ADC-WordPress-Plugin/3.0'
+                'User-Agent' => 'ADC-WordPress-Plugin/3.1'
             ),
             'timeout' => 30,
             'sslverify' => true
         );
 
-        $response = wp_remote_get($url, $args);
+        $last_error = null;
 
-        if (is_wp_error($response)) {
-            return false;
+        // Retry logic - attempt up to $max_retries times
+        for ($attempt = 1; $attempt <= $max_retries; $attempt++) {
+            $response = wp_remote_get($url, $args);
+
+            if (is_wp_error($response)) {
+                $last_error = $response->get_error_message();
+
+                if ($this->debug_mode) {
+                    ADC_Utils::debug_log("API Request Failed (Attempt {$attempt}/{$max_retries}): " . $last_error, array(
+                        'url' => $url,
+                        'language' => $this->language
+                    ));
+                }
+
+                // Wait before retrying (exponential backoff)
+                if ($attempt < $max_retries) {
+                    sleep($attempt); // Wait 1s, then 2s, then 3s
+                }
+                continue;
+            }
+
+            $http_code = wp_remote_retrieve_response_code($response);
+            if ($http_code !== 200) {
+                $last_error = "HTTP Error: {$http_code}";
+
+                if ($this->debug_mode) {
+                    ADC_Utils::debug_log("API HTTP Error (Attempt {$attempt}/{$max_retries}): {$http_code}", array(
+                        'url' => $url,
+                        'language' => $this->language
+                    ));
+                }
+
+                // Wait before retrying
+                if ($attempt < $max_retries) {
+                    sleep($attempt);
+                }
+                continue;
+            }
+
+            $body = wp_remote_retrieve_body($response);
+            $data = json_decode($body, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $last_error = "JSON Decode Error: " . json_last_error_msg();
+
+                if ($this->debug_mode) {
+                    ADC_Utils::debug_log("API JSON Error (Attempt {$attempt}/{$max_retries}): " . json_last_error_msg(), array(
+                        'url' => $url,
+                        'language' => $this->language,
+                        'body_preview' => substr($body, 0, 200)
+                    ));
+                }
+
+                // Wait before retrying
+                if ($attempt < $max_retries) {
+                    sleep($attempt);
+                }
+                continue;
+            }
+
+            if (isset($data['error']) && $data['error']) {
+                $last_error = "API Error: " . (isset($data['message']) ? $data['message'] : 'Unknown error');
+
+                if ($this->debug_mode) {
+                    ADC_Utils::debug_log("API Logical Error (Attempt {$attempt}/{$max_retries}): " . $last_error, array(
+                        'url' => $url,
+                        'language' => $this->language
+                    ));
+                }
+
+                // Don't retry logical errors - they won't change
+                break;
+            }
+
+            // Success! Cache the result if caching is enabled
+            if ($cache_key && $this->is_cache_enabled()) {
+                $cache_duration = $this->get_cache_duration();
+                if ($cache_duration > 0) {
+                    set_transient($cache_key, $data, $cache_duration);
+                    $this->cache[$cache_key] = $data;
+                }
+            }
+
+            if ($this->debug_mode && $attempt > 1) {
+                ADC_Utils::debug_log("API Request Succeeded after {$attempt} attempts", array(
+                    'url' => $url,
+                    'language' => $this->language
+                ));
+            }
+
+            return $data;
         }
 
-        $http_code = wp_remote_retrieve_response_code($response);
-        if ($http_code !== 200) {
-            return false;
+        // All retries failed
+        if ($this->debug_mode) {
+            ADC_Utils::debug_log("API Request Failed after {$max_retries} attempts. Last error: {$last_error}", array(
+                'url' => $url,
+                'language' => $this->language
+            ));
         }
 
-        $body = wp_remote_retrieve_body($response);
-        $data = json_decode($body, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            return false;
-        }
-
-        if (isset($data['error']) && $data['error']) {
-            return false;
-        }
-
-        // Cache successful response
-        if ($cache_key) {
-            $this->cache[$cache_key] = $data;
-        }
-
-        return $data;
+        return false;
     }
 
     /**
@@ -142,7 +252,7 @@ class ADC_API
     private function filter_programs_by_section($programs)
     {
         $section_suffix = $this->get_section_suffix();
-        
+
         $filtered = array_filter($programs, function ($program) use ($section_suffix) {
             return isset($program['cover']) && strpos($program['cover'], $section_suffix) !== false;
         });
@@ -246,23 +356,73 @@ class ADC_API
     }
 
     /**
-     * Search materials by text
+     * NEW: Search materials by text with fallback support
      */
     public function search_materials($search_text)
     {
+        $cache_key = ADC_Utils::get_cache_key('search_' . md5($search_text), $this->language);
         $endpoint = '/advanced-search/materials';
         $params = array(
             'section' => $this->section,
             'text' => $search_text
         );
 
-        $data = $this->make_request($endpoint, $params);
+        $data = $this->make_request($endpoint, $params, $cache_key);
 
         if (!$data || !isset($data['data'])) {
-            return array();
+            // FALLBACK: If search fails, return recommended videos instead of empty
+            return $this->get_fallback_videos();
         }
 
         return $data['data'];
+    }
+
+    /**
+     * NEW: Get fallback videos when search fails
+     */
+    private function get_fallback_videos($limit = 8)
+    {
+        try {
+            $programs = $this->get_programs();
+
+            if (empty($programs)) {
+                return array();
+            }
+
+            $all_videos = array();
+
+            // Get videos from first few programs to avoid long processing
+            $programs_to_check = array_slice($programs, 0, 3);
+
+            foreach ($programs_to_check as $program) {
+                $videos = $this->get_materials($program['id']);
+                if (!empty($videos)) {
+                    foreach ($videos as $video) {
+                        $video['category'] = $program['name'];
+                        $all_videos[] = $video;
+                    }
+                }
+
+                // Stop if we have enough
+                if (count($all_videos) >= $limit * 2) {
+                    break;
+                }
+            }
+
+            if (empty($all_videos)) {
+                return array();
+            }
+
+            // Shuffle and return limited amount
+            shuffle($all_videos);
+            return array_slice($all_videos, 0, $limit);
+
+        } catch (Exception $e) {
+            if ($this->debug_mode) {
+                ADC_Utils::debug_log("Fallback videos failed: " . $e->getMessage());
+            }
+            return array();
+        }
     }
 
     /**
@@ -379,15 +539,15 @@ class ADC_API
         if ($season_names === null) {
             $season_names = array(
                 'es' => array(
-                    1  => 'Temporada 1',
-                    2  => 'Temporada 2',
-                    3  => 'Temporada 3',
-                    4  => 'Temporada 4',
-                    5  => 'Temporada 5',
-                    6  => 'Bereshit',
-                    7  => 'Shemot',
-                    8  => 'Vaikra',
-                    9  => 'Bamidbar',
+                    1 => 'Temporada 1',
+                    2 => 'Temporada 2',
+                    3 => 'Temporada 3',
+                    4 => 'Temporada 4',
+                    5 => 'Temporada 5',
+                    6 => 'Bereshit',
+                    7 => 'Shemot',
+                    8 => 'Vaikra',
+                    9 => 'Bamidbar',
                     10 => 'Debarim',
                     11 => 'Pesaj',
                     12 => 'Lag Baomer',
@@ -421,15 +581,15 @@ class ADC_API
                     40 => 'Jaguim'
                 ),
                 'en' => array(
-                    1  => 'Season 1',
-                    2  => 'Season 2',
-                    3  => 'Season 3',
-                    4  => 'Season 4',
-                    5  => 'Season 5',
-                    6  => 'Bereshit',
-                    7  => 'Shemot',
-                    8  => 'Vaikra',
-                    9  => 'Bamidbar',
+                    1 => 'Season 1',
+                    2 => 'Season 2',
+                    3 => 'Season 3',
+                    4 => 'Season 4',
+                    5 => 'Season 5',
+                    6 => 'Bereshit',
+                    7 => 'Shemot',
+                    8 => 'Vaikra',
+                    9 => 'Bamidbar',
                     10 => 'Debarim',
                     11 => 'Pesaj',
                     12 => 'Lag Baomer',
@@ -539,7 +699,7 @@ class ADC_API
     }
 
     /**
-     * NUEVOS MÉTODOS PARA ADMIN - Cache Management
+     * CACHE MANAGEMENT METHODS - UPDATED
      */
 
     /**
@@ -548,7 +708,7 @@ class ADC_API
     public function get_cache_stats()
     {
         global $wpdb;
-        
+
         // Count transients for this language
         $transient_count = $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
@@ -570,6 +730,8 @@ class ADC_API
             'cache_size_kb' => round(intval($cache_size) / 1024, 2),
             'environment' => $environment,
             'language' => $this->language,
+            'cache_enabled' => $this->is_cache_enabled(),
+            'cache_duration_hours' => $this->get_cache_duration() / HOUR_IN_SECONDS,
             'last_update' => current_time('mysql')
         );
     }
@@ -585,6 +747,8 @@ class ADC_API
             'programs_count' => 0,
             'materials_count' => 0,
             'cache_status' => 'ok',
+            'cache_enabled' => $this->is_cache_enabled(),
+            'cache_duration' => $this->get_cache_duration(),
             'last_check' => current_time('mysql')
         );
 
@@ -592,10 +756,10 @@ class ADC_API
             // Test API connection
             $connection_test = $this->test_connection();
             $health['api_connection'] = $connection_test['success'];
-            
+
             if ($connection_test['success']) {
                 $health['programs_count'] = $connection_test['programs_count'];
-                
+
                 // Count total materials
                 $programs = $this->get_programs();
                 $total_materials = 0;
@@ -609,10 +773,15 @@ class ADC_API
             }
 
             // Check cache status
-            $cache_stats = $this->get_cache_stats();
-            if ($cache_stats['transient_count'] === 0) {
-                $health['cache_status'] = 'empty';
+            if (!$this->is_cache_enabled()) {
+                $health['cache_status'] = 'disabled';
                 $health['overall'] = 'degraded';
+            } else {
+                $cache_stats = $this->get_cache_stats();
+                if ($cache_stats['transient_count'] === 0) {
+                    $health['cache_status'] = 'empty';
+                    $health['overall'] = 'degraded';
+                }
             }
 
         } catch (Exception $e) {
@@ -629,7 +798,7 @@ class ADC_API
     public function clear_all_cache()
     {
         global $wpdb;
-        
+
         // Clear WordPress transients for this language
         $wpdb->query($wpdb->prepare(
             "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
@@ -654,7 +823,7 @@ class ADC_API
     public function refresh_cache($cache_type)
     {
         global $wpdb;
-        
+
         switch ($cache_type) {
             case 'programs':
                 // Clear programs cache
@@ -663,7 +832,7 @@ class ADC_API
                     '_transient_%' . $this->language . '_programs_%'
                 ));
                 break;
-                
+
             case 'materials':
                 // Clear materials cache
                 $wpdb->query($wpdb->prepare(
@@ -671,7 +840,7 @@ class ADC_API
                     '_transient_%' . $this->language . '_materials_%'
                 ));
                 break;
-                
+
             case 'search':
                 // Clear search cache
                 $wpdb->query($wpdb->prepare(
@@ -679,7 +848,7 @@ class ADC_API
                     '_transient_%' . $this->language . '_search_%'
                 ));
                 break;
-                
+
             case 'menu':
                 // Clear menu cache
                 $wpdb->query($wpdb->prepare(
@@ -687,7 +856,7 @@ class ADC_API
                     '_transient_%' . $this->language . '_programs_menu_%'
                 ));
                 break;
-                
+
             default:
                 // Clear all if type not recognized
                 return $this->clear_all_cache();
@@ -712,7 +881,7 @@ class ADC_API
     }
 
     /**
-     * Test API connection
+     * Test API connection with retry support
      */
     public function test_connection()
     {
@@ -734,7 +903,7 @@ class ADC_API
         if ($programs === false) {
             return array(
                 'success' => false,
-                'error' => 'Error al conectar con la API',
+                'error' => 'Error al conectar con la API después de varios intentos',
                 'error_type' => 'connection'
             );
         }
@@ -758,6 +927,8 @@ class ADC_API
             'materials_count' => $materials_count,
             'language' => $this->get_language_name(),
             'response_time' => $response_time,
+            'cache_enabled' => $this->is_cache_enabled(),
+            'cache_duration' => $this->get_cache_duration(),
             'cache_time' => time()
         );
     }
@@ -789,13 +960,23 @@ class ADC_API
     /**
      * Enhanced cache management - Set transient with language prefix
      */
-    private function set_cache_transient($key, $data, $expiration = 300)
+    private function set_cache_transient($key, $data, $expiration = null)
     {
+        if (!$this->is_cache_enabled()) {
+            return false;
+        }
+
+        if ($expiration === null) {
+            $expiration = $this->get_cache_duration();
+        }
+
         $cache_key = $this->get_cache_key($key);
         set_transient($cache_key, $data, $expiration);
-        
+
         // Also store in internal cache
         $this->cache[$cache_key] = $data;
+
+        return true;
     }
 
     /**
@@ -803,20 +984,24 @@ class ADC_API
      */
     private function get_cache_transient($key)
     {
+        if (!$this->is_cache_enabled()) {
+            return false;
+        }
+
         $cache_key = $this->get_cache_key($key);
-        
+
         // Check internal cache first
         if (isset($this->cache[$cache_key])) {
             return $this->cache[$cache_key];
         }
-        
+
         // Check WordPress transient
         $data = get_transient($cache_key);
         if ($data !== false) {
             $this->cache[$cache_key] = $data;
             return $data;
         }
-        
+
         return false;
     }
 
@@ -844,7 +1029,9 @@ class ADC_API
             'internal_cache_keys' => array_keys($this->cache),
             'language' => $this->language,
             'section' => $this->section,
-            'api_configured' => $this->is_configured()
+            'api_configured' => $this->is_configured(),
+            'cache_enabled' => $this->is_cache_enabled(),
+            'cache_duration' => $this->get_cache_duration()
         );
     }
 
@@ -855,15 +1042,16 @@ class ADC_API
     {
         // Clear all caches
         $this->clear_all_cache();
-        
+
         // Pre-load essential data
         $programs = $this->get_programs();
         $menu_programs = $this->get_all_programs_for_menu();
-        
+
         return array(
             'programs_loaded' => count($programs),
             'menu_programs_loaded' => count($menu_programs),
             'language' => $this->language,
+            'cache_enabled' => $this->is_cache_enabled(),
             'timestamp' => current_time('mysql')
         );
     }
@@ -879,7 +1067,9 @@ class ADC_API
             'section' => $this->section,
             'api_url' => $this->api_url,
             'has_token' => !empty($this->api_token),
-            'cache_count' => count($this->cache)
+            'cache_count' => count($this->cache),
+            'cache_enabled' => $this->is_cache_enabled(),
+            'cache_duration' => $this->get_cache_duration()
         );
 
         if ($status['configured']) {
@@ -918,6 +1108,8 @@ class ADC_API
     private function log_api_error($message, $context = array())
     {
         if ($this->debug_mode) {
+            $context['cache_enabled'] = $this->is_cache_enabled();
+            $context['cache_duration'] = $this->get_cache_duration();
             ADC_Utils::debug_log('API Error (' . $this->language . '): ' . $message, $context);
         }
     }
@@ -933,18 +1125,114 @@ class ADC_API
                 'no_programs' => 'No se encontraron programas',
                 'no_materials' => 'No se encontraron videos',
                 'invalid_response' => 'Respuesta inválida de la API',
-                'not_configured' => 'API no configurada'
+                'not_configured' => 'API no configurada',
+                'cache_disabled' => 'Caché desactivado - rendimiento puede ser más lento',
+                'retry_failed' => 'Error después de varios intentos'
             ),
             'en' => array(
                 'no_connection' => 'Could not connect to API',
                 'no_programs' => 'No programs found',
                 'no_materials' => 'No videos found',
                 'invalid_response' => 'Invalid API response',
-                'not_configured' => 'API not configured'
+                'not_configured' => 'API not configured',
+                'cache_disabled' => 'Cache disabled - performance may be slower',
+                'retry_failed' => 'Error after multiple attempts'
             )
         );
 
         $lang_messages = isset($messages[$this->language]) ? $messages[$this->language] : $messages['es'];
         return isset($lang_messages[$error_type]) ? $lang_messages[$error_type] : 'Error desconocido';
+    }
+
+    /**
+     * NEW: Get cache performance info for admin
+     */
+    public function get_cache_performance_info()
+    {
+        $info = array(
+            'cache_enabled' => $this->is_cache_enabled(),
+            'cache_duration_hours' => $this->get_cache_duration() / HOUR_IN_SECONDS,
+            'language' => $this->language,
+            'internal_cache_entries' => count($this->cache)
+        );
+
+        if ($this->is_cache_enabled()) {
+            $cache_stats = $this->get_cache_stats();
+            $info['transient_count'] = $cache_stats['transient_count'];
+            $info['cache_size_kb'] = $cache_stats['cache_size_kb'];
+            $info['performance_mode'] = 'optimized';
+        } else {
+            $info['performance_mode'] = 'real-time';
+            $info['warning'] = 'Cache disabled - all requests go directly to API';
+        }
+
+        return $info;
+    }
+
+    /**
+     * NEW: Warm up cache by pre-loading essential data
+     */
+    public function warm_up_cache()
+    {
+        if (!$this->is_cache_enabled()) {
+            return array('success' => false, 'reason' => 'cache_disabled');
+        }
+
+        try {
+            $warmed_items = array();
+            $start_time = microtime(true);
+
+            // Pre-load programs
+            $programs = $this->get_programs();
+            if (!empty($programs)) {
+                $warmed_items[] = 'programs (' . count($programs) . ')';
+
+                // Pre-load materials for first few programs
+                $programs_to_warm = array_slice($programs, 0, 3);
+                foreach ($programs_to_warm as $program) {
+                    $materials = $this->get_materials($program['id']);
+                    if (!empty($materials)) {
+                        $warmed_items[] = $program['name'] . ' (' . count($materials) . ' videos)';
+                    }
+                }
+            }
+
+            // Pre-load menu data
+            $menu_programs = $this->get_all_programs_for_menu();
+            if (!empty($menu_programs)) {
+                $warmed_items[] = 'menu programs (' . count($menu_programs) . ')';
+            }
+
+            $end_time = microtime(true);
+            $duration = round(($end_time - $start_time) * 1000);
+
+            return array(
+                'success' => true,
+                'items_warmed' => $warmed_items,
+                'duration_ms' => $duration,
+                'language' => $this->language,
+                'timestamp' => current_time('mysql')
+            );
+
+        } catch (Exception $e) {
+            return array(
+                'success' => false,
+                'error' => $e->getMessage(),
+                'language' => $this->language
+            );
+        }
+    }
+
+    /**
+     * NEW: Check if cache needs refresh based on age
+     */
+    public function needs_cache_refresh()
+    {
+        if (!$this->is_cache_enabled()) {
+            return false;
+        }
+
+        $cache_stats = $this->get_cache_stats();
+        return $cache_stats['transient_count'] === 0;
     }
 }

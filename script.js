@@ -1,6 +1,6 @@
 /**
  * ADC Video Display - Frontend JavaScript
- * Version: 3.0 - Multiidioma Optimizado (ES/EN únicamente)
+ * Version: 3.1 - Sistema de Caché Inteligente (ES/EN únicamente)
  */
 
 (function ($) {
@@ -14,7 +14,8 @@
             autoplayEnabled: true,
             autoplayCountdown: 5,
             playerVolume: 0.5,
-            debug: false
+            debug: false,
+            cacheEnabled: true
         },
 
         // Internal state
@@ -615,7 +616,7 @@
             }
         },
 
-        // Search Module
+        // Search Module - UPDATED: Solo búsqueda con Enter/Click
         search: {
             initialized: false,
 
@@ -637,14 +638,20 @@
                     var input = form.querySelector('input[name="adc_search"]');
                     if (!input) return;
 
-                    // Prevent empty searches
+                    // UPDATED: Only prevent empty searches, no real-time search
                     form.addEventListener('submit', function (e) {
                         var searchTerm = input.value.trim();
                         if (searchTerm === '') {
                             e.preventDefault();
                             input.focus();
+                            return false;
                         }
+                        // Allow form submission for non-empty searches
+                        return true;
                     });
+
+                    // REMOVED: No more keyup/input event listeners for real-time search
+                    // Search only happens on form submit (Enter key or button click)
                 });
             },
 
@@ -754,6 +761,7 @@
             },
 
             bindSearchEvents: function () {
+                // UPDATED: Only handle form submission, no real-time search
                 ADCVideo.cache.$document.on('submit', '.adc-search-form, .adc-inline-search-form', function (e) {
                     var $form = $(this);
                     var $input = $form.find('input[name="adc_search"]');
@@ -764,8 +772,12 @@
                         $input.focus();
                         return false;
                     }
+
+                    // Allow normal form submission - no AJAX
+                    return true;
                 });
 
+                // Focus/blur styling effects
                 ADCVideo.cache.$document.on('focus', '.adc-inline-search-input', function () {
                     var $form = $(this).closest('.adc-inline-search-form');
                     $form.addClass('adc-search-focused');
@@ -775,6 +787,9 @@
                     var $form = $(this).closest('.adc-inline-search-form');
                     $form.removeClass('adc-search-focused');
                 });
+
+                // REMOVED: All real-time search event handlers
+                // No more keyup, input, or debounced search events
             }
         },
 
@@ -943,6 +958,7 @@
             config = {
                 autoplayEnabled: adc_config.autoplay === '1',
                 autoplayCountdown: parseInt(adc_config.countdown) || 5,
+                cacheEnabled: adc_config.cache_enabled === true || adc_config.cache_enabled === '1',
                 debug: adc_config.debug === true || adc_config.debug === '1'
             };
         }
