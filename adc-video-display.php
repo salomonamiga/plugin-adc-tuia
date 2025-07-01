@@ -300,8 +300,8 @@ class ADC_Video_Display
         $output = '<div class="adc-search-results-container">';
 
         if (empty($results)) {
-            $output .= '<h2 class="adc-recommended-title">' . ADC_Utils::get_text('recommended_videos', $this->language) . '</h2>';
-            $output .= $this->get_recommended_videos();
+            // Mostrar mensaje de "no results" + videos sugeridos
+            $output .= $this->render_no_results_message($search_term, $language);
         } else {
             $output .= '<h1 class="adc-search-results-title">' . ADC_Utils::get_text('search_results_for', $this->language) . ': "' . esc_html($search_term) . '"</h1>';
             $output .= '<div class="adc-recommended-videos">';

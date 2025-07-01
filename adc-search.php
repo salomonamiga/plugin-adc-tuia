@@ -366,7 +366,7 @@ class ADC_Search
 
         // NUEVA LÓGICA CORREGIDA: Usar el método que incluye detección de fallback
         $search_results_data = $this->get_search_results_with_fallback($search_term, $language);
-        
+
         // Si no hay resultados reales (es fallback) O los resultados están vacíos
         if ($search_results_data['is_fallback'] || empty($search_results_data['data'])) {
             // Mostrar mensaje de "no results" + videos sugeridos
