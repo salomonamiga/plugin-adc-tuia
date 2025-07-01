@@ -686,16 +686,17 @@
 }
 
 /* NEW: No results section styling */
-.adc-no-results-section {
+.adc-no-results-title {
+    color: #ffffff;
+    font-size: 24px;
+    margin: 0 0 15px 0;
     text-align: center;
-    padding: 20px 20px 10px 20px;
-    margin: 10px 0 20px 0;
 }
 
 .adc-no-results-title {
     color: #ffffff;
     font-size: 24px;
-    margin-bottom: 20px;
+    margin-bottom: 20px;  /* ← ESTÁ DUPLICADA Y SOBRESCRIBIENDO */
 }
 
 .adc-search-tips {
@@ -1506,17 +1507,17 @@
         right: 8px;
     }
 
-    /* NEW: Extra small mobile fallback adjustments */
-    .adc-search-fallback-message {
-        padding: 10px;
-        font-size: 13px;
-    }
+/* NEW: Extra small mobile fallback adjustments */
+.adc-search-fallback-message {
+    padding: 10px;
+    font-size: 13px;
+}
 
-    .adc-no-results-title {
-        color: #ffffff;
-        font-size: 24px;
-        margin-bottom: 20px;
-    }
+.adc-no-results-title {    ← ESTA ES LA SEGUNDA (LÍNEA ~1094)
+    color: #ffffff;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
 
     .adc-search-tips ul {
         font-size: 14px;
