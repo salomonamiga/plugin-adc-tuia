@@ -285,7 +285,7 @@ class ADC_Video_Display
     }
 
     /**
-     * Display search results
+     * Display search results - CORREGIDO COMPLETAMENTE
      */
     private function display_search_results()
     {
@@ -295,14 +295,16 @@ class ADC_Video_Display
             return '<div class="adc-error">Por favor ingresa un término de búsqueda.</div>';
         }
 
+        // Try to get actual search results first
         $results = $this->api->search_materials($search_term);
 
         $output = '<div class="adc-search-results-container">';
 
+        // NUEVA LÓGICA: Si no hay resultados reales, mostrar mensaje + recomendaciones
         if (empty($results)) {
-            // Mostrar mensaje de "no results" + videos sugeridos
-            $output .= $this->render_no_results_message($search_term, $language);
+            $output .= $this->render_no_results_message($search_term, $this->language);
         } else {
+            // Mostrar resultados reales encontrados
             $output .= '<h1 class="adc-search-results-title">' . ADC_Utils::get_text('search_results_for', $this->language) . ': "' . esc_html($search_term) . '"</h1>';
             $output .= '<div class="adc-recommended-videos">';
 
@@ -317,6 +319,39 @@ class ADC_Video_Display
         }
 
         $output .= '</div>';
+        return $output;
+    }
+
+    /**
+     * NEW: Render no results message with recommended videos
+     */
+    private function render_no_results_message($search_term, $language)
+    {
+        $no_results_texts = array(
+            'es' => array(
+                'title' => 'No encontramos resultados para',
+                'recommended_title' => 'Quizás te interesen estos videos:'
+            ),
+            'en' => array(
+                'title' => 'No results found for',
+                'recommended_title' => 'You might be interested in these videos:'
+            )
+        );
+
+        $texts = $no_results_texts[$language];
+
+        // MENSAJE PRINCIPAL DE "NO RESULTS"
+        $output = '<div class="adc-no-results-section">';
+        $output .= '<h2 class="adc-no-results-title">' . $texts['title'] . ' "' . esc_html($search_term) . '"</h2>';
+        $output .= '</div>';
+
+        // VIDEOS RECOMENDADOS
+        $recommended_videos = $this->get_recommended_videos();
+        if (!empty($recommended_videos)) {
+            $output .= '<h2 class="adc-recommended-title">' . $texts['recommended_title'] . '</h2>';
+            $output .= $recommended_videos;
+        }
+
         return $output;
     }
 
