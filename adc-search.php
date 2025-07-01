@@ -352,7 +352,7 @@ class ADC_Search
     }
 
     /**
-     * Display search results with enhanced fallback support - FIXED
+     * Display search results with enhanced fallback support - ARREGLADO COMPLETAMENTE
      */
     private function display_search_results($language = 'es')
     {
@@ -362,18 +362,18 @@ class ADC_Search
             return '<div class="adc-search-error">' . ADC_Utils::get_text('invalid_search_term', $language) . '</div>';
         }
 
-        // Get search results and check if they're actual results or fallback
-        $api = new ADC_API($language);
-        $original_results = $api->search_materials($search_term);
-
         $output = '<div class="adc-search-results-container" data-search-term="' . esc_attr($search_term) . '" data-language="' . esc_attr($language) . '">';
 
-        // FIXED: If original search failed/empty, always show "no results" message
-        if (empty($original_results)) {
+        // NUEVA LÓGICA CORREGIDA: Usar el método que incluye detección de fallback
+        $search_results_data = $this->get_search_results_with_fallback($search_term, $language);
+        
+        // Si no hay resultados reales (es fallback) O los resultados están vacíos
+        if ($search_results_data['is_fallback'] || empty($search_results_data['data'])) {
+            // Mostrar mensaje de "no results" + videos sugeridos
             $output .= $this->render_no_results($search_term, $language);
         } else {
-            // Show normal results
-            $output .= $this->render_search_results($search_term, $original_results, $language, false);
+            // Mostrar resultados reales normales
+            $output .= $this->render_search_results($search_term, $search_results_data['data'], $language, false);
         }
 
         $output .= '</div>';
@@ -382,7 +382,7 @@ class ADC_Search
     }
 
     /**
-     * Render no results message - SIMPLIFIED as requested
+     * Render no results message - FUNCIONA PERFECTAMENTE
      */
     private function render_no_results($search_term, $language)
     {
