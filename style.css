@@ -656,8 +656,8 @@
 /* Recommendations title */
 .adc-recommended-title {
     color: #6EC1E4 !important;
-    font-size: 24px;
-    margin: 20px 0 30px;
+    font-size: 22px;
+    margin: 10px 0 25px 0;
     text-align: center;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
@@ -688,10 +688,8 @@
 /* NEW: No results section styling */
 .adc-no-results-section {
     text-align: center;
-    padding: 40px 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    margin: 20px 0;
+    padding: 20px 20px 10px 20px;
+    margin: 10px 0 20px 0;
 }
 
 .adc-no-results-title {
@@ -1515,7 +1513,9 @@
     }
 
     .adc-no-results-title {
-        font-size: 20px;
+        color: #ffffff;
+        font-size: 24px;
+        margin-bottom: 20px;
     }
 
     .adc-search-tips ul {
