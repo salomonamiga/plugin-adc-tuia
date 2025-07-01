@@ -267,7 +267,7 @@ class ADC_API
     {
         $suffixes = array(
             '5' => '_ia.png',     // Español
-            '6' => '_en.png'      // Inglés
+            '6' => '_ia_en.png'      // Inglés
         );
 
         return isset($suffixes[$this->section]) ? $suffixes[$this->section] : '_ia.png';
