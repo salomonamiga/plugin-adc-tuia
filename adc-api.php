@@ -260,33 +260,12 @@ class ADC_API
      */
     private function filter_programs_by_section($programs)
     {
-        // Al inicio de filter_programs_by_section(), agrega:
-echo "<script>console.log('ADC DEBUG - Language: " . $this->language . "');</script>";
-echo "<script>console.log('ADC DEBUG - Section: " . $this->section . "');</script>";
-echo "<script>console.log('ADC DEBUG - Expected suffix: " . $section_suffix . "');</script>";
         $section_suffix = $this->get_section_suffix();
-        
-        // DEBUGGING - QUITAR DESPUÉS
-        ADC_Utils::debug_log("ADC DEBUG - Language: " . $this->language);
-        ADC_Utils::debug_log("ADC DEBUG - Section: " . $this->section);
-        ADC_Utils::debug_log("ADC DEBUG - Expected suffix: " . $section_suffix);
-        ADC_Utils::debug_log("ADC DEBUG - Total programs received: " . count($programs));
-        
-        foreach ($programs as $program) {
-            ADC_Utils::debug_log("ADC DEBUG - Program: " . $program['name'] . " - Cover: " . (isset($program['cover']) ? $program['cover'] : 'NO COVER'));
-        }
-    
+
         $filtered = array_filter($programs, function ($program) use ($section_suffix) {
-            $has_cover = isset($program['cover']);
-            $matches_suffix = $has_cover && strpos($program['cover'], $section_suffix) !== false;
-            
-            ADC_Utils::debug_log("ADC DEBUG - " . $program['name'] . " - Has cover: " . ($has_cover ? 'YES' : 'NO') . " - Matches suffix: " . ($matches_suffix ? 'YES' : 'NO'));
-            
-            return $matches_suffix;
+            return isset($program['cover']) && strpos($program['cover'], $section_suffix) !== false;
         });
-    
-        ADC_Utils::debug_log("ADC DEBUG - Filtered programs count: " . count($filtered));
-        
+
         return array_values($filtered);
     }
 
