@@ -151,29 +151,36 @@ class ADC_Admin
         }
     }
 
-    /**
-     * AJAX handler to test API connection
-     */
-    public function ajax_test_connection()
-    {
-        check_ajax_referer('adc_admin_nonce', 'nonce');
+/**
+ * AJAX handler to test API connection
+ */
+public function ajax_test_connection()
+{
+    check_ajax_referer('adc_admin_nonce', 'nonce');
 
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Insufficient permissions');
-            return;
-        }
-
-        $language = isset($_POST['language']) ? ADC_Utils::validate_language($_POST['language']) : 'es';
-
-        $api = new ADC_API($language);
-        $result = $api->test_connection();
-
-        if ($result['success']) {
-            wp_send_json_success($result);
-        } else {
-            wp_send_json_error($result);
-        }
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('Insufficient permissions');
+        return;
     }
+
+    // DEBUGGING - agregar logs para ver qué se está recibiendo
+    error_log('ADC DEBUG - $_POST contents: ' . print_r($_POST, true));
+    
+    $language = isset($_POST['language']) ? ADC_Utils::validate_language($_POST['language']) : 'es';
+    
+    // DEBUGGING - verificar qué idioma se detectó
+    error_log('ADC DEBUG - Language from POST: ' . (isset($_POST['language']) ? $_POST['language'] : 'NOT SET'));
+    error_log('ADC DEBUG - Validated language: ' . $language);
+
+    $api = new ADC_API($language);
+    $result = $api->test_connection();
+
+    if ($result['success']) {
+        wp_send_json_success($result);
+    } else {
+        wp_send_json_error($result);
+    }
+}
 
     /**
      * AJAX handler for health check
