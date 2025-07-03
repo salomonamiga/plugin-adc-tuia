@@ -227,7 +227,7 @@ class ADC_Admin
             $webhook_url = $this->get_webhook_url($new_token);
 
             wp_send_json_success(array(
-                'message' => 'Token generado exitosamente',
+                'message' => 'Token regenerado exitosamente',
                 'token' => $new_token,
                 'webhook_url' => $webhook_url,
                 'timestamp' => current_time('mysql')
@@ -453,6 +453,7 @@ class ADC_Admin
 
     public function webhook_token_callback()
     {
+        // CORREGIDO: Asegurar que siempre hay un token
         $token = isset($this->options['webhook_token']) ? $this->options['webhook_token'] : '';
 
         if (empty($token)) {
@@ -460,24 +461,62 @@ class ADC_Admin
             $current_options = get_option($this->plugin_name, array());
             $current_options['webhook_token'] = $token;
             update_option($this->plugin_name, $current_options);
+            // Actualizar la instancia actual para mostrar el token inmediatamente
+            $this->options['webhook_token'] = $token;
         }
 
-        echo '<div style="display: flex; align-items: center; gap: 10px;">';
-        echo '<input type="text" value="' . esc_attr($token) . '" class="regular-text" readonly style="background: #f9f9f9;">';
-        echo '<button type="button" id="adc-generate-token" class="button button-secondary">Generar Nuevo Token</button>';
+        echo '<div style="margin-bottom: 15px;">';
+        echo '<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">';
+        echo '<input type="text" id="adc-current-token" value="' . esc_attr($token) . '" class="regular-text" readonly style="background: #f9f9f9; font-family: monospace; font-size: 12px;">';
+        echo '<button type="button" id="adc-regenerate-token" class="button button-secondary">🔄 Regenerar Token</button>';
         echo '</div>';
-        echo '<p class="description">Token de seguridad para el webhook. Comparte este token con ADC para que puedan limpiar el caché automáticamente.</p>';
+        echo '<p class="description">Token de seguridad para el webhook. <strong>Normalmente puedes usar el mismo token para siempre.</strong></p>';
+        echo '</div>';
+
+        // WARNING sobre regenerar
+        echo '<div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; border-radius: 4px; margin-top: 10px;">';
+        echo '<h4 style="margin-top: 0; color: #856404;">⚠️ ¿Cuándo regenerar el token?</h4>';
+        echo '<ul style="margin-bottom: 0; color: #856404; font-size: 13px;">';
+        echo '<li><strong>Seguridad comprometida:</strong> Si crees que alguien más tiene acceso al token</li>';
+        echo '<li><strong>Cambio de personal:</strong> Si alguien que tenía acceso ya no debería tenerlo</li>';
+        echo '<li><strong>Migración de sitio:</strong> Si cambias de dominio o servidor</li>';
+        echo '<li><strong>Política de empresa:</strong> Si tu empresa requiere rotar tokens periódicamente</li>';
+        echo '</ul>';
+        echo '<p style="margin: 8px 0 0 0; color: #856404; font-size: 13px;"><strong>Importante:</strong> Al regenerar, debes enviar la nueva URL a ADC para actualizar su configuración.</p>';
+        echo '</div>';
     }
 
     public function webhook_url_callback()
     {
+        // CORREGIDO: Asegurar que siempre hay un token y mostrar URL inmediatamente
         $token = isset($this->options['webhook_token']) ? $this->options['webhook_token'] : '';
+        
+        if (empty($token)) {
+            $token = $this->generate_secure_token();
+            $current_options = get_option($this->plugin_name, array());
+            $current_options['webhook_token'] = $token;
+            update_option($this->plugin_name, $current_options);
+            $this->options['webhook_token'] = $token;
+        }
+        
         $webhook_url = $this->get_webhook_url($token);
 
-        echo '<div style="background: #f0f8f0; padding: 15px; border: 1px solid #46b450; border-radius: 4px;">';
-        echo '<h4 style="margin-top: 0; color: #46b450;">🔗 URL para ADC</h4>';
-        echo '<input type="text" value="' . esc_attr($webhook_url) . '" class="large-text" readonly style="background: white; margin-bottom: 10px;">';
-        echo '<p style="margin: 0;"><strong>Instrucciones:</strong> Envía esta URL completa al equipo de ADC para que configuren el webhook automático.</p>';
+        echo '<div style="background: #f0f8f0; padding: 15px; border: 1px solid #46b450; border-radius: 4px; margin-bottom: 15px;">';
+        echo '<h4 style="margin-top: 0; color: #46b450;">🔗 URL para ADC (Lista para usar)</h4>';
+        echo '<input type="text" id="adc-webhook-url" value="' . esc_attr($webhook_url) . '" class="large-text" readonly style="background: white; margin-bottom: 10px; font-family: monospace; font-size: 12px;">';
+        echo '<button type="button" id="adc-copy-webhook" class="button button-small" style="margin-left: 10px;">📋 Copiar URL</button>';
+        echo '<p style="margin: 10px 0 0 0;"><strong>Instrucciones:</strong> Envía esta URL completa al equipo de ADC para que configuren el webhook automático.</p>';
+        echo '</div>';
+
+        // Información técnica
+        echo '<div style="background: #e8f4fd; padding: 12px; border-left: 4px solid #2196f3; border-radius: 4px;">';
+        echo '<h4 style="margin-top: 0; color: #1976d2;">ℹ️ Información técnica para ADC</h4>';
+        echo '<ul style="margin-bottom: 0; color: #1976d2; font-size: 13px;">';
+        echo '<li><strong>Método:</strong> GET o POST (ambos funcionan)</li>';
+        echo '<li><strong>Respuesta exitosa:</strong> JSON con {"success": true}</li>';
+        echo '<li><strong>Cuándo usar:</strong> Cada vez que suban contenido nuevo (videos, programas, etc.)</li>';
+        echo '<li><strong>Qué hace:</strong> Limpia automáticamente todo el caché del sitio</li>';
+        echo '</ul>';
         echo '</div>';
     }
 
@@ -695,7 +734,7 @@ class ADC_Admin
     }
 
     /**
-     * Render admin styles and scripts inline - ACTUALIZADO
+     * Render admin styles and scripts inline - ACTUALIZADO CON NUEVO WEBHOOK JS
      */
     private function render_admin_styles_and_scripts()
     {
@@ -746,17 +785,17 @@ class ADC_Admin
                 });
             });
             
-            // Generate new token handler
-            $("#adc-generate-token").on("click", function(e) {
+            // Regenerate token handler - ACTUALIZADO
+            $("#adc-regenerate-token").on("click", function(e) {
                 e.preventDefault();
                 var button = $(this);
                 var originalText = button.text();
                 
-                if (!confirm("¿Estás seguro? Esto invalidará el token actual y ADC necesitará actualizar su configuración.")) {
+                if (!confirm("⚠️ ¿Estás seguro de regenerar el token?\\n\\nEsto invalidará el token actual y ADC necesitará actualizar su configuración con la nueva URL.\\n\\n¿Continuar?")) {
                     return;
                 }
                 
-                button.prop("disabled", true).text("Generando...");
+                button.prop("disabled", true).text("🔄 Regenerando...");
                 
                 $.ajax({
                     url: ajaxurl,
@@ -768,12 +807,12 @@ class ADC_Admin
                     success: function(response) {
                         if (response.success) {
                             // Update token field
-                            button.closest("div").find("input[type=\"text\"]").val(response.data.token);
+                            $("#adc-current-token").val(response.data.token);
                             
                             // Update webhook URL field
-                            $("input[value*=\"adc_webhook_refresh\"]").val(response.data.webhook_url);
+                            $("#adc-webhook-url").val(response.data.webhook_url);
                             
-                            alert("✅ " + response.data.message + "\\n\\nNuevo token: " + response.data.token + "\\n\\nComparte la nueva URL del webhook con ADC.");
+                            alert("✅ " + response.data.message + "\\n\\n🔑 Nuevo token: " + response.data.token + "\\n\\n📋 Nueva URL del webhook:\\n" + response.data.webhook_url + "\\n\\n⚠️ IMPORTANTE: Envía la nueva URL a ADC para actualizar su configuración.");
                         } else {
                             alert("❌ Error: " + response.data);
                         }
@@ -786,6 +825,58 @@ class ADC_Admin
                     }
                 });
             });
+            
+            // Copy webhook URL to clipboard - NUEVO
+            $("#adc-copy-webhook").on("click", function(e) {
+                e.preventDefault();
+                var webhookUrl = $("#adc-webhook-url").val();
+                var button = $(this);
+                var originalText = button.text();
+                
+                // Try to copy to clipboard
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(webhookUrl).then(function() {
+                        button.text("✅ Copiado!");
+                        setTimeout(function() {
+                            button.text(originalText);
+                        }, 2000);
+                    }).catch(function() {
+                        // Fallback for older browsers
+                        fallbackCopyToClipboard(webhookUrl, button, originalText);
+                    });
+                } else {
+                    // Fallback for older browsers
+                    fallbackCopyToClipboard(webhookUrl, button, originalText);
+                }
+            });
+            
+            // Fallback copy method
+            function fallbackCopyToClipboard(text, button, originalText) {
+                var textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-999999px";
+                textArea.style.top = "-999999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    document.execCommand("copy");
+                    button.text("✅ Copiado!");
+                    setTimeout(function() {
+                        button.text(originalText);
+                    }, 2000);
+                } catch (err) {
+                    button.text("❌ Error");
+                    setTimeout(function() {
+                        button.text(originalText);
+                    }, 2000);
+                    console.error("Error copying to clipboard:", err);
+                }
+                
+                document.body.removeChild(textArea);
+            }
             
             // Test connection handlers
             $(".adc-test-connection").on("click", function(e) {
