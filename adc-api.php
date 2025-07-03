@@ -4,6 +4,7 @@
  * Version: 3.1 - Sistema de Caché Inteligente + Retry Automático
  * 
  * Maneja todas las peticiones API a TuTorah TV
+ * CORREGIDO: Endpoints dinámicos para ES/EN
  */
 
 // Prevent direct access
@@ -48,6 +49,14 @@ class ADC_API
         );
 
         return isset($sections[$language]) ? $sections[$language] : '5';
+    }
+
+    /**
+     * NEW: Get endpoint prefix based on language
+     */
+    private function get_endpoint_prefix()
+    {
+        return $this->language === 'en' ? '/ia_en' : '/ia';
     }
 
     /**
@@ -215,12 +224,12 @@ class ADC_API
     }
 
     /**
-     * Get programs/categories based on language
+     * Get programs/categories based on language - UPDATED with dynamic endpoints
      */
     public function get_programs()
     {
         $cache_key = ADC_Utils::get_cache_key('programs_' . $this->section, $this->language);
-        $endpoint = '/ia/categories';
+        $endpoint = $this->get_endpoint_prefix() . '/categories';
         $data = $this->make_request($endpoint, array(), $cache_key);
 
         if (!$data || !isset($data['data'])) {
@@ -231,12 +240,12 @@ class ADC_API
     }
 
     /**
-     * Get ALL programs from API without filtering
+     * Get ALL programs from API without filtering - UPDATED with dynamic endpoints
      */
     public function get_all_programs_from_api()
     {
         $cache_key = ADC_Utils::get_cache_key('all_programs_' . $this->section, $this->language);
-        $endpoint = '/ia/categories/all';
+        $endpoint = $this->get_endpoint_prefix() . '/categories/all';
         $data = $this->make_request($endpoint, array(), $cache_key);
 
         if (!$data || !isset($data['data'])) {
@@ -261,25 +270,25 @@ class ADC_API
     }
 
     /**
-     * Get section suffix for filtering
+     * Get section suffix for filtering - UPDATED for correct suffixes
      */
     private function get_section_suffix()
     {
         $suffixes = array(
-            '5' => '_ia.png',     // Español
-            '6' => '_ia_en.png'      // Inglés
+            '5' => '_ia.png',        // Español
+            '6' => '_ia_en.png'      // Inglés - CORREGIDO
         );
 
         return isset($suffixes[$this->section]) ? $suffixes[$this->section] : '_ia.png';
     }
 
     /**
-     * Get materials for a specific program
+     * Get materials for a specific program - UPDATED with dynamic endpoints
      */
     public function get_materials($program_id)
     {
         $cache_key = ADC_Utils::get_cache_key('materials_' . $program_id, $this->language);
-        $endpoint = '/ia/categories/materials';
+        $endpoint = $this->get_endpoint_prefix() . '/categories/materials';
         $params = array('category' => $program_id);
 
         $data = $this->make_request($endpoint, $params, $cache_key);

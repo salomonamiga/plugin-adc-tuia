@@ -540,13 +540,6 @@ class ADC_Video_Display
         if (isset($category['clip']) && !empty($category['clip'])) {
             $output .= $this->render_promotional_clip($category);
         }
-        // TEMPORAL: Para probar el clip promocional - REMOVER DESPUÉS
-        else if ($category['name'] === 'Historias del Tanaj') {
-            // Crear datos temporales para el clip
-            $temp_category = $category;
-            $temp_category['clip'] = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-            $output .= $this->render_promotional_clip($temp_category);
-        }
 
         // Videos per row setting
         $videos_per_row = isset($this->options['videos_per_row']) ? $this->options['videos_per_row'] : '4';
