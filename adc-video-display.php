@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Plugin Name: ADC Video Display
  * Description: Muestra videos desde el sistema ADC en WordPress - Multiidioma (ES/EN)
- * Version: 3.1
+ * Version: 3.2
  * Author: TuTorah Development Team
  */
 
@@ -54,7 +55,7 @@ class ADC_Video_Display
         add_action('wp_ajax_adc_get_programs_menu', array($this, 'handle_ajax_get_programs_menu'));
         add_action('wp_ajax_nopriv_adc_get_programs_menu', array($this, 'handle_ajax_get_programs_menu'));
 
-        // NEW: Webhook endpoint for cache refresh
+        // Webhook endpoint for cache refresh
         add_action('wp_ajax_adc_webhook_refresh', array($this, 'handle_webhook_cache_refresh'));
         add_action('wp_ajax_nopriv_adc_webhook_refresh', array($this, 'handle_webhook_cache_refresh'));
 
@@ -72,7 +73,7 @@ class ADC_Video_Display
             'adc-style',
             ADC_PLUGIN_URL . 'style.css',
             array(),
-            '3.1'
+            '3.2'
         );
 
         // Enqueue JavaScript
@@ -80,7 +81,7 @@ class ADC_Video_Display
             'adc-script',
             ADC_PLUGIN_URL . 'script.js',
             array('jquery'),
-            '3.1',
+            '3.2',
             true
         );
 
@@ -97,7 +98,7 @@ class ADC_Video_Display
     }
 
     /**
-     * NEW: Handle webhook cache refresh from ADC
+     * Handle webhook cache refresh from ADC
      */
     public function handle_webhook_cache_refresh()
     {
@@ -144,9 +145,8 @@ class ADC_Video_Display
                 'languages_cleared' => $cleared_languages,
                 'total_languages' => $total_cleared,
                 'timestamp' => current_time('mysql'),
-                'version' => '3.1'
+                'version' => '3.2'
             ));
-
         } catch (Exception $e) {
             // Error response
             wp_send_json_error(array(
@@ -212,7 +212,6 @@ class ADC_Video_Display
             }
 
             wp_send_json_success($programs);
-
         } catch (Exception $e) {
             wp_send_json_error('Internal server error');
         }
@@ -285,7 +284,7 @@ class ADC_Video_Display
     }
 
     /**
-     * Display search results - CORREGIDO COMPLETAMENTE
+     * Display search results - OPTIMIZADO con cache unificado
      */
     private function display_search_results()
     {
@@ -295,12 +294,12 @@ class ADC_Video_Display
             return '<div class="adc-error">Por favor ingresa un término de búsqueda.</div>';
         }
 
-        // Try to get actual search results first
+        // Try to get actual search results first (ya usa cache unificado en adc-api.php)
         $results = $this->api->search_materials($search_term);
 
         $output = '<div class="adc-search-results-container">';
 
-        // NUEVA LÓGICA: Si no hay resultados reales, mostrar mensaje + recomendaciones
+        // Si no hay resultados reales, mostrar mensaje + recomendaciones
         if (empty($results)) {
             $output .= $this->render_no_results_message($search_term, $this->language);
         } else {
@@ -323,7 +322,7 @@ class ADC_Video_Display
     }
 
     /**
-     * NEW: Render no results message with recommended videos
+     * Render no results message with recommended videos
      */
     private function render_no_results_message($search_term, $language)
     {
@@ -345,7 +344,7 @@ class ADC_Video_Display
         $output .= '<h2 class="adc-no-results-title">' . $texts['title'] . ' "' . esc_html($search_term) . '"</h2>';
         $output .= '</div>';
 
-        // VIDEOS RECOMENDADOS
+        // VIDEOS RECOMENDADOS (ya usa cache unificado en get_fallback_videos)
         $recommended_videos = $this->get_recommended_videos();
         if (!empty($recommended_videos)) {
             $output .= '<h2 class="adc-recommended-title">' . $texts['recommended_title'] . '</h2>';
@@ -356,17 +355,18 @@ class ADC_Video_Display
     }
 
     /**
-     * Get recommended videos for empty search results
+     * OPTIMIZADO: Get recommended videos usando cache unificado
      */
     private function get_recommended_videos()
     {
+        // Usar cache unificado para programas
         $programs = $this->api->get_programs();
 
         if (empty($programs)) {
             return '<div class="adc-recommended-empty">No hay recomendaciones disponibles en este momento.</div>';
         }
 
-        // Get videos from all programs
+        // Get videos from all programs (ya usa cache unificado)
         $all_videos = array();
         foreach ($programs as $program) {
             $videos = $this->api->get_materials($program['id']);
@@ -400,7 +400,7 @@ class ADC_Video_Display
     }
 
     /**
-     * Render a single video card - ACTUALIZADO PARA USAR THUMBNAIL DE API
+     * Render a single video card
      */
     private function render_video_card($video, $url)
     {
@@ -408,7 +408,7 @@ class ADC_Video_Display
         $output .= '<a href="' . esc_url($url) . '" class="adc-search-video-link">';
         $output .= '<div class="adc-search-thumbnail">';
 
-        // CAMBIO IMPORTANTE: Usar thumbnail de la API en lugar de construir URL
+        // Usar thumbnail de la API
         $thumbnail_url = ADC_Utils::get_thumbnail_url($video['thumbnail']);
         $output .= '<img src="' . esc_url($thumbnail_url) . '" alt="' . esc_attr($video['title']) . '" loading="lazy">';
         $output .= '<div class="adc-search-play-icon"></div>';
@@ -426,11 +426,11 @@ class ADC_Video_Display
     }
 
     /**
-     * Display categories grid with coming soon functionality
+     * CRÍTICO ARREGLADO: Display categories grid usando cache optimizado
      */
     private function display_categories_grid()
     {
-        // Get programs with custom order
+        // ARREGLADO: Usar cache unificado directamente (NO más bursts de requests)
         $programs = $this->api->get_programs_with_custom_order();
 
         if (empty($programs)) {
@@ -450,13 +450,13 @@ class ADC_Video_Display
     }
 
     /**
-     * Render a single category card (regular or coming soon)
+     * OPTIMIZADO: Render category card sin requests adicionales
      */
     private function render_category_card($program)
     {
         $slug = ADC_Utils::slugify($program['name']);
 
-        // Check if this program has videos
+        // ARREGLADO: Usar cache optimizado para verificar videos
         $has_videos = $this->api->program_has_videos($program['id']);
         $is_coming_soon = !$has_videos && isset($program['cover']) && !empty($program['cover']);
 
@@ -473,7 +473,6 @@ class ADC_Video_Display
         $output .= '<div class="adc-category-image-circle">';
 
         if (isset($program['cover'])) {
-            // UPDATED: Add lazy loading to category covers
             $output .= '<img src="' . esc_url($program['cover']) . '" alt="' . esc_attr($program['name']) . '" loading="lazy">';
         } else {
             $output .= '<img src="' . ADC_PLUGIN_URL . 'assets/img/no-cover.jpg" alt="' . esc_attr($program['name']) . '" loading="lazy">';
@@ -502,11 +501,11 @@ class ADC_Video_Display
     }
 
     /**
-     * Display videos from a category - MEJORADO CON SOPORTE PARA CLIP PROMOCIONAL
+     * OPTIMIZADO: Display videos from a category con cache unificado
      */
     private function display_category_videos($category_slug)
     {
-        // Find category by slug
+        // Find category by slug (ya usa cache)
         $programs = $this->api->get_programs();
         $category = null;
 
@@ -521,7 +520,7 @@ class ADC_Video_Display
             return '<div class="adc-error">' . ADC_Utils::get_text('category_not_found', $this->language) . '</div>';
         }
 
-        // Get materials
+        // Get materials (ya usa cache unificado)
         $materials = $this->api->get_materials($category['id']);
 
         if (empty($materials)) {
@@ -538,7 +537,7 @@ class ADC_Video_Display
         $output .= '<a href="' . esc_url($home_url) . '" class="adc-back-button">' . ADC_Utils::get_text('back_to_programs', $this->language) . '</a>';
         $output .= '</div>';
 
-        // DEMO - NUEVO: Mostrar clip promocional si existe
+        // Mostrar clip promocional si existe
         if (isset($category['clip']) && !empty($category['clip'])) {
             $output .= $this->render_promotional_clip($category);
         }
@@ -556,7 +555,7 @@ class ADC_Video_Display
             foreach ($season_videos as $video) {
                 $video_slug = ADC_Utils::slugify($video['title']);
 
-                // CAMBIO IMPORTANTE: Usar thumbnail de la API
+                // Usar thumbnail de la API
                 $thumbnail_url = ADC_Utils::get_thumbnail_url($video['thumbnail']);
 
                 $output .= '<div class="adc-video-item">';
@@ -581,7 +580,7 @@ class ADC_Video_Display
     }
 
     /**
-     * NUEVO: Render promotional clip for category
+     * Render promotional clip for category
      */
     private function render_promotional_clip($category)
     {
@@ -624,11 +623,11 @@ class ADC_Video_Display
     }
 
     /**
-     * Display single video - ACTUALIZADO PARA USAR THUMBNAILS DE API
+     * OPTIMIZADO: Display single video con cache unificado
      */
     private function display_video($category_slug, $video_slug)
     {
-        // Find category
+        // Find category (ya usa cache)
         $programs = $this->api->get_programs();
         $category = null;
 
@@ -643,7 +642,7 @@ class ADC_Video_Display
             return '<div class="adc-error">' . ADC_Utils::get_text('category_not_found', $this->language) . '</div>';
         }
 
-        // Find video
+        // Find video (ya usa cache unificado)
         $materials = $this->api->get_materials($category['id']);
         $video = null;
         $video_index = -1;
@@ -720,7 +719,7 @@ class ADC_Video_Display
             $output .= '<a href="?categoria=' . esc_attr($category_slug) . '&video=' . esc_attr($related_slug) . '" class="adc-video-link">';
             $output .= '<div class="adc-video-thumbnail">';
 
-            // CAMBIO IMPORTANTE: Usar thumbnail de la API para videos relacionados
+            // Usar thumbnail de la API para videos relacionados
             $thumbnail_url = ADC_Utils::get_thumbnail_url($related_video['thumbnail']);
             $output .= '<img src="' . esc_url($thumbnail_url) . '" alt="' . esc_attr($related_video['title']) . '" loading="lazy">';
             $output .= '<div class="adc-video-play-icon"></div>';
@@ -875,7 +874,7 @@ class ADC_Video_Display
     }
 
     /**
-     * NEW: Check if cache is enabled in settings
+     * Check if cache is enabled in settings
      */
     private function is_cache_enabled()
     {
@@ -883,7 +882,7 @@ class ADC_Video_Display
     }
 
     /**
-     * NEW: Get cache duration in hours from settings
+     * Get cache duration in hours from settings
      */
     private function get_cache_duration_hours()
     {
@@ -892,7 +891,7 @@ class ADC_Video_Display
     }
 
     /**
-     * NEW: Get cache duration in seconds for WordPress transients
+     * Get cache duration in seconds for WordPress transients
      */
     public function get_cache_duration_seconds()
     {
@@ -919,7 +918,7 @@ add_action('plugins_loaded', 'adc_video_display_init');
 register_activation_hook(__FILE__, 'adc_video_display_activate');
 function adc_video_display_activate()
 {
-    // Create default options with NEW cache settings
+    // Create default options with cache settings
     $default_options = array(
         'api_token' => '',
         'api_url' => 'https://api.tutorah.tv/v1',
@@ -929,7 +928,7 @@ function adc_video_display_activate()
         'enable_search' => '1',
         'related_videos_count' => '8',
         'debug_mode' => '0',
-        // NEW: Cache settings with sensible defaults
+        // Cache settings with sensible defaults
         'enable_cache' => '1',
         'cache_duration' => '6',
         'webhook_token' => 'adc_' . wp_generate_password(32, false, false)
