@@ -1,10 +1,9 @@
 <?php
 /**
  * ADC Video Display - Menu Handler
- * Version: 3.2 - Cache Unificado - RESPETA configuración admin
+ * Version: 3.0 - Multiidioma (ES/EN únicamente)
  * 
  * Maneja la funcionalidad del menú desplegable para los 2 idiomas
- * ARREGLADO: Cache de menú usa misma duración configurada (6 horas)
  */
 
 // Prevent direct access
@@ -15,14 +14,11 @@ if (!defined('ABSPATH')) {
 class ADC_Menu {
     
     private $cache = array();
-    private $options;
     
     /**
      * Constructor
      */
     public function __construct() {
-        $this->options = get_option('adc-video-display');
-        
         // Register shortcodes for menus in different languages (only ES and EN)
         add_shortcode('adc_programs_menu', array($this, 'render_programs_menu'));
         add_shortcode('adc_programs_menu_en', array($this, 'render_programs_menu_en'));
@@ -33,29 +29,6 @@ class ADC_Menu {
         
         // WordPress menu integration hook
         add_action('init', array($this, 'setup_menu_integration'));
-    }
-    
-    /**
-     * ARREGLADO: Check if cache is enabled from admin settings
-     */
-    private function is_cache_enabled()
-    {
-        return isset($this->options['enable_cache']) && $this->options['enable_cache'] === '1';
-    }
-
-    /**
-     * ARREGLADO: Get UNIFIED cache duration - SAME as API cache
-     */
-    private function get_cache_duration()
-    {
-        if (!$this->is_cache_enabled()) {
-            return 0; // No cache
-        }
-
-        $hours = isset($this->options['cache_duration']) ? floatval($this->options['cache_duration']) : 6;
-        $hours = max(0.5, min(24, $hours)); // Clamp between 30 minutes and 24 hours
-
-        return intval($hours * HOUR_IN_SECONDS);
     }
     
     /**
@@ -73,7 +46,7 @@ class ADC_Menu {
     }
     
     /**
-     * OPTIMIZADO: Generic render programs dropdown menu con cache unificado
+     * Generic render programs dropdown menu
      */
     private function render_programs_menu_generic($language, $atts) {
         $atts = shortcode_atts(array(
@@ -108,7 +81,7 @@ class ADC_Menu {
         
         $output .= '<div class="adc-dropdown-content" id="adc-programs-dropdown-' . $language . '" role="menu">';
         
-        // ARREGLADO: Get programs with UNIFIED caching duration
+        // Get programs with caching
         $programs = $this->get_cached_programs_for_menu($language);
         
         if (empty($programs)) {
@@ -133,7 +106,7 @@ class ADC_Menu {
     }
     
     /**
-     * OPTIMIZADO: AJAX handler to get programs con cache unificado
+     * AJAX handler to get programs
      */
     public function ajax_get_programs() {
         // Enhanced nonce verification
@@ -162,7 +135,7 @@ class ADC_Menu {
                 return;
             }
             
-            // ARREGLADO: Get programs with UNIFIED cache (NO más cache diferente)
+            // Get programs with enhanced caching
             $programs = $this->get_cached_programs_for_menu($language);
             
             if (empty($programs)) {
@@ -180,9 +153,8 @@ class ADC_Menu {
                 'count' => count($programs),
                 'language' => $language,
                 'cache_time' => current_time('timestamp'),
-                'cache_duration' => $this->get_cache_duration(),
                 'success' => true,
-                'version' => '3.2'
+                'version' => '3.0'
             );
             
             wp_send_json_success($response_data);
@@ -197,16 +169,13 @@ class ADC_Menu {
     }
     
     /**
-     * CRÍTICO ARREGLADO: Get programs with UNIFIED cache duration
+     * Get programs with caching
      */
     private function get_cached_programs_for_menu($language) {
         $cache_key = ADC_Utils::get_cache_key('programs_menu', $language);
         
         // Check internal cache first
         if (isset($this->cache[$cache_key])) {
-            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-                ADC_Utils::debug_log("MENU CACHE HIT (internal): {$cache_key}");
-            }
             return $this->cache[$cache_key];
         }
         
@@ -214,36 +183,24 @@ class ADC_Menu {
         $cached_programs = get_transient($cache_key);
         if ($cached_programs !== false) {
             $this->cache[$cache_key] = $cached_programs;
-            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-                ADC_Utils::debug_log("MENU CACHE HIT (transient): {$cache_key}");
-            }
             return $cached_programs;
         }
         
-        // CACHE MISS - Fetch fresh data
-        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-            ADC_Utils::debug_log("MENU CACHE MISS - Getting fresh data: {$cache_key}");
-        }
-        
+        // Fetch fresh data
         $api = new ADC_API($language);
         $programs = $api->get_all_programs_for_menu();
         
-        // ARREGLADO: Cache con duración UNIFICADA (NO más 5 minutos diferentes)
-        if (!empty($programs) && $this->is_cache_enabled()) {
-            $cache_duration = $this->get_cache_duration();
-            set_transient($cache_key, $programs, $cache_duration);
+        // Cache for 5 minutes
+        if (!empty($programs)) {
+            set_transient($cache_key, $programs, 5 * MINUTE_IN_SECONDS);
             $this->cache[$cache_key] = $programs;
-            
-            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-                ADC_Utils::debug_log("MENU CACHE STORED: {$cache_key} for {$cache_duration} seconds");
-            }
         }
         
         return $programs;
     }
     
     /**
-     * OPTIMIZADO: Get programs count usando cache existente
+     * Get programs count
      */
     private function get_programs_count($language) {
         $programs = $this->get_cached_programs_for_menu($language);
@@ -258,7 +215,7 @@ class ADC_Menu {
     }
     
     /**
-     * ARREGLADO: Clear menu cache con debug logging
+     * Clear menu cache
      */
     public function clear_cache() {
         $languages = ADC_Utils::get_valid_languages();
@@ -267,22 +224,16 @@ class ADC_Menu {
             $cache_key = ADC_Utils::get_cache_key('programs_menu', $language);
             delete_transient($cache_key);
             unset($this->cache[$cache_key]);
-            
-            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-                ADC_Utils::debug_log("MENU CACHE CLEARED: {$cache_key}");
-            }
         }
     }
     
     /**
-     * MEJORADO: Get cache statistics for debugging
+     * Get cache statistics for debugging
      */
     public function get_cache_stats() {
         $stats = array(
             'internal_cache_entries' => count($this->cache),
-            'transient_cache_keys' => array(),
-            'cache_enabled' => $this->is_cache_enabled(),
-            'cache_duration_hours' => $this->get_cache_duration() / HOUR_IN_SECONDS
+            'transient_cache_keys' => array()
         );
         
         $languages = ADC_Utils::get_valid_languages();
@@ -294,135 +245,29 @@ class ADC_Menu {
         
         return $stats;
     }
-
-    /**
-     * NUEVO: Force refresh menu cache for specific language
-     */
-    public function force_refresh_menu_cache($language) {
-        $cache_key = ADC_Utils::get_cache_key('programs_menu', $language);
-        
-        // Clear existing cache
-        delete_transient($cache_key);
-        unset($this->cache[$cache_key]);
-        
-        // Force fresh load
-        $programs = $this->get_cached_programs_for_menu($language);
-        
-        return array(
-            'success' => !empty($programs),
-            'programs_count' => count($programs),
-            'language' => $language,
-            'cache_key' => $cache_key,
-            'cache_duration' => $this->get_cache_duration(),
-            'timestamp' => current_time('mysql')
-        );
-    }
-
-    /**
-     * NUEVO: Get menu performance info
-     */
-    public function get_menu_performance_info() {
-        $info = array(
-            'cache_enabled' => $this->is_cache_enabled(),
-            'cache_duration_hours' => $this->get_cache_duration() / HOUR_IN_SECONDS,
-            'internal_cache_entries' => count($this->cache)
-        );
-
-        if ($this->is_cache_enabled()) {
-            $cache_stats = $this->get_cache_stats();
-            $info['transient_count'] = count(array_filter($cache_stats['transient_cache_keys']));
-            $info['performance_mode'] = 'optimized';
-        } else {
-            $info['performance_mode'] = 'real-time';
-            $info['warning'] = 'Menu cache disabled - AJAX requests on every dropdown';
-        }
-
-        return $info;
-    }
-
-    /**
-     * NUEVO: Warm up menu cache for all languages
-     */
-    public function warm_up_menu_cache() {
-        if (!$this->is_cache_enabled()) {
-            return array('success' => false, 'reason' => 'cache_disabled');
-        }
-
-        try {
-            $warmed_languages = array();
-            $start_time = microtime(true);
-
-            foreach (ADC_Utils::get_valid_languages() as $language) {
-                $programs = $this->get_cached_programs_for_menu($language);
-                if (!empty($programs)) {
-                    $warmed_languages[] = $language . ' (' . count($programs) . ' programs)';
-                }
-            }
-
-            $end_time = microtime(true);
-            $duration = round(($end_time - $start_time) * 1000);
-
-            return array(
-                'success' => true,
-                'languages_warmed' => $warmed_languages,
-                'duration_ms' => $duration,
-                'cache_duration' => $this->get_cache_duration(),
-                'timestamp' => current_time('mysql')
-            );
-
-        } catch (Exception $e) {
-            return array(
-                'success' => false,
-                'error' => $e->getMessage()
-            );
-        }
-    }
-
-    /**
-     * NUEVO: Check if menu cache needs refresh
-     */
-    public function needs_menu_cache_refresh() {
-        if (!$this->is_cache_enabled()) {
-            return true; // Always needs refresh if cache disabled
-        }
-
-        $languages = ADC_Utils::get_valid_languages();
-        foreach ($languages as $language) {
-            $cache_key = ADC_Utils::get_cache_key('programs_menu', $language);
-            if (get_transient($cache_key) === false) {
-                return true; // At least one language cache is missing
-            }
-        }
-
-        return false; // All caches are present
-    }
 }
 
 /**
- * Programs Menu Widget Class - OPTIMIZADO con cache unificado
+ * Programs Menu Widget Class - Enhanced for multilanguage (ES/EN only)
  */
 class ADC_Programs_Menu_Widget extends WP_Widget {
-    
-    private $options;
     
     /**
      * Constructor
      */
     public function __construct() {
-        $this->options = get_option('adc-video-display');
-        
         parent::__construct(
             'adc_programs_menu_widget',
             'ADC Programs Menu',
             array(
-                'description' => 'Menú desplegable de programas ADC - Multiidioma (ES/EN) - Cache Unificado',
+                'description' => 'Menú desplegable de programas ADC - Multiidioma (ES/EN)',
                 'classname' => 'adc-programs-menu-widget'
             )
         );
     }
     
     /**
-     * OPTIMIZADO: Widget frontend con cache unificado
+     * Widget frontend
      */
     public function widget($args, $instance) {
         echo $args['before_widget'];
@@ -519,17 +364,11 @@ class ADC_Programs_Menu_Widget extends WP_Widget {
                    value="<?php echo esc_attr($custom_class); ?>"
                    placeholder="adc-dropdown-menu">
         </p>
-        
-        <?php if (isset($this->options['enable_cache']) && $this->options['enable_cache'] === '1'): ?>
-        <p style="background: #e8f4fd; padding: 10px; border-left: 4px solid #2196f3; font-size: 12px;">
-            <strong>ℹ️ Cache Unificado:</strong> Este menú usa cache de <?php echo isset($this->options['cache_duration']) ? $this->options['cache_duration'] : '6'; ?> horas configurado en el admin.
-        </p>
-        <?php endif; ?>
         <?php
     }
     
     /**
-     * ARREGLADO: Update widget with cache clearing
+     * Update widget
      */
     public function update($new_instance, $old_instance) {
         $instance = array();
@@ -540,14 +379,10 @@ class ADC_Programs_Menu_Widget extends WP_Widget {
         $instance['language'] = (!empty($new_instance['language']) && ADC_Utils::is_valid_language($new_instance['language'])) 
                                 ? $new_instance['language'] : 'es';
         
-        // ARREGLADO: Clear cache when widget is updated (usando instancia correcta)
+        // Clear cache when widget is updated
         if (class_exists('ADC_Menu')) {
             $menu_instance = new ADC_Menu();
             $menu_instance->clear_cache();
-            
-            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-                ADC_Utils::debug_log("Menu widget updated - cache cleared");
-            }
         }
         
         return $instance;
