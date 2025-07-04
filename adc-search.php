@@ -495,7 +495,7 @@ class ADC_Search
     }
 
     /**
-     * Render a single video card
+     * Render a single video card - ACTUALIZADO PARA USAR THUMBNAIL DE API
      */
     private function render_video_card($video, $language)
     {
@@ -507,9 +507,9 @@ class ADC_Search
         $output = '<div class="adc-search-video-item" data-video-id="' . esc_attr($video['id']) . '">';
         $output .= '<a href="' . esc_url($url) . '" class="adc-search-video-link">';
 
-        // Thumbnail with lazy loading
+        // Thumbnail with lazy loading - CAMBIO IMPORTANTE: Usar thumbnail de la API
         $output .= '<div class="adc-search-thumbnail">';
-        $thumbnail_url = ADC_Utils::get_thumbnail_url($video['id']);
+        $thumbnail_url = ADC_Utils::get_thumbnail_url($video['thumbnail']);
         $output .= '<img src="' . esc_url($thumbnail_url) . '" alt="' . esc_attr($video['title']) . '" loading="lazy">';
         $output .= '<div class="adc-search-play-icon" aria-hidden="true"></div>';
         $output .= '</div>';

@@ -400,15 +400,17 @@ class ADC_Video_Display
     }
 
     /**
-     * Render a single video card
+     * Render a single video card - ACTUALIZADO PARA USAR THUMBNAIL DE API
      */
     private function render_video_card($video, $url)
     {
         $output = '<div class="adc-search-video-item">';
         $output .= '<a href="' . esc_url($url) . '" class="adc-search-video-link">';
         $output .= '<div class="adc-search-thumbnail">';
-        // UPDATED: Add lazy loading to thumbnail
-        $output .= '<img src="' . esc_url(ADC_Utils::get_thumbnail_url($video['id'])) . '" alt="' . esc_attr($video['title']) . '" loading="lazy">';
+
+        // CAMBIO IMPORTANTE: Usar thumbnail de la API en lugar de construir URL
+        $thumbnail_url = ADC_Utils::get_thumbnail_url($video['thumbnail']);
+        $output .= '<img src="' . esc_url($thumbnail_url) . '" alt="' . esc_attr($video['title']) . '" loading="lazy">';
         $output .= '<div class="adc-search-play-icon"></div>';
         $output .= '</div>';
 
@@ -553,12 +555,13 @@ class ADC_Video_Display
 
             foreach ($season_videos as $video) {
                 $video_slug = ADC_Utils::slugify($video['title']);
-                $thumbnail_url = ADC_Utils::get_thumbnail_url($video['id']);
+
+                // CAMBIO IMPORTANTE: Usar thumbnail de la API
+                $thumbnail_url = ADC_Utils::get_thumbnail_url($video['thumbnail']);
 
                 $output .= '<div class="adc-video-item">';
                 $output .= '<a href="?categoria=' . esc_attr($category_slug) . '&video=' . esc_attr($video_slug) . '" class="adc-video-link">';
                 $output .= '<div class="adc-video-thumbnail">';
-                // UPDATED: Add lazy loading to video thumbnails
                 $output .= '<img src="' . esc_url($thumbnail_url) . '" alt="' . esc_attr($video['title']) . '" loading="lazy">';
                 $output .= '<div class="adc-video-play-icon"></div>';
                 $output .= '</div>';
@@ -621,7 +624,7 @@ class ADC_Video_Display
     }
 
     /**
-     * Display single video
+     * Display single video - ACTUALIZADO PARA USAR THUMBNAILS DE API
      */
     private function display_video($category_slug, $video_slug)
     {
@@ -716,8 +719,10 @@ class ADC_Video_Display
             $output .= '<div class="adc-video-item adc-related-video-item">';
             $output .= '<a href="?categoria=' . esc_attr($category_slug) . '&video=' . esc_attr($related_slug) . '" class="adc-video-link">';
             $output .= '<div class="adc-video-thumbnail">';
-            // UPDATED: Add lazy loading to related video thumbnails
-            $output .= '<img src="' . esc_url(ADC_Utils::get_thumbnail_url($related_video['id'])) . '" alt="' . esc_attr($related_video['title']) . '" loading="lazy">';
+
+            // CAMBIO IMPORTANTE: Usar thumbnail de la API para videos relacionados
+            $thumbnail_url = ADC_Utils::get_thumbnail_url($related_video['thumbnail']);
+            $output .= '<img src="' . esc_url($thumbnail_url) . '" alt="' . esc_attr($related_video['title']) . '" loading="lazy">';
             $output .= '<div class="adc-video-play-icon"></div>';
             $output .= '</div>';
 
