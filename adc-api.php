@@ -1,10 +1,11 @@
 <?php
+
 /**
  * ADC Video Display - API Handler
- * Version: 3.1 - Sistema de Caché Inteligente + Retry Automático
+ * Version: 3.2 - Cache Completamente Optimizado - TODOS los tiempos unificados
  * 
  * Maneja todas las peticiones API a TuTorah TV
- * CORREGIDO: Endpoints dinámicos para ES/EN
+ * ARREGLADO: Cache respeta configuración admin para TODOS los tipos de datos
  */
 
 // Prevent direct access
@@ -52,7 +53,7 @@ class ADC_API
     }
 
     /**
-     * NEW: Get endpoint prefix based on language
+     * Get endpoint prefix based on language
      */
     private function get_endpoint_prefix()
     {
@@ -60,7 +61,7 @@ class ADC_API
     }
 
     /**
-     * NEW: Check if cache is enabled from admin settings
+     * Check if cache is enabled from admin settings
      */
     private function is_cache_enabled()
     {
@@ -68,7 +69,7 @@ class ADC_API
     }
 
     /**
-     * NEW: Get cache duration from admin settings (in seconds)
+     * ARREGLADO: Get cache duration UNIFICADO - TODOS usan la misma configuración
      */
     private function get_cache_duration()
     {
@@ -83,14 +84,20 @@ class ADC_API
     }
 
     /**
-     * NEW: Make API request with retry logic and intelligent caching
+     * OPTIMIZADO: Make API request with intelligent caching and retry logic
      */
     private function make_request($endpoint, $params = array(), $cache_key = null, $max_retries = 3)
     {
-        // Check cache first if enabled and cache_key provided
+        // ARREGLADO: Check cache first SIEMPRE si está habilitado
         if ($cache_key && $this->is_cache_enabled()) {
             // Check internal cache
             if (isset($this->cache[$cache_key])) {
+                if ($this->debug_mode) {
+                    ADC_Utils::debug_log("CACHE HIT (internal): {$cache_key}", array(
+                        'endpoint' => $endpoint,
+                        'language' => $this->language
+                    ));
+                }
                 return $this->cache[$cache_key];
             }
 
@@ -98,8 +105,23 @@ class ADC_API
             $cached_data = get_transient($cache_key);
             if ($cached_data !== false) {
                 $this->cache[$cache_key] = $cached_data;
+                if ($this->debug_mode) {
+                    ADC_Utils::debug_log("CACHE HIT (transient): {$cache_key}", array(
+                        'endpoint' => $endpoint,
+                        'language' => $this->language
+                    ));
+                }
                 return $cached_data;
             }
+        }
+
+        // CACHE MISS - Need to make API request
+        if ($this->debug_mode) {
+            ADC_Utils::debug_log("CACHE MISS - API Request: {$endpoint}", array(
+                'cache_key' => $cache_key,
+                'language' => $this->language,
+                'cache_enabled' => $this->is_cache_enabled()
+            ));
         }
 
         $url = $this->api_url . $endpoint;
@@ -111,7 +133,7 @@ class ADC_API
         $args = array(
             'headers' => array(
                 'Authorization' => $this->api_token,
-                'User-Agent' => 'ADC-WordPress-Plugin/3.1'
+                'User-Agent' => 'ADC-WordPress-Plugin/3.2'
             ),
             'timeout' => 30,
             'sslverify' => true
@@ -193,12 +215,19 @@ class ADC_API
                 break;
             }
 
-            // Success! Cache the result if caching is enabled
+            // SUCCESS! Cache the result SIEMPRE con duración unificada
             if ($cache_key && $this->is_cache_enabled()) {
                 $cache_duration = $this->get_cache_duration();
                 if ($cache_duration > 0) {
                     set_transient($cache_key, $data, $cache_duration);
                     $this->cache[$cache_key] = $data;
+
+                    if ($this->debug_mode) {
+                        ADC_Utils::debug_log("CACHE STORED: {$cache_key} for {$cache_duration} seconds", array(
+                            'endpoint' => $endpoint,
+                            'language' => $this->language
+                        ));
+                    }
                 }
             }
 
@@ -224,7 +253,7 @@ class ADC_API
     }
 
     /**
-     * Get programs/categories based on language - UPDATED with dynamic endpoints
+     * ARREGLADO: Get programs/categories with proper caching
      */
     public function get_programs()
     {
@@ -240,7 +269,7 @@ class ADC_API
     }
 
     /**
-     * Get ALL programs from API without filtering - UPDATED with dynamic endpoints
+     * ARREGLADO: Get ALL programs with UNIFIED cache duration
      */
     public function get_all_programs_from_api()
     {
@@ -270,20 +299,20 @@ class ADC_API
     }
 
     /**
-     * Get section suffix for filtering - UPDATED for correct suffixes
+     * Get section suffix for filtering
      */
     private function get_section_suffix()
     {
         $suffixes = array(
             '5' => '_ia.png',        // Español
-            '6' => '_ia_en.png'      // Inglés - CORREGIDO
+            '6' => '_ia_en.png'      // Inglés
         );
 
         return isset($suffixes[$this->section]) ? $suffixes[$this->section] : '_ia.png';
     }
 
     /**
-     * Get materials for a specific program - UPDATED with dynamic endpoints
+     * ARREGLADO: Get materials with unified cache duration
      */
     public function get_materials($program_id)
     {
@@ -301,10 +330,29 @@ class ADC_API
     }
 
     /**
-     * Check if a program has videos
+     * OPTIMIZADO: Check if a program has videos using cache efficiently
      */
     public function program_has_videos($program_id)
     {
+        // Use the same cache key as get_materials to avoid duplicate requests
+        $cache_key = ADC_Utils::get_cache_key('materials_' . $program_id, $this->language);
+
+        // Check cache first without making API call
+        if ($this->is_cache_enabled()) {
+            // Check internal cache
+            if (isset($this->cache[$cache_key])) {
+                return !empty($this->cache[$cache_key]);
+            }
+
+            // Check WordPress transient
+            $cached_data = get_transient($cache_key);
+            if ($cached_data !== false) {
+                $this->cache[$cache_key] = $cached_data;
+                return !empty($cached_data);
+            }
+        }
+
+        // If not in cache, get materials (this will cache the result)
         $materials = $this->get_materials($program_id);
         return !empty($materials);
     }
@@ -347,7 +395,7 @@ class ADC_API
     }
 
     /**
-     * Search material by ID
+     * ARREGLADO: Search material by ID with unified cache
      */
     public function get_material_by_id($material_id)
     {
@@ -365,7 +413,7 @@ class ADC_API
     }
 
     /**
-     * NEW: Search materials by text with fallback support
+     * ARREGLADO: Search materials with UNIFIED cache duration (NO más cache diferente)
      */
     public function search_materials($search_text)
     {
@@ -387,10 +435,25 @@ class ADC_API
     }
 
     /**
-     * NEW: Get fallback videos when search fails
+     * ARREGLADO: Get fallback videos with UNIFIED cache duration
      */
     private function get_fallback_videos($limit = 8)
     {
+        $cache_key = ADC_Utils::get_cache_key('fallback_videos_' . $limit, $this->language);
+
+        // Check cache first
+        if ($this->is_cache_enabled()) {
+            if (isset($this->cache[$cache_key])) {
+                return $this->cache[$cache_key];
+            }
+
+            $cached_fallback = get_transient($cache_key);
+            if ($cached_fallback !== false) {
+                $this->cache[$cache_key] = $cached_fallback;
+                return $cached_fallback;
+            }
+        }
+
         try {
             $programs = $this->get_programs();
 
@@ -399,8 +462,6 @@ class ADC_API
             }
 
             $all_videos = array();
-
-            // Get videos from first few programs to avoid long processing
             $programs_to_check = array_slice($programs, 0, 3);
 
             foreach ($programs_to_check as $program) {
@@ -424,8 +485,16 @@ class ADC_API
 
             // Shuffle and return limited amount
             shuffle($all_videos);
-            return array_slice($all_videos, 0, $limit);
+            $fallback_videos = array_slice($all_videos, 0, $limit);
 
+            // ARREGLADO: Cache con duración UNIFICADA (NO más 1 hora diferente)
+            if ($this->is_cache_enabled()) {
+                $cache_duration = $this->get_cache_duration();
+                set_transient($cache_key, $fallback_videos, $cache_duration);
+                $this->cache[$cache_key] = $fallback_videos;
+            }
+
+            return $fallback_videos;
         } catch (Exception $e) {
             if ($this->debug_mode) {
                 ADC_Utils::debug_log("Fallback videos failed: " . $e->getMessage());
@@ -435,10 +504,26 @@ class ADC_API
     }
 
     /**
-     * Get all programs for menu (alphabetically sorted)
+     * ARREGLADO: Get all programs for menu with UNIFIED cache duration
      */
     public function get_all_programs_for_menu()
     {
+        $cache_key = ADC_Utils::get_cache_key('programs_menu', $this->language);
+
+        // Check cache first
+        if ($this->is_cache_enabled()) {
+            if (isset($this->cache[$cache_key])) {
+                return $this->cache[$cache_key];
+            }
+
+            $cached_programs = get_transient($cache_key);
+            if ($cached_programs !== false) {
+                $this->cache[$cache_key] = $cached_programs;
+                return $cached_programs;
+            }
+        }
+
+        // Get fresh data
         $programs = $this->get_programs();
 
         // Sort programs alphabetically
@@ -446,14 +531,47 @@ class ADC_API
             return strcmp($a['name'], $b['name']);
         });
 
+        // ARREGLADO: Cache con duración UNIFICADA (NO más 5 minutos diferentes)
+        if (!empty($programs) && $this->is_cache_enabled()) {
+            $cache_duration = $this->get_cache_duration();
+            set_transient($cache_key, $programs, $cache_duration);
+            $this->cache[$cache_key] = $programs;
+        }
+
         return $programs;
     }
 
     /**
-     * Get all programs with custom order for home display
+     * CRÍTICO ARREGLADO: Get all programs with custom order USANDO CACHE CORRECTAMENTE
      */
     public function get_programs_with_custom_order()
     {
+        $cache_key = ADC_Utils::get_cache_key('programs_ordered', $this->language);
+
+        // ARREGLADO: Check cache FIRST antes de hacer cualquier request
+        if ($this->is_cache_enabled()) {
+            if (isset($this->cache[$cache_key])) {
+                if ($this->debug_mode) {
+                    ADC_Utils::debug_log("CACHE HIT (ordered programs): {$cache_key}");
+                }
+                return $this->cache[$cache_key];
+            }
+
+            $cached_ordered = get_transient($cache_key);
+            if ($cached_ordered !== false) {
+                $this->cache[$cache_key] = $cached_ordered;
+                if ($this->debug_mode) {
+                    ADC_Utils::debug_log("CACHE HIT (ordered programs transient): {$cache_key}");
+                }
+                return $cached_ordered;
+            }
+        }
+
+        // CACHE MISS - Get fresh data
+        if ($this->debug_mode) {
+            ADC_Utils::debug_log("CACHE MISS (ordered programs) - Getting fresh data: {$cache_key}");
+        }
+
         $programs = $this->filter_programs_by_section(
             $this->get_all_programs_from_api()
         );
@@ -464,6 +582,17 @@ class ADC_API
 
         if (!empty($order)) {
             $programs = $this->apply_custom_order($programs, $order);
+        }
+
+        // ARREGLADO: Cache the ordered programs con duración UNIFICADA
+        if (!empty($programs) && $this->is_cache_enabled()) {
+            $cache_duration = $this->get_cache_duration();
+            set_transient($cache_key, $programs, $cache_duration);
+            $this->cache[$cache_key] = $programs;
+
+            if ($this->debug_mode) {
+                ADC_Utils::debug_log("CACHE STORED (ordered programs): {$cache_key} for {$cache_duration} seconds");
+            }
         }
 
         return $programs;
@@ -708,7 +837,7 @@ class ADC_API
     }
 
     /**
-     * CACHE MANAGEMENT METHODS - UPDATED
+     * CACHE MANAGEMENT METHODS - ARREGLADOS
      */
 
     /**
@@ -792,7 +921,6 @@ class ADC_API
                     $health['overall'] = 'degraded';
                 }
             }
-
         } catch (Exception $e) {
             $health['overall'] = 'unhealthy';
             $health['error'] = $e->getMessage();
@@ -1154,7 +1282,7 @@ class ADC_API
     }
 
     /**
-     * NEW: Get cache performance info for admin
+     * Get cache performance info for admin
      */
     public function get_cache_performance_info()
     {
@@ -1179,7 +1307,7 @@ class ADC_API
     }
 
     /**
-     * NEW: Warm up cache by pre-loading essential data
+     * Warm up cache by pre-loading essential data
      */
     public function warm_up_cache()
     {
@@ -1222,7 +1350,6 @@ class ADC_API
                 'language' => $this->language,
                 'timestamp' => current_time('mysql')
             );
-
         } catch (Exception $e) {
             return array(
                 'success' => false,
@@ -1233,7 +1360,7 @@ class ADC_API
     }
 
     /**
-     * NEW: Check if cache needs refresh based on age
+     * Check if cache needs refresh based on age
      */
     public function needs_cache_refresh()
     {
