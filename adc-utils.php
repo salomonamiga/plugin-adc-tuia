@@ -304,12 +304,27 @@ class ADC_Utils
     }
 
     /**
-     * Get thumbnail URL for video
-     * Centraliza la generación de URLs de thumbnails
+     * Get thumbnail URL for video - ACTUALIZADO PARA USAR API
+     * CAMBIO IMPORTANTE: Ahora recibe la URL completa del thumbnail de la API
+     * en lugar de construir una URL hardcodeada
      */
-    public static function get_thumbnail_url($video_id)
+    public static function get_thumbnail_url($thumbnail_url)
     {
-        return "https://s3apics.streamgates.net/TutorahTV_Thumbs/{$video_id}_50.jpg";
+        // Validar que la URL no esté vacía
+        if (empty($thumbnail_url)) {
+            // Fallback solo si realmente no viene thumbnail de la API (caso extremo)
+            return '';
+        }
+
+        // Sanitizar la URL para seguridad
+        $thumbnail_url = esc_url($thumbnail_url);
+        
+        // Validar que sea una URL válida
+        if (!filter_var($thumbnail_url, FILTER_VALIDATE_URL)) {
+            return '';
+        }
+
+        return $thumbnail_url;
     }
 
     /**
