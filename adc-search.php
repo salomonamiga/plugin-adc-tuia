@@ -1,9 +1,11 @@
 <?php
+
 /**
  * ADC Video Display - Search Handler
- * Version: 3.1 - Sistema de Caché Inteligente + Fallback mejorado
+ * Version: 3.1 - Sistema de Caché Unificado
  * 
- * Maneja la funcionalidad de búsqueda para los 2 idiomas con retry automático
+ * Maneja la funcionalidad de búsqueda para los 2 idiomas con cache unificado
+ * OPTIMIZADO: Cache unificado con duración configurada en admin
  */
 
 // Prevent direct access
@@ -41,6 +43,23 @@ class ADC_Search
 
         // Search query modifications
         add_action('pre_get_posts', array($this, 'modify_search_query'));
+    }
+
+    /**
+     * NUEVO: Get unified cache duration from admin settings
+     */
+    private function get_unified_cache_duration()
+    {
+        $cache_enabled = isset($this->options['enable_cache']) && $this->options['enable_cache'] === '1';
+
+        if (!$cache_enabled) {
+            return 0; // No cache
+        }
+
+        $hours = isset($this->options['cache_duration']) ? floatval($this->options['cache_duration']) : 6;
+        $hours = max(0.5, min(24, $hours)); // Clamp between 30 minutes and 24 hours
+
+        return intval($hours * HOUR_IN_SECONDS);
     }
 
     /**
@@ -170,7 +189,7 @@ class ADC_Search
                 return;
             }
 
-            // NEW: Get search results with automatic retry and fallback
+            // Get search results with automatic retry and fallback
             $results = $this->get_search_results_with_fallback($search_term, $language);
 
             // Enhanced response data structure
@@ -188,7 +207,6 @@ class ADC_Search
             );
 
             wp_send_json_success($response_data);
-
         } catch (Exception $e) {
             // Last resort fallback
             $fallback_videos = $this->get_fallback_videos($language);
@@ -207,7 +225,7 @@ class ADC_Search
     }
 
     /**
-     * NEW: Get search results with automatic retry and intelligent fallback
+     * Get search results with automatic retry and intelligent fallback
      */
     private function get_search_results_with_fallback($search_term, $language)
     {
@@ -233,7 +251,7 @@ class ADC_Search
     }
 
     /**
-     * NEW: Get smart fallback videos based on search term
+     * Get smart fallback videos based on search term
      */
     private function get_smart_fallback_videos($search_term, $language, $limit = 8)
     {
@@ -283,7 +301,6 @@ class ADC_Search
             }
 
             return $smart_results;
-
         } catch (Exception $e) {
             // Final fallback
             return $this->get_fallback_videos($language, $limit);
@@ -291,7 +308,7 @@ class ADC_Search
     }
 
     /**
-     * NEW: Extract keywords from search term for relevance matching
+     * Extract keywords from search term for relevance matching
      */
     private function extract_search_keywords($search_term)
     {
@@ -308,7 +325,7 @@ class ADC_Search
     }
 
     /**
-     * NEW: Calculate relevance score for video based on search keywords
+     * Calculate relevance score for video based on search keywords
      */
     private function calculate_relevance_score($video, $keywords)
     {
@@ -319,8 +336,8 @@ class ADC_Search
         $score = 0;
         $searchable_text = strtolower(
             $video['title'] . ' ' .
-            (isset($video['category']) ? $video['category'] : '') . ' ' .
-            (isset($video['description']) ? $video['description'] : '')
+                (isset($video['category']) ? $video['category'] : '') . ' ' .
+                (isset($video['description']) ? $video['description'] : '')
         );
 
         foreach ($keywords as $keyword) {
@@ -352,7 +369,7 @@ class ADC_Search
     }
 
     /**
-     * Display search results with enhanced fallback support - ARREGLADO COMPLETAMENTE
+     * Display search results with enhanced fallback support
      */
     private function display_search_results($language = 'es')
     {
@@ -382,7 +399,7 @@ class ADC_Search
     }
 
     /**
-     * Render no results message - FUNCIONA PERFECTAMENTE
+     * Render no results message
      */
     private function render_no_results($search_term, $language)
     {
@@ -531,7 +548,7 @@ class ADC_Search
     }
 
     /**
-     * Get fallback videos for empty search results - IMPROVED
+     * OPTIMIZADO: Get fallback videos - UNIFIED CACHE
      */
     private function get_fallback_videos($language, $limit = 8)
     {
@@ -588,12 +605,14 @@ class ADC_Search
             shuffle($all_videos);
             $fallback_videos = array_slice($all_videos, 0, $limit);
 
-            // Cache for 1 hour (shorter than other caches since it's fallback data)
-            set_transient($cache_key, $fallback_videos, HOUR_IN_SECONDS);
-            $this->cache[$cache_key] = $fallback_videos;
+            // OPTIMIZADO: Cache with unified duration from admin settings
+            $cache_duration = $this->get_unified_cache_duration();
+            if ($cache_duration > 0) {
+                set_transient($cache_key, $fallback_videos, $cache_duration);
+                $this->cache[$cache_key] = $fallback_videos;
+            }
 
             return $fallback_videos;
-
         } catch (Exception $e) {
             if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
                 ADC_Utils::debug_log('Fallback videos error: ' . $e->getMessage());
@@ -603,7 +622,7 @@ class ADC_Search
     }
 
     /**
-     * Get search results with enhanced caching and retry logic
+     * OPTIMIZADO: Get search results with unified cache duration
      */
     private function get_cached_search_results($search_term, $language)
     {
@@ -627,34 +646,16 @@ class ADC_Search
         // Perform search with automatic retry (handled by ADC_API)
         $results = $api->search_materials($search_term);
 
-        // Cache successful results
+        // Cache successful results with unified duration
         if (is_array($results)) {
-            // Get cache duration from settings
-            $cache_duration = $this->get_search_cache_duration();
-            set_transient($cache_key, $results, $cache_duration);
-            $this->cache[$cache_key] = $results;
+            $cache_duration = $this->get_unified_cache_duration();
+            if ($cache_duration > 0) {
+                set_transient($cache_key, $results, $cache_duration);
+                $this->cache[$cache_key] = $results;
+            }
         }
 
         return is_array($results) ? $results : array();
-    }
-
-    /**
-     * NEW: Get search cache duration from settings
-     */
-    private function get_search_cache_duration()
-    {
-        // Search results cache for shorter time than other data
-        $general_cache_enabled = isset($this->options['enable_cache']) && $this->options['enable_cache'] === '1';
-
-        if (!$general_cache_enabled) {
-            return 0; // No cache
-        }
-
-        $hours = isset($this->options['cache_duration']) ? floatval($this->options['cache_duration']) : 6;
-        $hours = max(0.5, min(24, $hours));
-
-        // Search cache is half the general cache duration (for fresher results)
-        return intval(($hours / 2) * HOUR_IN_SECONDS);
     }
 
     /**
