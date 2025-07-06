@@ -508,24 +508,55 @@ class ADC_API
     }
 
     /**
-     * Apply custom order to programs array
+     * Apply custom order to programs array - CORREGIDO: Coming Soon al final
      */
     private function apply_custom_order($programs, $order)
     {
-        $order_lookup = array_flip($order);
+        // NUEVO: Separar programas con videos vs sin videos
+        $programs_with_videos = array();
+        $coming_soon_programs = array();
 
-        usort($programs, function ($a, $b) use ($order_lookup) {
-            $a_order = isset($order_lookup[$a['id']]) ? $order_lookup[$a['id']] : PHP_INT_MAX;
-            $b_order = isset($order_lookup[$b['id']]) ? $order_lookup[$b['id']] : PHP_INT_MAX;
+        // Usar bulk check para determinar qué programas tienen videos
+        $bulk_videos_check = $this->bulk_check_programs_with_videos($programs);
 
-            if ($a_order == $b_order) {
-                return strcmp($a['name'], $b['name']);
+        foreach ($programs as $program) {
+            $has_videos = isset($bulk_videos_check[$program['id']]) ? $bulk_videos_check[$program['id']] : false;
+
+            if ($has_videos) {
+                $programs_with_videos[] = $program;
+            } else {
+                $coming_soon_programs[] = $program;
             }
+        }
 
-            return $a_order - $b_order;
+        // Aplicar orden personalizado SOLO a programas con videos
+        if (!empty($order)) {
+            $order_lookup = array_flip($order);
+
+            usort($programs_with_videos, function ($a, $b) use ($order_lookup) {
+                $a_order = isset($order_lookup[$a['id']]) ? $order_lookup[$a['id']] : PHP_INT_MAX;
+                $b_order = isset($order_lookup[$b['id']]) ? $order_lookup[$b['id']] : PHP_INT_MAX;
+
+                if ($a_order == $b_order) {
+                    return strcmp($a['name'], $b['name']);
+                }
+
+                return $a_order - $b_order;
+            });
+        } else {
+            // Si no hay orden personalizado, ordenar alfabéticamente
+            usort($programs_with_videos, function ($a, $b) {
+                return strcmp($a['name'], $b['name']);
+            });
+        }
+
+        // Ordenar Coming Soon alfabéticamente
+        usort($coming_soon_programs, function ($a, $b) {
+            return strcmp($a['name'], $b['name']);
         });
 
-        return $programs;
+        // RESULTADO: Programas con videos primero, Coming Soon al final
+        return array_merge($programs_with_videos, $coming_soon_programs);
     }
 
     /**
