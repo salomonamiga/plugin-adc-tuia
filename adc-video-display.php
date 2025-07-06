@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Plugin Name: ADC Video Display
  * Description: Muestra videos desde el sistema ADC en WordPress - Multiidioma (ES/EN)
@@ -147,6 +146,7 @@ class ADC_Video_Display
                 'timestamp' => current_time('mysql'),
                 'version' => '3.1'
             ));
+
         } catch (Exception $e) {
             // Error response
             wp_send_json_error(array(
@@ -212,6 +212,7 @@ class ADC_Video_Display
             }
 
             wp_send_json_success($programs);
+
         } catch (Exception $e) {
             wp_send_json_error('Internal server error');
         }
@@ -425,7 +426,7 @@ class ADC_Video_Display
     }
 
     /**
-     * OPTIMIZADO: Display categories grid - ELIMINA BURSTS DE REQUESTS
+     * Display categories grid with coming soon functionality
      */
     private function display_categories_grid()
     {
@@ -436,14 +437,11 @@ class ADC_Video_Display
             return '<div class="adc-error">' . ADC_Utils::get_text('no_programs', $this->language) . '</div>';
         }
 
-        // OPTIMIZACIÓN CRÍTICA: Pre-cargar información de videos en UNA SOLA operación
-        $programs_with_videos = $this->api->bulk_check_programs_with_videos($programs);
-
         $output = '<div class="adc-categories-grid">';
         $output .= '<div class="adc-categories-row">';
 
         foreach ($programs as $program) {
-            $output .= $this->render_category_card($program, $programs_with_videos);
+            $output .= $this->render_category_card($program);
         }
 
         $output .= '</div></div>';
@@ -452,20 +450,14 @@ class ADC_Video_Display
     }
 
     /**
-     * OPTIMIZADO: Render a single category card - USA BULK CHECK PARA EVITAR REQUESTS
+     * Render a single category card (regular or coming soon)
      */
-    private function render_category_card($program, $programs_with_videos = null)
+    private function render_category_card($program)
     {
         $slug = ADC_Utils::slugify($program['name']);
 
-        // OPTIMIZACIÓN: Usar bulk check si está disponible, sino usar método individual
-        if ($programs_with_videos !== null && isset($programs_with_videos[$program['id']])) {
-            $has_videos = $programs_with_videos[$program['id']];
-        } else {
-            // Fallback al método individual (solo en casos excepcionales)
-            $has_videos = $this->api->program_has_videos($program['id']);
-        }
-
+        // Check if this program has videos
+        $has_videos = $this->api->program_has_videos($program['id']);
         $is_coming_soon = !$has_videos && isset($program['cover']) && !empty($program['cover']);
 
         $output = '<div class="adc-category-card-wrapper">';
@@ -883,7 +875,7 @@ class ADC_Video_Display
     }
 
     /**
-     * Check if cache is enabled in settings
+     * NEW: Check if cache is enabled in settings
      */
     private function is_cache_enabled()
     {
@@ -891,7 +883,7 @@ class ADC_Video_Display
     }
 
     /**
-     * Get cache duration in hours from settings
+     * NEW: Get cache duration in hours from settings
      */
     private function get_cache_duration_hours()
     {
@@ -900,7 +892,7 @@ class ADC_Video_Display
     }
 
     /**
-     * Get cache duration in seconds for WordPress transients
+     * NEW: Get cache duration in seconds for WordPress transients
      */
     public function get_cache_duration_seconds()
     {
