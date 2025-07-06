@@ -1,11 +1,10 @@
 <?php
-
 /**
  * ADC Video Display - API Handler
- * Version: 3.1 - Sistema de Caché Unificado Optimizado
+ * Version: 3.1 - Sistema de Caché Inteligente + Retry Automático
  * 
  * Maneja todas las peticiones API a TuTorah TV
- * OPTIMIZADO: Cache unificado para eliminar bursts de requests
+ * CORREGIDO: Endpoints dinámicos para ES/EN
  */
 
 // Prevent direct access
@@ -20,6 +19,7 @@ class ADC_API
     private $language;
     private $section;
     private $debug_mode = false;
+    private $cache = array();
     private $options;
 
     /**
@@ -52,7 +52,7 @@ class ADC_API
     }
 
     /**
-     * Get endpoint prefix based on language
+     * NEW: Get endpoint prefix based on language
      */
     private function get_endpoint_prefix()
     {
@@ -60,7 +60,7 @@ class ADC_API
     }
 
     /**
-     * Check if cache is enabled from admin settings
+     * NEW: Check if cache is enabled from admin settings
      */
     private function is_cache_enabled()
     {
@@ -68,9 +68,9 @@ class ADC_API
     }
 
     /**
-     * UNIFICADO: Get cache duration from admin settings (in seconds) - MISMA DURACIÓN PARA TODO
+     * NEW: Get cache duration from admin settings (in seconds)
      */
-    private function get_unified_cache_duration()
+    private function get_cache_duration()
     {
         if (!$this->is_cache_enabled()) {
             return 0; // No cache
@@ -83,14 +83,21 @@ class ADC_API
     }
 
     /**
-     * OPTIMIZADO: Make API request with retry logic and unified caching
+     * NEW: Make API request with retry logic and intelligent caching
      */
     private function make_request($endpoint, $params = array(), $cache_key = null, $max_retries = 3)
     {
         // Check cache first if enabled and cache_key provided
         if ($cache_key && $this->is_cache_enabled()) {
+            // Check internal cache
+            if (isset($this->cache[$cache_key])) {
+                return $this->cache[$cache_key];
+            }
+
+            // Check WordPress transient
             $cached_data = get_transient($cache_key);
             if ($cached_data !== false) {
+                $this->cache[$cache_key] = $cached_data;
                 return $cached_data;
             }
         }
@@ -188,9 +195,10 @@ class ADC_API
 
             // Success! Cache the result if caching is enabled
             if ($cache_key && $this->is_cache_enabled()) {
-                $cache_duration = $this->get_unified_cache_duration();
+                $cache_duration = $this->get_cache_duration();
                 if ($cache_duration > 0) {
                     set_transient($cache_key, $data, $cache_duration);
+                    $this->cache[$cache_key] = $data;
                 }
             }
 
@@ -293,57 +301,10 @@ class ADC_API
     }
 
     /**
-     * NUEVO: Bulk check which programs have videos - ELIMINA BURSTS DE REQUESTS
-     */
-    public function bulk_check_programs_with_videos($programs)
-    {
-        if (empty($programs)) {
-            return array();
-        }
-
-        $cache_key = ADC_Utils::get_cache_key('bulk_programs_videos_' . md5(serialize(array_column($programs, 'id'))), $this->language);
-
-        // Check cache first
-        if ($this->is_cache_enabled()) {
-            $cached_result = get_transient($cache_key);
-            if ($cached_result !== false) {
-                return $cached_result;
-            }
-        }
-
-        // If not cached, check each program (but cache the result)
-        $programs_with_videos = array();
-
-        foreach ($programs as $program) {
-            $materials = $this->get_materials($program['id']);
-            $programs_with_videos[$program['id']] = !empty($materials);
-        }
-
-        // Cache the bulk result with unified duration
-        if ($this->is_cache_enabled()) {
-            $cache_duration = $this->get_unified_cache_duration();
-            if ($cache_duration > 0) {
-                set_transient($cache_key, $programs_with_videos, $cache_duration);
-            }
-        }
-
-        return $programs_with_videos;
-    }
-
-    /**
-     * OPTIMIZADO: Check if a program has videos (usa bulk cache)
+     * Check if a program has videos
      */
     public function program_has_videos($program_id)
     {
-        // Try to get from bulk cache first
-        $all_programs = $this->get_programs();
-        $bulk_result = $this->bulk_check_programs_with_videos($all_programs);
-
-        if (isset($bulk_result[$program_id])) {
-            return $bulk_result[$program_id];
-        }
-
-        // Fallback to individual check
         $materials = $this->get_materials($program_id);
         return !empty($materials);
     }
@@ -404,7 +365,7 @@ class ADC_API
     }
 
     /**
-     * UNIFICADO: Search materials by text with unified cache duration
+     * NEW: Search materials by text with fallback support
      */
     public function search_materials($search_text)
     {
@@ -426,7 +387,7 @@ class ADC_API
     }
 
     /**
-     * Get fallback videos when search fails - UNIFIED CACHE
+     * NEW: Get fallback videos when search fails
      */
     private function get_fallback_videos($limit = 8)
     {
@@ -464,6 +425,7 @@ class ADC_API
             // Shuffle and return limited amount
             shuffle($all_videos);
             return array_slice($all_videos, 0, $limit);
+
         } catch (Exception $e) {
             if ($this->debug_mode) {
                 ADC_Utils::debug_log("Fallback videos failed: " . $e->getMessage());
@@ -473,7 +435,7 @@ class ADC_API
     }
 
     /**
-     * UNIFICADO: Get all programs for menu (unified cache duration)
+     * Get all programs for menu (alphabetically sorted)
      */
     public function get_all_programs_for_menu()
     {
@@ -746,7 +708,7 @@ class ADC_API
     }
 
     /**
-     * CACHE MANAGEMENT METHODS - UNIFIED
+     * CACHE MANAGEMENT METHODS - UPDATED
      */
 
     /**
@@ -778,7 +740,7 @@ class ADC_API
             'environment' => $environment,
             'language' => $this->language,
             'cache_enabled' => $this->is_cache_enabled(),
-            'cache_duration_hours' => $this->get_unified_cache_duration() / HOUR_IN_SECONDS,
+            'cache_duration_hours' => $this->get_cache_duration() / HOUR_IN_SECONDS,
             'last_update' => current_time('mysql')
         );
     }
@@ -795,7 +757,7 @@ class ADC_API
             'materials_count' => 0,
             'cache_status' => 'ok',
             'cache_enabled' => $this->is_cache_enabled(),
-            'cache_duration' => $this->get_unified_cache_duration(),
+            'cache_duration' => $this->get_cache_duration(),
             'last_check' => current_time('mysql')
         );
 
@@ -830,6 +792,7 @@ class ADC_API
                     $health['overall'] = 'degraded';
                 }
             }
+
         } catch (Exception $e) {
             $health['overall'] = 'unhealthy';
             $health['error'] = $e->getMessage();
@@ -851,6 +814,9 @@ class ADC_API
             '_transient_timeout_%' . $this->language . '%',
             '_transient_%' . $this->language . '%'
         ));
+
+        // Clear internal cache
+        $this->cache = array();
 
         // Clear object cache if available
         if (function_exists('wp_cache_flush')) {
@@ -905,7 +871,22 @@ class ADC_API
                 return $this->clear_all_cache();
         }
 
+        // Clear related internal cache
+        foreach ($this->cache as $key => $value) {
+            if (strpos($key, $cache_type) !== false) {
+                unset($this->cache[$key]);
+            }
+        }
+
         return true;
+    }
+
+    /**
+     * Check if API is configured
+     */
+    public function is_configured()
+    {
+        return !empty($this->api_token) && !empty($this->api_url);
     }
 
     /**
@@ -920,6 +901,9 @@ class ADC_API
                 'error_type' => 'configuration'
             );
         }
+
+        // Clear cache for testing
+        $this->cache = array();
 
         $start_time = microtime(true);
         $programs = $this->get_programs();
@@ -953,9 +937,17 @@ class ADC_API
             'language' => $this->get_language_name(),
             'response_time' => $response_time,
             'cache_enabled' => $this->is_cache_enabled(),
-            'cache_duration' => $this->get_unified_cache_duration(),
+            'cache_duration' => $this->get_cache_duration(),
             'cache_time' => time()
         );
+    }
+
+    /**
+     * Clear internal cache
+     */
+    public function clear_cache()
+    {
+        $this->cache = array();
     }
 
     /**
@@ -967,129 +959,110 @@ class ADC_API
     }
 
     /**
-     * Get cache performance info for admin
+     * Enhanced cache management - Get cache key with language prefix
      */
-    public function get_cache_performance_info()
+    private function get_cache_key($base_key)
     {
-        $info = array(
-            'cache_enabled' => $this->is_cache_enabled(),
-            'cache_duration_hours' => $this->get_unified_cache_duration() / HOUR_IN_SECONDS,
-            'language' => $this->language
-        );
-
-        if ($this->is_cache_enabled()) {
-            $cache_stats = $this->get_cache_stats();
-            $info['transient_count'] = $cache_stats['transient_count'];
-            $info['cache_size_kb'] = $cache_stats['cache_size_kb'];
-            $info['performance_mode'] = 'optimized';
-        } else {
-            $info['performance_mode'] = 'real-time';
-            $info['warning'] = 'Cache disabled - all requests go directly to API';
-        }
-
-        return $info;
+        return ADC_Utils::get_cache_key($base_key, $this->language);
     }
 
     /**
-     * Warm up cache by pre-loading essential data
+     * Enhanced cache management - Set transient with language prefix
      */
-    public function warm_up_cache()
-    {
-        if (!$this->is_cache_enabled()) {
-            return array('success' => false, 'reason' => 'cache_disabled');
-        }
-
-        try {
-            $warmed_items = array();
-            $start_time = microtime(true);
-
-            // Pre-load programs
-            $programs = $this->get_programs();
-            if (!empty($programs)) {
-                $warmed_items[] = 'programs (' . count($programs) . ')';
-
-                // OPTIMIZADO: Pre-load bulk videos check
-                $bulk_videos_check = $this->bulk_check_programs_with_videos($programs);
-                if (!empty($bulk_videos_check)) {
-                    $warmed_items[] = 'bulk videos check (' . count($bulk_videos_check) . ' programs)';
-                }
-
-                // Pre-load materials for first few programs
-                $programs_to_warm = array_slice($programs, 0, 3);
-                foreach ($programs_to_warm as $program) {
-                    $materials = $this->get_materials($program['id']);
-                    if (!empty($materials)) {
-                        $warmed_items[] = $program['name'] . ' (' . count($materials) . ' videos)';
-                    }
-                }
-            }
-
-            // Pre-load menu data
-            $menu_programs = $this->get_all_programs_for_menu();
-            if (!empty($menu_programs)) {
-                $warmed_items[] = 'menu programs (' . count($menu_programs) . ')';
-            }
-
-            $end_time = microtime(true);
-            $duration = round(($end_time - $start_time) * 1000);
-
-            return array(
-                'success' => true,
-                'items_warmed' => $warmed_items,
-                'duration_ms' => $duration,
-                'language' => $this->language,
-                'timestamp' => current_time('mysql')
-            );
-        } catch (Exception $e) {
-            return array(
-                'success' => false,
-                'error' => $e->getMessage(),
-                'language' => $this->language
-            );
-        }
-    }
-
-    /**
-     * Check if cache needs refresh based on age
-     */
-    public function needs_cache_refresh()
+    private function set_cache_transient($key, $data, $expiration = null)
     {
         if (!$this->is_cache_enabled()) {
             return false;
         }
 
-        $cache_stats = $this->get_cache_stats();
-        return $cache_stats['transient_count'] === 0;
+        if ($expiration === null) {
+            $expiration = $this->get_cache_duration();
+        }
+
+        $cache_key = $this->get_cache_key($key);
+        set_transient($cache_key, $data, $expiration);
+
+        // Also store in internal cache
+        $this->cache[$cache_key] = $data;
+
+        return true;
     }
 
     /**
-     * Get formatted error message based on language
+     * Enhanced cache management - Get transient with language prefix
      */
-    public function get_error_message($error_type)
+    private function get_cache_transient($key)
     {
-        $messages = array(
-            'es' => array(
-                'no_connection' => 'No se pudo conectar con la API',
-                'no_programs' => 'No se encontraron programas',
-                'no_materials' => 'No se encontraron videos',
-                'invalid_response' => 'Respuesta inválida de la API',
-                'not_configured' => 'API no configurada',
-                'cache_disabled' => 'Caché desactivado - rendimiento puede ser más lento',
-                'retry_failed' => 'Error después de varios intentos'
-            ),
-            'en' => array(
-                'no_connection' => 'Could not connect to API',
-                'no_programs' => 'No programs found',
-                'no_materials' => 'No videos found',
-                'invalid_response' => 'Invalid API response',
-                'not_configured' => 'API not configured',
-                'cache_disabled' => 'Cache disabled - performance may be slower',
-                'retry_failed' => 'Error after multiple attempts'
-            )
-        );
+        if (!$this->is_cache_enabled()) {
+            return false;
+        }
 
-        $lang_messages = isset($messages[$this->language]) ? $messages[$this->language] : $messages['es'];
-        return isset($lang_messages[$error_type]) ? $lang_messages[$error_type] : 'Error desconocido';
+        $cache_key = $this->get_cache_key($key);
+
+        // Check internal cache first
+        if (isset($this->cache[$cache_key])) {
+            return $this->cache[$cache_key];
+        }
+
+        // Check WordPress transient
+        $data = get_transient($cache_key);
+        if ($data !== false) {
+            $this->cache[$cache_key] = $data;
+            return $data;
+        }
+
+        return false;
+    }
+
+    /**
+     * Enhanced cache management - Delete transient with language prefix
+     */
+    private function delete_cache_transient($key)
+    {
+        $cache_key = $this->get_cache_key($key);
+        delete_transient($cache_key);
+        unset($this->cache[$cache_key]);
+    }
+
+    /**
+     * Get cache statistics for debugging
+     */
+    public function get_debug_cache_info()
+    {
+        if (!$this->debug_mode) {
+            return array();
+        }
+
+        return array(
+            'internal_cache_count' => count($this->cache),
+            'internal_cache_keys' => array_keys($this->cache),
+            'language' => $this->language,
+            'section' => $this->section,
+            'api_configured' => $this->is_configured(),
+            'cache_enabled' => $this->is_cache_enabled(),
+            'cache_duration' => $this->get_cache_duration()
+        );
+    }
+
+    /**
+     * Force refresh all data for this language
+     */
+    public function force_refresh_all()
+    {
+        // Clear all caches
+        $this->clear_all_cache();
+
+        // Pre-load essential data
+        $programs = $this->get_programs();
+        $menu_programs = $this->get_all_programs_for_menu();
+
+        return array(
+            'programs_loaded' => count($programs),
+            'menu_programs_loaded' => count($menu_programs),
+            'language' => $this->language,
+            'cache_enabled' => $this->is_cache_enabled(),
+            'timestamp' => current_time('mysql')
+        );
     }
 
     /**
@@ -1103,8 +1076,9 @@ class ADC_API
             'section' => $this->section,
             'api_url' => $this->api_url,
             'has_token' => !empty($this->api_token),
+            'cache_count' => count($this->cache),
             'cache_enabled' => $this->is_cache_enabled(),
-            'cache_duration' => $this->get_unified_cache_duration()
+            'cache_duration' => $this->get_cache_duration()
         );
 
         if ($status['configured']) {
@@ -1144,29 +1118,130 @@ class ADC_API
     {
         if ($this->debug_mode) {
             $context['cache_enabled'] = $this->is_cache_enabled();
-            $context['cache_duration'] = $this->get_unified_cache_duration();
+            $context['cache_duration'] = $this->get_cache_duration();
             ADC_Utils::debug_log('API Error (' . $this->language . '): ' . $message, $context);
         }
     }
 
     /**
-     * Force refresh all data for this language
+     * Get formatted error message based on language
      */
-    public function force_refresh_all()
+    public function get_error_message($error_type)
     {
-        // Clear all caches
-        $this->clear_all_cache();
-
-        // Pre-load essential data
-        $programs = $this->get_programs();
-        $menu_programs = $this->get_all_programs_for_menu();
-
-        return array(
-            'programs_loaded' => count($programs),
-            'menu_programs_loaded' => count($menu_programs),
-            'language' => $this->language,
-            'cache_enabled' => $this->is_cache_enabled(),
-            'timestamp' => current_time('mysql')
+        $messages = array(
+            'es' => array(
+                'no_connection' => 'No se pudo conectar con la API',
+                'no_programs' => 'No se encontraron programas',
+                'no_materials' => 'No se encontraron videos',
+                'invalid_response' => 'Respuesta inválida de la API',
+                'not_configured' => 'API no configurada',
+                'cache_disabled' => 'Caché desactivado - rendimiento puede ser más lento',
+                'retry_failed' => 'Error después de varios intentos'
+            ),
+            'en' => array(
+                'no_connection' => 'Could not connect to API',
+                'no_programs' => 'No programs found',
+                'no_materials' => 'No videos found',
+                'invalid_response' => 'Invalid API response',
+                'not_configured' => 'API not configured',
+                'cache_disabled' => 'Cache disabled - performance may be slower',
+                'retry_failed' => 'Error after multiple attempts'
+            )
         );
+
+        $lang_messages = isset($messages[$this->language]) ? $messages[$this->language] : $messages['es'];
+        return isset($lang_messages[$error_type]) ? $lang_messages[$error_type] : 'Error desconocido';
+    }
+
+    /**
+     * NEW: Get cache performance info for admin
+     */
+    public function get_cache_performance_info()
+    {
+        $info = array(
+            'cache_enabled' => $this->is_cache_enabled(),
+            'cache_duration_hours' => $this->get_cache_duration() / HOUR_IN_SECONDS,
+            'language' => $this->language,
+            'internal_cache_entries' => count($this->cache)
+        );
+
+        if ($this->is_cache_enabled()) {
+            $cache_stats = $this->get_cache_stats();
+            $info['transient_count'] = $cache_stats['transient_count'];
+            $info['cache_size_kb'] = $cache_stats['cache_size_kb'];
+            $info['performance_mode'] = 'optimized';
+        } else {
+            $info['performance_mode'] = 'real-time';
+            $info['warning'] = 'Cache disabled - all requests go directly to API';
+        }
+
+        return $info;
+    }
+
+    /**
+     * NEW: Warm up cache by pre-loading essential data
+     */
+    public function warm_up_cache()
+    {
+        if (!$this->is_cache_enabled()) {
+            return array('success' => false, 'reason' => 'cache_disabled');
+        }
+
+        try {
+            $warmed_items = array();
+            $start_time = microtime(true);
+
+            // Pre-load programs
+            $programs = $this->get_programs();
+            if (!empty($programs)) {
+                $warmed_items[] = 'programs (' . count($programs) . ')';
+
+                // Pre-load materials for first few programs
+                $programs_to_warm = array_slice($programs, 0, 3);
+                foreach ($programs_to_warm as $program) {
+                    $materials = $this->get_materials($program['id']);
+                    if (!empty($materials)) {
+                        $warmed_items[] = $program['name'] . ' (' . count($materials) . ' videos)';
+                    }
+                }
+            }
+
+            // Pre-load menu data
+            $menu_programs = $this->get_all_programs_for_menu();
+            if (!empty($menu_programs)) {
+                $warmed_items[] = 'menu programs (' . count($menu_programs) . ')';
+            }
+
+            $end_time = microtime(true);
+            $duration = round(($end_time - $start_time) * 1000);
+
+            return array(
+                'success' => true,
+                'items_warmed' => $warmed_items,
+                'duration_ms' => $duration,
+                'language' => $this->language,
+                'timestamp' => current_time('mysql')
+            );
+
+        } catch (Exception $e) {
+            return array(
+                'success' => false,
+                'error' => $e->getMessage(),
+                'language' => $this->language
+            );
+        }
+    }
+
+    /**
+     * NEW: Check if cache needs refresh based on age
+     */
+    public function needs_cache_refresh()
+    {
+        if (!$this->is_cache_enabled()) {
+            return false;
+        }
+
+        $cache_stats = $this->get_cache_stats();
+        return $cache_stats['transient_count'] === 0;
     }
 }
