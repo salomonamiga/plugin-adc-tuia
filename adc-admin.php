@@ -572,7 +572,7 @@ class ADC_Admin
     }
 
     /**
-     * Sanitize settings before saving
+     * Sanitize settings before saving - CORREGIDO
      */
     public function sanitize_settings($input)
     {
@@ -582,10 +582,13 @@ class ADC_Admin
         $sanitized['api_token'] = isset($input['api_token']) ? sanitize_text_field($input['api_token']) : '';
         $sanitized['api_url'] = isset($input['api_url']) ? rtrim(esc_url_raw($input['api_url']), '/') : '';
 
-        // Cache Settings
+        // Cache Settings - CORREGIDO: Preservar token existente
         $sanitized['enable_cache'] = isset($input['enable_cache']) ? '1' : '0';
         $sanitized['cache_duration'] = isset($input['cache_duration']) && in_array($input['cache_duration'], array('0.5', '1', '3', '6', '12', '24')) ? $input['cache_duration'] : '6';
-        $sanitized['webhook_token'] = isset($input['webhook_token']) ? sanitize_text_field($input['webhook_token']) : '';
+        
+        // CRÍTICO: Preservar el token webhook existente (no viene en el formulario)
+        $current_options = get_option($this->plugin_name, array());
+        $sanitized['webhook_token'] = isset($current_options['webhook_token']) ? $current_options['webhook_token'] : '';
 
         // Display Settings
         $sanitized['videos_per_row'] = isset($input['videos_per_row']) && in_array($input['videos_per_row'], array('3', '4', '5', '6')) ? $input['videos_per_row'] : '4';
