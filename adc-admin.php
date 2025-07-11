@@ -1,7 +1,7 @@
 <?php
 /**
  * ADC Video Display - Admin Settings
- * Version: 3.1 - Sistema de Caché Inteligente
+ * Version: 3.1 - Sistema de Caché Inteligente con Webhook Estático
  * 
  * Maneja toda la configuración de administración del plugin
  */
@@ -34,7 +34,6 @@ class ADC_Admin
         add_action('wp_ajax_adc_clear_all_cache', array($this, 'ajax_clear_all_cache'));
         add_action('wp_ajax_adc_test_connection', array($this, 'ajax_test_connection'));
         add_action('wp_ajax_adc_health_check', array($this, 'ajax_health_check'));
-        add_action('wp_ajax_adc_generate_webhook_token', array($this, 'ajax_generate_webhook_token'));
     }
 
     /**
@@ -71,10 +70,7 @@ class ADC_Admin
                 'connection_error' => 'Error de conexión',
                 'health_checking' => 'Verificando estado del sistema...',
                 'health_success' => 'Sistema funcionando correctamente',
-                'health_error' => 'Se detectaron problemas en el sistema',
-                'generating_token' => 'Generando nuevo token...',
-                'token_generated' => 'Token generado exitosamente',
-                'token_error' => 'Error al generar token'
+                'health_error' => 'Se detectaron problemas en el sistema'
             )
         ));
     }
@@ -199,42 +195,6 @@ class ADC_Admin
 
         } catch (Exception $e) {
             wp_send_json_error('Error performing health check: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * AJAX handler to generate new webhook token
-     */
-    public function ajax_generate_webhook_token()
-    {
-        check_ajax_referer('adc_admin_nonce', 'nonce');
-
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Insufficient permissions');
-            return;
-        }
-
-        try {
-            // Generate new secure token
-            $new_token = $this->generate_secure_token();
-
-            // Save to options
-            $current_options = get_option($this->plugin_name, array());
-            $current_options['webhook_token'] = $new_token;
-            update_option($this->plugin_name, $current_options);
-
-            // Return new webhook URL
-            $webhook_url = $this->get_webhook_url($new_token);
-
-            wp_send_json_success(array(
-                'message' => 'Token regenerado exitosamente',
-                'token' => $new_token,
-                'webhook_url' => $webhook_url,
-                'timestamp' => current_time('mysql')
-            ));
-
-        } catch (Exception $e) {
-            wp_send_json_error('Error generating token: ' . $e->getMessage());
         }
     }
 
@@ -389,7 +349,7 @@ class ADC_Admin
         echo '<h4 style="margin-top: 0; color: #1976d2;">ℹ️ ¿Cómo funciona el caché?</h4>';
         echo '<ul>';
         echo '<li><strong>Caché Activado:</strong> Los datos se guardan por el tiempo configurado, haciendo el sitio más rápido</li>';
-        echo '<li><strong>Webhook:</strong> Permite que ADC limpie automáticamente el caché cuando sube contenido nuevo</li>';
+        echo '<li><strong>Webhook Automático:</strong> ADC limpia automáticamente el caché cuando sube contenido nuevo de IA</li>';
         echo '<li><strong>Token de Seguridad:</strong> Protege tu sitio para que solo ADC pueda usar el webhook</li>';
         echo '</ul>';
         echo '</div>';
@@ -424,7 +384,7 @@ class ADC_Admin
     }
 
     /**
-     * Field callbacks - CACHE (NUEVOS)
+     * Field callbacks - CACHE (WEBHOOK ESTÁTICO)
      */
     public function enable_cache_callback()
     {
@@ -453,7 +413,7 @@ class ADC_Admin
 
     public function webhook_token_callback()
     {
-        // CORREGIDO: Asegurar que siempre hay un token
+        // Asegurar que siempre hay un token
         $token = isset($this->options['webhook_token']) ? $this->options['webhook_token'] : '';
 
         if (empty($token)) {
@@ -468,27 +428,25 @@ class ADC_Admin
         echo '<div style="margin-bottom: 15px;">';
         echo '<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">';
         echo '<input type="text" id="adc-current-token" value="' . esc_attr($token) . '" class="regular-text" readonly style="background: #f9f9f9; font-family: monospace; font-size: 12px;">';
-        echo '<button type="button" id="adc-regenerate-token" class="button button-secondary">🔄 Regenerar Token</button>';
         echo '</div>';
-        echo '<p class="description">Token de seguridad para el webhook. <strong>Normalmente puedes usar el mismo token para siempre.</strong></p>';
+        echo '<p class="description">Token de seguridad para el webhook automático. <strong>Este token es permanente y no necesita cambios.</strong></p>';
         echo '</div>';
 
-        // WARNING sobre regenerar
-        echo '<div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; border-radius: 4px; margin-top: 10px;">';
-        echo '<h4 style="margin-top: 0; color: #856404;">⚠️ ¿Cuándo regenerar el token?</h4>';
-        echo '<ul style="margin-bottom: 0; color: #856404; font-size: 13px;">';
-        echo '<li><strong>Seguridad comprometida:</strong> Si crees que alguien más tiene acceso al token</li>';
-        echo '<li><strong>Cambio de personal:</strong> Si alguien que tenía acceso ya no debería tenerlo</li>';
-        echo '<li><strong>Migración de sitio:</strong> Si cambias de dominio o servidor</li>';
-        echo '<li><strong>Política de empresa:</strong> Si tu empresa requiere rotar tokens periódicamente</li>';
+        // Información sobre el webhook automático
+        echo '<div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 12px; border-radius: 4px; margin-top: 10px;">';
+        echo '<h4 style="margin-top: 0; color: #155724;">✅ Webhook Automático Configurado</h4>';
+        echo '<ul style="margin-bottom: 0; color: #155724; font-size: 13px;">';
+        echo '<li><strong>Funcionamiento:</strong> ADC llamará automáticamente al webhook cuando sincronice videos nuevos de IA</li>';
+        echo '<li><strong>Filtro inteligente:</strong> Solo se activa cuando hay videos de las secciones IA (Español/Inglés)</li>';
+        echo '<li><strong>Sin intervención manual:</strong> El caché se limpia automáticamente cuando es necesario</li>';
+        echo '<li><strong>Token seguro:</strong> Solo ADC puede activar la limpieza de caché</li>';
         echo '</ul>';
-        echo '<p style="margin: 8px 0 0 0; color: #856404; font-size: 13px;"><strong>Importante:</strong> Al regenerar, debes enviar la nueva URL a ADC para actualizar su configuración.</p>';
         echo '</div>';
     }
 
     public function webhook_url_callback()
     {
-        // CORREGIDO: Asegurar que siempre hay un token y mostrar URL inmediatamente
+        // Asegurar que siempre hay un token y mostrar URL inmediatamente
         $token = isset($this->options['webhook_token']) ? $this->options['webhook_token'] : '';
         
         if (empty($token)) {
@@ -502,20 +460,21 @@ class ADC_Admin
         $webhook_url = $this->get_webhook_url($token);
 
         echo '<div style="background: #f0f8f0; padding: 15px; border: 1px solid #46b450; border-radius: 4px; margin-bottom: 15px;">';
-        echo '<h4 style="margin-top: 0; color: #46b450;">🔗 URL para ADC (Lista para usar)</h4>';
+        echo '<h4 style="margin-top: 0; color: #46b450;">🔗 URL del Webhook (Configurada Automáticamente)</h4>';
         echo '<input type="text" id="adc-webhook-url" value="' . esc_attr($webhook_url) . '" class="large-text" readonly style="background: white; margin-bottom: 10px; font-family: monospace; font-size: 12px;">';
         echo '<button type="button" id="adc-copy-webhook" class="button button-small" style="margin-left: 10px;">📋 Copiar URL</button>';
-        echo '<p style="margin: 10px 0 0 0;"><strong>Instrucciones:</strong> Envía esta URL completa al equipo de ADC para que configuren el webhook automático.</p>';
+        echo '<p style="margin: 10px 0 0 0;"><strong>Estado:</strong> Esta URL ya está configurada en el sistema ADC para limpieza automática de caché.</p>';
         echo '</div>';
 
         // Información técnica
         echo '<div style="background: #e8f4fd; padding: 12px; border-left: 4px solid #2196f3; border-radius: 4px;">';
-        echo '<h4 style="margin-top: 0; color: #1976d2;">ℹ️ Información técnica para ADC</h4>';
+        echo '<h4 style="margin-top: 0; color: #1976d2;">ℹ️ Información técnica del webhook</h4>';
         echo '<ul style="margin-bottom: 0; color: #1976d2; font-size: 13px;">';
-        echo '<li><strong>Método:</strong> GET o POST (ambos funcionan)</li>';
-        echo '<li><strong>Respuesta exitosa:</strong> JSON con {"success": true}</li>';
-        echo '<li><strong>Cuándo usar:</strong> Cada vez que suban contenido nuevo (videos, programas, etc.)</li>';
-        echo '<li><strong>Qué hace:</strong> Limpia automáticamente todo el caché del sitio</li>';
+        echo '<li><strong>Activación automática:</strong> Se ejecuta cuando ADC sincroniza videos de IA desde Multix</li>';
+        echo '<li><strong>Filtro inteligente:</strong> Solo se activa para videos de secciones 5 (IA Español) y 6 (IA Inglés)</li>';
+        echo '<li><strong>Método:</strong> GET con token de seguridad</li>';
+        echo '<li><strong>Respuesta:</strong> JSON con confirmación de limpieza exitosa</li>';
+        echo '<li><strong>Tiempo de actualización:</strong> El sitio se actualiza inmediatamente después de la sincronización</li>';
         echo '</ul>';
         echo '</div>';
     }
@@ -524,7 +483,7 @@ class ADC_Admin
     {
         echo '<div style="margin-top: 10px;">';
         echo '<button type="button" id="adc-clear-all-cache" class="button button-secondary" style="background: #dc3545; border-color: #dc3545; color: white;">🗑️ Limpiar Todo el Caché</button>';
-        echo '<p class="description">Limpia inmediatamente todo el caché guardado. Útil para forzar la actualización de datos.</p>';
+        echo '<p class="description">Limpia inmediatamente todo el caché guardado. Útil para forzar la actualización de datos manualmente.</p>';
         echo '</div>';
 
         // Cache status display
@@ -734,7 +693,7 @@ class ADC_Admin
     }
 
     /**
-     * Render admin styles and scripts inline - ACTUALIZADO CON NUEVO WEBHOOK JS
+     * Render admin styles and scripts inline - ACTUALIZADO SIN REGENERAR TOKEN
      */
     private function render_admin_styles_and_scripts()
     {
@@ -785,48 +744,7 @@ class ADC_Admin
                 });
             });
             
-            // Regenerate token handler - ACTUALIZADO
-            $("#adc-regenerate-token").on("click", function(e) {
-                e.preventDefault();
-                var button = $(this);
-                var originalText = button.text();
-                
-                if (!confirm("⚠️ ¿Estás seguro de regenerar el token?\\n\\nEsto invalidará el token actual y ADC necesitará actualizar su configuración con la nueva URL.\\n\\n¿Continuar?")) {
-                    return;
-                }
-                
-                button.prop("disabled", true).text("🔄 Regenerando...");
-                
-                $.ajax({
-                    url: ajaxurl,
-                    type: "POST",
-                    data: {
-                        action: "adc_generate_webhook_token",
-                        nonce: "' . wp_create_nonce('adc_admin_nonce') . '"
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            // Update token field
-                            $("#adc-current-token").val(response.data.token);
-                            
-                            // Update webhook URL field
-                            $("#adc-webhook-url").val(response.data.webhook_url);
-                            
-                            alert("✅ " + response.data.message + "\\n\\n🔑 Nuevo token: " + response.data.token + "\\n\\n📋 Nueva URL del webhook:\\n" + response.data.webhook_url + "\\n\\n⚠️ IMPORTANTE: Envía la nueva URL a ADC para actualizar su configuración.");
-                        } else {
-                            alert("❌ Error: " + response.data);
-                        }
-                    },
-                    error: function() {
-                        alert("❌ Error de conexión");
-                    },
-                    complete: function() {
-                        button.prop("disabled", false).text(originalText);
-                    }
-                });
-            });
-            
-            // Copy webhook URL to clipboard - NUEVO
+            // Copy webhook URL to clipboard
             $("#adc-copy-webhook").on("click", function(e) {
                 e.preventDefault();
                 var webhookUrl = $("#adc-webhook-url").val();
@@ -1060,10 +978,23 @@ class ADC_Admin
 
         echo '</div>';
 
+        // Webhook automático info
+        echo '<div style="background: #d4edda; padding: 15px; border-left: 4px solid #28a745; margin-top: 15px;">';
+        echo '<h3 style="margin-top: 0; color: #155724;"><span style="font-size: 18px;">🤖</span> Webhook Automático</h3>';
+        echo '<p><strong>¡Nuevo!</strong> El plugin ahora incluye limpieza automática de caché:</p>';
+        echo '<ul>';
+        echo '<li>ADC llama automáticamente al webhook cuando sincroniza videos de IA</li>';
+        echo '<li>Filtro inteligente: solo se activa para secciones 5 (IA Español) y 6 (IA Inglés)</li>';
+        echo '<li>El sitio se actualiza inmediatamente sin intervención manual</li>';
+        echo '<li>Token de seguridad permanente protege el webhook</li>';
+        echo '</ul>';
+        echo '<p><em>Nota: La configuración es automática y no requiere mantenimiento.</em></p>';
+        echo '</div>';
+
         // Clip promocional info
         echo '<div style="background: #e8f4fd; padding: 15px; border-left: 4px solid #2196f3; margin-top: 15px;">';
         echo '<h3 style="margin-top: 0; color: #1976d2;"><span style="font-size: 18px;">🎬</span> Clip Promocional</h3>';
-        echo '<p><strong>¡Nuevo!</strong> El plugin ahora soporta clips promocionales de programas:</p>';
+        echo '<p><strong>¡Disponible!</strong> El plugin soporta clips promocionales de programas:</p>';
         echo '<ul>';
         echo '<li>Se muestran automáticamente cuando el campo <code>clip</code> está disponible en la API</li>';
         echo '<li>Aparecen en la página del programa antes de los videos de temporadas</li>';
