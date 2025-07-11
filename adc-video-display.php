@@ -956,3 +956,310 @@ function adc_video_display_deactivate()
 {
     // Clean up if needed - but preserve settings for reactivation
 }
+
+/**
+ * AGREGAR AL FINAL DE adc-video-display.php (archivo principal del plugin)
+ * URL Amigable para limpiar caché: https://tuia.tv/cache/clear
+ */
+
+// Agregar rewrite rule para URL amigable
+add_action('init', 'adc_add_cache_clear_endpoint');
+function adc_add_cache_clear_endpoint() {
+    add_rewrite_rule('^cache/clear/?$', 'index.php?adc_cache_clear=1', 'top');
+}
+
+// Registrar query var
+add_filter('query_vars', 'adc_add_cache_clear_query_var');
+function adc_add_cache_clear_query_var($vars) {
+    $vars[] = 'adc_cache_clear';
+    return $vars;
+}
+
+// Manejar la request de cache clear
+add_action('template_redirect', 'adc_handle_cache_clear_request');
+function adc_handle_cache_clear_request() {
+    if (get_query_var('adc_cache_clear')) {
+        adc_display_cache_clear_page();
+        exit;
+    }
+}
+
+// Mostrar página de limpieza de caché
+function adc_display_cache_clear_page() {
+    $success = false;
+    $error_message = '';
+    
+    try {
+        // Limpiar caché usando las funciones existentes del plugin
+        $languages = ADC_Utils::get_valid_languages();
+        
+        foreach ($languages as $lang) {
+            $api = new ADC_API($lang);
+            $api->clear_all_cache();
+        }
+        
+        // Clear WordPress object cache
+        if (function_exists('wp_cache_flush')) {
+            wp_cache_flush();
+        }
+        
+        $success = true;
+        
+    } catch (Exception $e) {
+        $error_message = $e->getMessage();
+    }
+    
+    // Detectar idioma actual
+    $current_language = ADC_Utils::detect_language();
+    $is_english = ($current_language === 'en');
+    
+    ?>
+    <!DOCTYPE html>
+    <html lang="<?php echo $current_language; ?>">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title><?php echo $is_english ? 'Cache Cleared' : 'Caché Limpiado'; ?> - TuIA</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #333;
+            }
+            
+            .container {
+                background: white;
+                padding: 3rem;
+                border-radius: 20px;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                text-align: center;
+                max-width: 500px;
+                width: 90%;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .container::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 5px;
+                background: linear-gradient(90deg, #6EC1E4, #4A90E2);
+            }
+            
+            .success-icon {
+                font-size: 4rem;
+                margin-bottom: 1rem;
+                animation: bounceIn 0.6s ease-out;
+            }
+            
+            .error-icon {
+                font-size: 4rem;
+                margin-bottom: 1rem;
+                color: #e74c3c;
+                animation: shake 0.6s ease-out;
+            }
+            
+            .title {
+                font-size: 2rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+                color: #2c3e50;
+            }
+            
+            .success-title {
+                color: #27ae60;
+            }
+            
+            .error-title {
+                color: #e74c3c;
+            }
+            
+            .message {
+                font-size: 1.1rem;
+                color: #7f8c8d;
+                margin-bottom: 2rem;
+                line-height: 1.6;
+            }
+            
+            .error-details {
+                background: #ffeaea;
+                border: 1px solid #ffcccb;
+                border-radius: 8px;
+                padding: 1rem;
+                margin: 1rem 0;
+                color: #c0392b;
+                font-family: monospace;
+                font-size: 0.9rem;
+                text-align: left;
+            }
+            
+            .countdown {
+                font-size: 1.2rem;
+                font-weight: 600;
+                color: #6EC1E4;
+                margin-bottom: 1.5rem;
+            }
+            
+            .countdown-number {
+                display: inline-block;
+                background: #6EC1E4;
+                color: white;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                line-height: 40px;
+                margin: 0 0.5rem;
+                animation: pulse 1s infinite;
+            }
+            
+            .home-button {
+                display: inline-block;
+                padding: 0.8rem 2rem;
+                background: #6EC1E4;
+                color: white;
+                text-decoration: none;
+                border-radius: 25px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                border: none;
+                cursor: pointer;
+                font-size: 1rem;
+            }
+            
+            .home-button:hover {
+                background: #5AB0D3;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(106, 193, 228, 0.4);
+            }
+            
+            @keyframes bounceIn {
+                0% { transform: scale(0.3); opacity: 0; }
+                50% { transform: scale(1.05); }
+                70% { transform: scale(0.9); }
+                100% { transform: scale(1); opacity: 1; }
+            }
+            
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+                20%, 40%, 60%, 80% { transform: translateX(5px); }
+            }
+            
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+            }
+            
+            .logo {
+                margin-bottom: 1rem;
+                opacity: 0.8;
+            }
+            
+            @media (max-width: 600px) {
+                .container {
+                    padding: 2rem;
+                    margin: 1rem;
+                }
+                
+                .title {
+                    font-size: 1.5rem;
+                }
+                
+                .success-icon, .error-icon {
+                    font-size: 3rem;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <?php if ($success): ?>
+                <div class="success-icon">✅</div>
+                <h1 class="title success-title">
+                    <?php echo $is_english ? 'Cache Cleared Successfully!' : '¡Caché Limpiado Exitosamente!'; ?>
+                </h1>
+                <p class="message">
+                    <?php echo $is_english 
+                        ? 'The website cache has been cleared successfully. All content will now display the latest updates immediately.' 
+                        : 'El caché del sitio web ha sido limpiado exitosamente. Todo el contenido ahora mostrará las actualizaciones más recientes inmediatamente.'; ?>
+                </p>
+                
+                <div class="countdown">
+                    <?php echo $is_english ? 'Redirecting to home in' : 'Redirigiendo al inicio en'; ?>
+                    <span class="countdown-number" id="countdown">10</span>
+                    <?php echo $is_english ? 'seconds' : 'segundos'; ?>
+                </div>
+                
+                <a href="<?php echo home_url('/'); ?>" class="home-button" id="homeButton">
+                    <?php echo $is_english ? 'Go to Home Now' : 'Ir al Inicio Ahora'; ?>
+                </a>
+                
+                <script>
+                    let timeLeft = 10;
+                    const countdownElement = document.getElementById('countdown');
+                    const homeButton = document.getElementById('homeButton');
+                    
+                    const timer = setInterval(() => {
+                        timeLeft--;
+                        countdownElement.textContent = timeLeft;
+                        
+                        if (timeLeft <= 0) {
+                            clearInterval(timer);
+                            window.location.href = '<?php echo home_url('/'); ?>';
+                        }
+                    }, 1000);
+                    
+                    // Allow immediate redirect on button click
+                    homeButton.addEventListener('click', () => {
+                        clearInterval(timer);
+                    });
+                </script>
+                
+            <?php else: ?>
+                <div class="error-icon">❌</div>
+                <h1 class="title error-title">
+                    <?php echo $is_english ? 'Cache Clear Failed' : 'Error al Limpiar Caché'; ?>
+                </h1>
+                <p class="message">
+                    <?php echo $is_english 
+                        ? 'There was an error clearing the website cache. Please try again or contact support.' 
+                        : 'Hubo un error al limpiar el caché del sitio web. Por favor intenta nuevamente o contacta soporte.'; ?>
+                </p>
+                
+                <?php if ($error_message): ?>
+                    <div class="error-details">
+                        <strong><?php echo $is_english ? 'Error Details:' : 'Detalles del Error:'; ?></strong><br>
+                        <?php echo esc_html($error_message); ?>
+                    </div>
+                <?php endif; ?>
+                
+                <a href="<?php echo home_url('/'); ?>" class="home-button">
+                    <?php echo $is_english ? 'Go to Home' : 'Ir al Inicio'; ?>
+                </a>
+            <?php endif; ?>
+        </div>
+    </body>
+    </html>
+    <?php
+}
+
+// Flush rewrite rules on plugin activation (agregar al activation hook existente)
+register_activation_hook(__FILE__, 'adc_flush_rewrite_rules_on_activation');
+function adc_flush_rewrite_rules_on_activation() {
+    adc_add_cache_clear_endpoint();
+    flush_rewrite_rules();
+}
