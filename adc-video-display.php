@@ -1200,7 +1200,7 @@ function adc_display_cache_clear_page() {
                 
                 <div class="countdown">
                     <?php echo $is_english ? 'Redirecting to home in' : 'Redirigiendo al inicio en'; ?>
-                    <span class="countdown-number" id="countdown">10</span>
+                    <span class="countdown-number" id="countdown">5</span>
                     <?php echo $is_english ? 'seconds' : 'segundos'; ?>
                 </div>
                 
@@ -1209,7 +1209,7 @@ function adc_display_cache_clear_page() {
                 </a>
                 
                 <script>
-                    let timeLeft = 10;
+                    let timeLeft = 5;
                     const countdownElement = document.getElementById('countdown');
                     const homeButton = document.getElementById('homeButton');
                     
@@ -1221,7 +1221,7 @@ function adc_display_cache_clear_page() {
                             clearInterval(timer);
                             window.location.href = '<?php echo home_url('/'); ?>';
                         }
-                    }, 1000);
+                    }, 500);
                     
                     // Allow immediate redirect on button click
                     homeButton.addEventListener('click', () => {
