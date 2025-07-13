@@ -226,95 +226,36 @@
         // Video Player Module
         player: {
             init: function () {
-                if (typeof videojs === 'undefined' || !document.getElementById('adc-player')) {
-                    return;
+                // Video.js initialization is now handled by PHP generate_video_player_script()
+                // to avoid conflicts and double initialization
+                
+                if (ADCVideo.config.debug) {
+                    console.log('ADC: Video.js initialization skipped - handled by PHP script');
                 }
-
-                this.setupPlayer();
+                
+                // Only store reference if player exists (created by PHP script)
+                if (typeof videojs !== 'undefined' && document.getElementById('adc-player')) {
+                    setTimeout(function() {
+                        try {
+                            ADCVideo.state.player = videojs.getPlayer('adc-player');
+                        } catch (e) {
+                            // Player not ready yet, will be handled by PHP script
+                        }
+                    }, 500);
+                }
             },
 
+            // Keep these methods for compatibility but they won't be used
             setupPlayer: function () {
-                var self = this;
-                var player = videojs('adc-player', {
-                    controls: true,
-                    preload: 'auto',
-                    fluid: true,
-                    responsive: true
-                });
-
-                player.ready(function () {
-                    // Set initial volume
-                    player.volume(ADCVideo.config.playerVolume);
-
-                    // Add custom buttons
-                    self.addCustomButtons(player);
-
-                    // Handle ended event for autoplay
-                    if (ADCVideo.config.autoplayEnabled) {
-                        player.on('ended', function () {
-                            ADCVideo.autoplay.handleVideoEnded();
-                        });
-                    }
-                });
-
-                // Store player reference
-                ADCVideo.state.player = player;
+                // This method is now unused - handled by PHP script
             },
 
             addCustomButtons: function (player) {
-                var Button = videojs.getComponent('Button');
-
-                // Rewind button
-                var RewindButton = videojs.extend(Button, {
-                    constructor: function () {
-                        Button.apply(this, arguments);
-                        this.controlText('Retroceder 10 segundos');
-                        this.addClass('vjs-rewind-button');
-                    },
-                    handleClick: function () {
-                        var currentTime = player.currentTime();
-                        player.currentTime(Math.max(0, currentTime - 10));
-                    }
-                });
-
-                // Forward button
-                var ForwardButton = videojs.extend(Button, {
-                    constructor: function () {
-                        Button.apply(this, arguments);
-                        this.controlText('Adelantar 10 segundos');
-                        this.addClass('vjs-forward-button');
-                    },
-                    handleClick: function () {
-                        var currentTime = player.currentTime();
-                        var duration = player.duration();
-                        player.currentTime(Math.min(duration, currentTime + 10));
-                    }
-                });
-
-                // Register and add buttons
-                videojs.registerComponent('RewindButton', RewindButton);
-                videojs.registerComponent('ForwardButton', ForwardButton);
-
-                player.controlBar.addChild('RewindButton', {}, 0);
-                player.controlBar.addChild('ForwardButton', {}, 2);
-
-                // Style the buttons
-                this.styleCustomButtons(player);
+                // This method is now unused - handled by PHP script
             },
 
             styleCustomButtons: function (player) {
-                setTimeout(function () {
-                    var rewindBtn = player.controlBar.getChild('RewindButton');
-                    var forwardBtn = player.controlBar.getChild('ForwardButton');
-
-                    if (rewindBtn && rewindBtn.el()) {
-                        rewindBtn.el().innerHTML = '<span>⏪ 10s</span>';
-                    }
-
-                    if (forwardBtn && forwardBtn.el()) {
-                        forwardBtn.el().innerHTML = '<span>10s ⏩</span>';
-                    }
-                }, 100);
+                // This method is now unused - handled by PHP script
             }
         },
 
