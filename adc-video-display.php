@@ -16,6 +16,16 @@ add_filter( 'redirect_canonical', function( $redirect_url ) {
     return $redirect_url;
 }, PHP_INT_MAX );
 
+// Quita cualquier <link rel="prefetch"> que WP o tu tema inyecten
+add_filter( 'wp_resource_hints', function( $hints, $relation_type ) {
+    if ( $relation_type === 'prefetch' ) {
+        return [];
+    }
+    return $hints;
+}, 10, 2 );
+
+
+
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
