@@ -1,14 +1,23 @@
 <?php
-
 /**
  * Plugin Name: ADC Video Display
- * Description: Muestra videos desde el sistema ADC en WordPress - Multiidioma (ES/EN) con URLs Amigables
- * Version: 3.2
- * Author: TuTorah Development Team
+ * Description: Muestra videos desde el sistema ADC en WordPress – Multiidioma (ES/EN) con URLs Amigables
+ * Version:     3.2
+ * Author:      TuTorah Development Team
  */
 
+// Evita el canonical redirect **antes** de todo
+add_filter( 'redirect_canonical', function( $redirect_url ) {
+    $uri = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
+    // Captura /programa/... y /en/programa/...
+    if ( preg_match( '#^/(en/)?programa/#', $uri ) ) {
+        return false;
+    }
+    return $redirect_url;
+}, PHP_INT_MAX );
+
 // Prevent direct access
-if (!defined('ABSPATH')) {
+if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
@@ -88,15 +97,6 @@ public function init_url_routing()
         flush_rewrite_rules();
         update_option('adc_rewrite_rules_flushed', '3.2');
     }
-    
-// Deshabilita el canonical redirect para /programa/… y /en/program/…
-add_filter('redirect_canonical', function( $redirect, $requested ) {
-    $path = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
-    if ( preg_match( '#^/(en/)?programa/[^/]+/?#', $path ) ) {
-        return false;
-    }
-    return $redirect;
-}, 1, 2);
 
 }
 
