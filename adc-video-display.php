@@ -72,23 +72,34 @@ class ADC_Video_Display
         add_action('pre_get_posts', array($this, 'modify_main_query'), 1);
     }
 
-    /**
-     * NEW: Initialize URL routing system
-     */
-    public function init_url_routing()
-    {
-        // Add rewrite rules for friendly URLs
-        $this->add_rewrite_rules();
-        
-        // Add query vars
-        add_filter('query_vars', array($this, 'add_query_vars'));
-        
-        // Check if rewrite rules need to be flushed
-        if (get_option('adc_rewrite_rules_flushed') !== '3.2') {
-            flush_rewrite_rules();
-            update_option('adc_rewrite_rules_flushed', '3.2');
-        }
+/**
+ * NEW: Initialize URL routing system
+ */
+public function init_url_routing()
+{
+    // Add rewrite rules for friendly URLs
+    $this->add_rewrite_rules();
+    
+    // Add query vars
+    add_filter('query_vars', array($this, 'add_query_vars'));
+    
+    // Check if rewrite rules need to be flushed
+    if ( get_option('adc_rewrite_rules_flushed') !== '3.2' ) {
+        flush_rewrite_rules();
+        update_option('adc_rewrite_rules_flushed', '3.2');
     }
+    
+// Deshabilita el canonical redirect para /programa/… y /en/program/…
+add_filter('redirect_canonical', function( $redirect, $requested ) {
+    $path = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
+    if ( preg_match( '#^/(en/)?programa/[^/]+/?#', $path ) ) {
+        return false;
+    }
+    return $redirect;
+}, 1, 2);
+
+}
+
 
     /**
      * NEW: Add rewrite rules for friendly URLs
