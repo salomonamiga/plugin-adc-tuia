@@ -530,7 +530,7 @@ public function init_url_routing()
             'adc-script',
             ADC_PLUGIN_URL . 'script.js',
             array('jquery'),
-            '3.3',
+            '3.4',
             true
         );
 
