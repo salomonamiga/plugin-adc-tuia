@@ -413,8 +413,14 @@ public function init_url_routing()
         // Debug output antes de redireccionar
         $this->output_404_debug('ADC 404 Handler', $debug_info);
         
-        // Redirección con código 302 (temporal) para evitar problemas de SEO
-        wp_redirect($redirect_url, 302);
+        // Redirección con JavaScript (más confiable para 404s)
+        echo '<script>
+        console.log("🚀 ADC: Redirecting to " + "' . esc_js($redirect_url) . '");
+        window.location.href = "' . esc_js($redirect_url) . '";
+        </script>';
+
+        // También intentar redirección por meta refresh como backup
+        echo '<meta http-equiv="refresh" content="0; url=' . esc_url($redirect_url) . '">';
         exit;
     }
 
