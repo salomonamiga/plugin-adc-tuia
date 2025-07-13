@@ -370,7 +370,7 @@ class ADC_Video_Display
 
         // Buscar página por slug primero
         if ($target_language === 'en') {
-            $target_page = get_page_by_path('home-en');
+            $target_page = get_page_by_path('en');
         } else {
             $target_page = get_page_by_path('home');
         }
