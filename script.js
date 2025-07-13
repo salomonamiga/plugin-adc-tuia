@@ -1140,9 +1140,9 @@
             this.state.isInitialized = false;
             this.menu.initialized = false;
             this.search.initialized = false;
-            this.events.initialized = false;
-        };
-    
+            this.events.initialized = false
+        }
+    },
 
     // Initialize ADC Video
     function initializeADCVideo() {
