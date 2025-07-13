@@ -1,12 +1,12 @@
 /**
  * ADC Video Display - Frontend JavaScript
- * Version: 3.1 - Sistema de Caché Inteligente (ES/EN únicamente)
+ * Version: 3.2 - URLs Amigables Dinámicas
  */
 
 (function ($) {
     'use strict';
 
-    // Main ADC Video object - Optimizado y sin console.logs innecesarios
+    // Main ADC Video object - Optimizado con URLs amigables
     window.ADCVideo = {
 
         // Configuration
@@ -15,7 +15,8 @@
             autoplayCountdown: 5,
             playerVolume: 0.5,
             debug: false,
-            cacheEnabled: true
+            cacheEnabled: true,
+            friendlyUrls: true
         },
 
         // Internal state
@@ -62,7 +63,7 @@
             // Detect language from URL (only ES/EN)
             detectLanguage: function () {
                 var path = window.location.pathname;
-                if (path.indexOf('/en/') !== -1) {
+                if (path.indexOf('/en/') !== -1 || path.startsWith('/en')) {
                     return 'en';
                 }
                 return 'es';
@@ -72,6 +73,33 @@
             validateLanguage: function (language) {
                 var validLanguages = ['es', 'en'];
                 return validLanguages.indexOf(language) !== -1 ? language : 'es';
+            },
+
+            // NEW: Build friendly program URL
+            buildProgramUrl: function (programSlug, language) {
+                language = language || ADCVideo.state.currentLanguage;
+                var baseUrl = ADCVideo.utils.getBaseUrl(language);
+                var programKeyword = language === 'en' ? 'program' : 'programa';
+
+                return baseUrl + programKeyword + '/' + programSlug + '/';
+            },
+
+            // NEW: Build friendly video URL
+            buildVideoUrl: function (programSlug, videoSlug, language) {
+                language = language || ADCVideo.state.currentLanguage;
+                var baseUrl = ADCVideo.utils.getBaseUrl(language);
+                var programKeyword = language === 'en' ? 'program' : 'programa';
+
+                return baseUrl + programKeyword + '/' + programSlug + '/' + videoSlug + '/';
+            },
+
+            // NEW: Build friendly search URL
+            buildSearchUrl: function (searchTerm, language) {
+                language = language || ADCVideo.state.currentLanguage;
+                var baseUrl = ADCVideo.utils.getBaseUrl(language);
+                var searchKeyword = language === 'en' ? 'search' : 'buscar';
+
+                return baseUrl + searchKeyword + '/' + encodeURIComponent(searchTerm) + '/';
             },
 
             // Format duration from seconds to MM:SS
@@ -94,7 +122,7 @@
                 };
             },
 
-            // Get URL parameter
+            // Get URL parameter (for legacy support if needed)
             getUrlParam: function (param) {
                 var urlParams = new URLSearchParams(window.location.search);
                 return urlParams.get(param);
@@ -103,10 +131,68 @@
             // Get base URL for language
             getBaseUrl: function (language) {
                 var baseUrl = window.location.origin + '/';
-                if (language !== 'es') {
-                    baseUrl += language + '/';
+                if (language === 'en') {
+                    baseUrl += 'en/';
                 }
                 return baseUrl;
+            },
+
+            // NEW: Parse current friendly URL
+            parseCurrentUrl: function () {
+                var path = window.location.pathname;
+                var parts = path.split('/').filter(function (part) { return part.length > 0; });
+
+                var result = {
+                    language: 'es',
+                    type: 'home',
+                    program: null,
+                    video: null,
+                    search: null
+                };
+
+                var offset = 0;
+
+                // Check for language
+                if (parts[0] === 'en') {
+                    result.language = 'en';
+                    offset = 1;
+                }
+
+                // Check for type
+                if (parts[offset]) {
+                    var action = parts[offset];
+
+                    if ((action === 'programa' && result.language === 'es') ||
+                        (action === 'program' && result.language === 'en')) {
+                        result.type = 'program';
+
+                        if (parts[offset + 1]) {
+                            result.program = parts[offset + 1];
+
+                            if (parts[offset + 2]) {
+                                result.type = 'video';
+                                result.video = parts[offset + 2];
+                            }
+                        }
+                    } else if ((action === 'buscar' && result.language === 'es') ||
+                        (action === 'search' && result.language === 'en')) {
+                        result.type = 'search';
+
+                        if (parts[offset + 1]) {
+                            result.search = decodeURIComponent(parts[offset + 1]);
+                        }
+                    }
+                }
+
+                return result;
+            },
+
+            // NEW: Navigate to friendly URL
+            navigateTo: function (url) {
+                if (ADCVideo.config.debug) {
+                    console.log('ADC: Navigating to friendly URL:', url);
+                }
+                window.location.href = url;
             }
         },
 
@@ -131,6 +217,10 @@
             this.events.init();
 
             this.state.isInitialized = true;
+
+            if (this.config.debug) {
+                console.log('ADC Video initialized with friendly URLs for language:', this.state.currentLanguage);
+            }
         },
 
         // Video Player Module
@@ -228,7 +318,7 @@
             }
         },
 
-        // Autoplay Module
+        // Autoplay Module - UPDATED with friendly URLs
         autoplay: {
             handleVideoEnded: function () {
                 var nextUrl = this.getNextVideoUrl();
@@ -287,7 +377,7 @@
 
                     if (seconds <= 0 && !cancelled) {
                         clearInterval(ADCVideo.state.countdownInterval);
-                        window.location.href = nextUrl;
+                        ADCVideo.utils.navigateTo(nextUrl);
                     }
                 }, 1000);
 
@@ -314,7 +404,7 @@
             }
         },
 
-        // Menu Module - OPTIMIZADO - Solo ES/EN
+        // Menu Module - OPTIMIZADO con URLs amigables
         menu: {
             initialized: false,
             observer: null,
@@ -420,12 +510,12 @@
 
                             if (programs.length > 0) {
                                 var html = '';
-                                var baseUrl = ADCVideo.utils.getBaseUrl(language);
 
                                 $.each(programs, function (i, program) {
-                                    // Usar la función slugify unificada de utils
-                                    var slug = ADCVideo.utils.slugify(program.name);
-                                    var url = baseUrl + '?categoria=' + slug;
+                                    // NEW: Use friendly URLs for programs
+                                    var programSlug = ADCVideo.utils.slugify(program.name);
+                                    var url = ADCVideo.utils.buildProgramUrl(programSlug, language);
+
                                     html += '<a href="' + url + '" style="display:block !important; padding:12px 20px !important; color:#6EC1E4 !important; text-decoration:none !important; border-bottom:1px solid rgba(110, 193, 228, 0.1) !important; font-size:18px !important; line-height:1.3 !important; font-weight:500 !important; font-family:inherit !important; white-space:normal !important; word-wrap:break-word !important; max-width:300px !important; overflow-wrap:break-word !important;">' + program.name + '</a>';
                                 });
 
@@ -590,11 +680,12 @@
                     var searchContainer = document.createElement('div');
                     searchContainer.className = 'adc-menu-search-container';
 
+                    // NEW: Use friendly URL for search form action
                     var homeUrl = ADCVideo.utils.getBaseUrl(language);
 
                     searchContainer.innerHTML =
                         '<form class="adc-inline-search-form" action="' + homeUrl + '" method="get" data-language="' + language + '">' +
-                        '<input type="text" name="adc_search" placeholder="' + placeholderText + '" class="adc-inline-search-input">' +
+                        '<input type="text" name="adc_search_term" placeholder="' + placeholderText + '" class="adc-inline-search-input">' +
                         '<button type="submit" class="adc-inline-search-button">' +
                         '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
                         '<circle cx="11" cy="11" r="8"></circle>' +
@@ -616,7 +707,7 @@
             }
         },
 
-        // Search Module - UPDATED: Solo búsqueda con Enter/Click
+        // Search Module - UPDATED with friendly URLs
         search: {
             initialized: false,
 
@@ -635,10 +726,10 @@
                 var forms = document.querySelectorAll('.adc-search-form, .adc-inline-search-form');
 
                 forms.forEach(function (form) {
-                    var input = form.querySelector('input[name="adc_search"]');
+                    var input = form.querySelector('input[name="adc_search_term"], input[name="adc_search"]');
                     if (!input) return;
 
-                    // UPDATED: Only prevent empty searches, no real-time search
+                    // Handle form submission with friendly URLs
                     form.addEventListener('submit', function (e) {
                         var searchTerm = input.value.trim();
                         if (searchTerm === '') {
@@ -646,12 +737,14 @@
                             input.focus();
                             return false;
                         }
-                        // Allow form submission for non-empty searches
-                        return true;
-                    });
 
-                    // REMOVED: No more keyup/input event listeners for real-time search
-                    // Search only happens on form submit (Enter key or button click)
+                        // NEW: Redirect to friendly search URL instead of form submission
+                        e.preventDefault();
+                        var language = form.getAttribute('data-language') || ADCVideo.state.currentLanguage;
+                        var searchUrl = ADCVideo.utils.buildSearchUrl(searchTerm, language);
+                        ADCVideo.utils.navigateTo(searchUrl);
+                        return false;
+                    });
                 });
             },
 
@@ -694,7 +787,7 @@
                     // Create enhanced search form
                     var $searchContainer = $('<div class="adc-menu-search-container"></div>');
                     var $searchForm = $('<form class="adc-inline-search-form" action="' + homeUrl + '" method="get" data-language="' + language + '"></form>');
-                    var $searchInput = $('<input type="text" name="adc_search" placeholder="' + placeholderText + '" class="adc-inline-search-input">');
+                    var $searchInput = $('<input type="text" name="adc_search_term" placeholder="' + placeholderText + '" class="adc-inline-search-input">');
                     var $searchButton = $('<button type="submit" class="adc-inline-search-button" style="background:transparent !important; border:none !important; color:#ffffff !important; box-shadow:none !important; outline:none !important;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></button>');
 
                     $searchForm.append($searchInput).append($searchButton);
@@ -761,20 +854,29 @@
             },
 
             bindSearchEvents: function () {
-                // UPDATED: Only handle form submission, no real-time search
+                // UPDATED: Handle form submission with friendly URLs
                 ADCVideo.cache.$document.on('submit', '.adc-search-form, .adc-inline-search-form', function (e) {
+                    e.preventDefault();
+
                     var $form = $(this);
-                    var $input = $form.find('input[name="adc_search"]');
+                    var $input = $form.find('input[name="adc_search_term"], input[name="adc_search"]');
                     var searchTerm = $input.val().trim();
 
                     if (searchTerm === '') {
-                        e.preventDefault();
                         $input.focus();
                         return false;
                     }
 
-                    // Allow normal form submission - no AJAX
-                    return true;
+                    // NEW: Navigate to friendly search URL
+                    var language = $form.attr('data-language') || ADCVideo.state.currentLanguage;
+                    var searchUrl = ADCVideo.utils.buildSearchUrl(searchTerm, language);
+
+                    if (ADCVideo.config.debug) {
+                        console.log('ADC: Redirecting to search URL:', searchUrl);
+                    }
+
+                    ADCVideo.utils.navigateTo(searchUrl);
+                    return false;
                 });
 
                 // Focus/blur styling effects
@@ -787,9 +889,6 @@
                     var $form = $(this).closest('.adc-inline-search-form');
                     $form.removeClass('adc-search-focused');
                 });
-
-                // REMOVED: All real-time search event handlers
-                // No more keyup, input, or debounced search events
             }
         },
 
@@ -803,6 +902,7 @@
                 this.bindKeyboardEvents();
                 this.bindButtonEvents();
                 this.bindGeneralEvents();
+                this.bindFriendlyUrlEvents();
 
                 this.initialized = true;
             },
@@ -918,6 +1018,98 @@
                         $('.dropdown-arrow').css('transform', 'rotate(0deg)');
                     }, 100);
                 });
+            },
+
+            // NEW: Bind events for friendly URL navigation
+            bindFriendlyUrlEvents: function () {
+                // Intercept category card clicks to use friendly URLs
+                ADCVideo.cache.$document.on('click.adc-friendly', '.adc-category-card', function (e) {
+                    var href = this.getAttribute('href');
+                    if (href && !href.startsWith('http') && !href.startsWith('//')) {
+                        // It's already a friendly URL, let it proceed normally
+                        return true;
+                    }
+
+                    // Handle old-style URLs if any exist
+                    var urlParams = new URLSearchParams(href.split('?')[1] || '');
+                    var categoria = urlParams.get('categoria');
+
+                    if (categoria) {
+                        e.preventDefault();
+                        var friendlyUrl = ADCVideo.utils.buildProgramUrl(categoria, ADCVideo.state.currentLanguage);
+                        ADCVideo.utils.navigateTo(friendlyUrl);
+                        return false;
+                    }
+                });
+
+                // Intercept video card clicks to use friendly URLs
+                ADCVideo.cache.$document.on('click.adc-friendly', '.adc-video-link', function (e) {
+                    var href = this.getAttribute('href');
+                    if (href && !href.startsWith('http') && !href.startsWith('//')) {
+                        // It's already a friendly URL, let it proceed normally
+                        return true;
+                    }
+
+                    // Handle old-style URLs if any exist
+                    var urlParams = new URLSearchParams(href.split('?')[1] || '');
+                    var categoria = urlParams.get('categoria');
+                    var video = urlParams.get('video');
+
+                    if (categoria && video) {
+                        e.preventDefault();
+                        var friendlyUrl = ADCVideo.utils.buildVideoUrl(categoria, video, ADCVideo.state.currentLanguage);
+                        ADCVideo.utils.navigateTo(friendlyUrl);
+                        return false;
+                    }
+                });
+
+                // Handle back button clicks to ensure friendly URLs
+                ADCVideo.cache.$document.on('click.adc-friendly', '.adc-back-button, .adc-back-program-button', function (e) {
+                    var href = this.getAttribute('href');
+
+                    // If it's already a friendly URL or absolute URL, let it proceed
+                    if (!href || href.startsWith('http') || href.startsWith('//') || href.indexOf('?') === -1) {
+                        return true;
+                    }
+
+                    // Handle old-style URLs
+                    var urlParams = new URLSearchParams(href.split('?')[1] || '');
+                    var categoria = urlParams.get('categoria');
+
+                    if (categoria) {
+                        e.preventDefault();
+                        var friendlyUrl = ADCVideo.utils.buildProgramUrl(categoria, ADCVideo.state.currentLanguage);
+                        ADCVideo.utils.navigateTo(friendlyUrl);
+                        return false;
+                    } else {
+                        // Back to home
+                        e.preventDefault();
+                        var homeUrl = ADCVideo.utils.getBaseUrl(ADCVideo.state.currentLanguage);
+                        ADCVideo.utils.navigateTo(homeUrl);
+                        return false;
+                    }
+                });
+
+                // Handle "view all" and similar navigation buttons
+                ADCVideo.cache.$document.on('click.adc-friendly', '.adc-view-all-button:not(.adc-view-next-video)', function (e) {
+                    var href = this.getAttribute('href');
+
+                    // If it's already a friendly URL or doesn't have query params, let it proceed
+                    if (!href || href.indexOf('?categoria=') === -1) {
+                        return true;
+                    }
+
+                    // Handle old-style category URLs
+                    var urlParams = new URLSearchParams(href.split('?')[1] || '');
+                    var categoria = urlParams.get('categoria');
+
+                    if (categoria) {
+                        e.preventDefault();
+                        var friendlyUrl = ADCVideo.utils.buildProgramUrl(categoria, ADCVideo.state.currentLanguage);
+                        ADCVideo.utils.navigateTo(friendlyUrl);
+                        return false;
+                    }
+                });
             }
         },
 
@@ -937,8 +1129,13 @@
                 }
             }
 
-            this.cache.$document.off('.adc-video .programs-menu .programs-menu-outside .programs-menu-li');
+            this.cache.$document.off('.adc-video .programs-menu .programs-menu-outside .programs-menu-li .adc-friendly');
             this.cache.$window.off('.adc-video');
+
+            if (this.menu.observer) {
+                this.menu.observer.disconnect();
+                this.menu.observer = null;
+            }
 
             this.state.isInitialized = false;
             this.menu.initialized = false;
@@ -959,15 +1156,24 @@
                 autoplayEnabled: adc_config.autoplay === '1',
                 autoplayCountdown: parseInt(adc_config.countdown) || 5,
                 cacheEnabled: adc_config.cache_enabled === true || adc_config.cache_enabled === '1',
-                debug: adc_config.debug === true || adc_config.debug === '1'
+                debug: adc_config.debug === true || adc_config.debug === '1',
+                friendlyUrls: adc_config.friendly_urls === true || adc_config.friendly_urls === '1'
             };
         }
 
         try {
             ADCVideo.init(config);
             window.ADCVideoInitialized = true;
+
+            if (config.debug) {
+                console.log('ADC Video Display initialized with friendly URLs support');
+                console.log('Current language detected:', ADCVideo.state.currentLanguage);
+                console.log('Current URL structure:', ADCVideo.utils.parseCurrentUrl());
+            }
         } catch (error) {
-            // Silently fail
+            if (config.debug) {
+                console.error('ADC Video initialization error:', error);
+            }
         }
     }
 
