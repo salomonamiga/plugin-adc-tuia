@@ -1305,14 +1305,21 @@ public function init_url_routing()
     }
 
     /**
-     * Generate video player script
+     * Generate video player script - SIMPLIFICADO SIN BOTONES PERSONALIZADOS
      */
     private function generate_video_player_script($next_url, $countdown)
     {
         return '<script>
         document.addEventListener("DOMContentLoaded", function() {
             if (typeof videojs !== "undefined" && document.getElementById("adc-player")) {
-                var player = videojs("adc-player");
+                var player = videojs("adc-player", {
+                    controls: true,
+                    fluid: true,
+                    responsive: true,
+                    playbackRates: [0.5, 1, 1.25, 1.5, 2],
+                    language: "' . $this->language . '"
+                });
+                
                 var overlay = document.getElementById("adc-next-overlay");
                 var countdownEl = document.getElementById("adc-countdown");
                 var cancelBtn = document.getElementById("adc-cancel-autoplay");
@@ -1321,71 +1328,65 @@ public function init_url_routing()
                 var cancelled = false;
                 
                 player.ready(function() {
+                    // Set volume
                     player.volume(0.5);
                     
-                    // Add custom buttons
-                    var Button = videojs.getComponent("Button");
-                    
-                    var rewindButton = videojs.extend(Button, {
-                        constructor: function() {
-                            Button.apply(this, arguments);
-                            this.controlText("Rewind 10 seconds");
-                            this.addClass("vjs-rewind-button");
-                            this.el().innerHTML = "⏪ 10s";
-                        },
-                        handleClick: function() {
-                            player.currentTime(player.currentTime() - 10);
-                        }
-                    });
-                    videojs.registerComponent("RewindButton", rewindButton);
-                    player.getChild("controlBar").addChild("RewindButton", {}, 0);
-                    
-                    var forwardButton = videojs.extend(Button, {
-                        constructor: function() {
-                            Button.apply(this, arguments);
-                            this.controlText("Forward 10 seconds");
-                            this.addClass("vjs-forward-button");
-                            this.el().innerHTML = "10s ⏩";
-                        },
-                        handleClick: function() {
-                            player.currentTime(player.currentTime() + 10);
-                        }
-                    });
-                    videojs.registerComponent("ForwardButton", forwardButton);
-                    player.getChild("controlBar").addChild("ForwardButton", {}, 2);
+                    console.log("ADC: Video.js player initialized successfully");
                 });
                 
+                // Handle video end for redirect functionality
                 player.on("ended", function() {
                     if (!overlay || cancelled) return;
                     
+                    console.log("ADC: Video ended, showing redirect overlay");
+                    
+                    // Exit fullscreen if active
                     if (player.isFullscreen()) {
                         player.exitFullscreen();
                     }
                     
+                    // Show overlay after delay
                     setTimeout(function() {
                         overlay.style.display = "block";
                         seconds = ' . intval($countdown) . ';
                         countdownEl.textContent = seconds;
+                        
                         interval = setInterval(function() {
                             seconds--;
                             countdownEl.textContent = seconds;
+                            
                             if (seconds <= 0 && !cancelled) {
                                 clearInterval(interval);
-                                window.location.href = "' . $next_url . '";
+                                console.log("ADC: Redirecting to next video");
+                                window.location.href = "' . esc_js($next_url) . '";
                             }
                         }, 1000);
                     }, 300);
                 });
                 
+                // Handle cancel button
                 if (cancelBtn) {
                     cancelBtn.addEventListener("click", function() {
                         cancelled = true;
+                        console.log("ADC: Autoplay cancelled by user");
+                        
                         if (overlay) {
                             overlay.innerHTML = \'<p style="color:#aaa">Autoplay cancelado</p>\';
                         }
-                        clearInterval(interval);
+                        
+                        if (interval) {
+                            clearInterval(interval);
+                        }
                     });
                 }
+                
+                // Error handling
+                player.on("error", function() {
+                    console.error("ADC: Video player error:", player.error());
+                });
+                
+            } else {
+                console.error("ADC: Video.js not available or player element not found");
             }
         });
         </script>';

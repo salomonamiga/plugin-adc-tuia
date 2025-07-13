@@ -223,39 +223,57 @@
             }
         },
 
-        // Video Player Module
+        // Video Player Module - SIMPLIFICADO SIN INICIALIZACION
         player: {
             init: function () {
-                // Video.js initialization is now handled by PHP generate_video_player_script()
-                // to avoid conflicts and double initialization
+                // Video.js initialization is now handled entirely by PHP
+                // This module only handles getting reference to existing player
                 
                 if (ADCVideo.config.debug) {
-                    console.log('ADC: Video.js initialization skipped - handled by PHP script');
+                    console.log('ADC: Video.js initialization handled by PHP script');
                 }
                 
-                // Only store reference if player exists (created by PHP script)
-                if (typeof videojs !== 'undefined' && document.getElementById('adc-player')) {
-                    setTimeout(function() {
+                // Try to get reference to existing player after delay
+                setTimeout(function() {
+                    if (typeof videojs !== 'undefined' && document.getElementById('adc-player')) {
                         try {
-                            ADCVideo.state.player = videojs.getPlayer('adc-player');
+                            var existingPlayer = videojs.getPlayer('adc-player');
+                            if (existingPlayer) {
+                                ADCVideo.state.player = existingPlayer;
+                                
+                                if (ADCVideo.config.debug) {
+                                    console.log('ADC: Got reference to existing Video.js player');
+                                }
+                            }
                         } catch (e) {
-                            // Player not ready yet, will be handled by PHP script
+                            if (ADCVideo.config.debug) {
+                                console.log('ADC: Player not ready yet, will be handled by PHP script');
+                            }
                         }
-                    }, 500);
-                }
+                    }
+                }, 1000);
             },
 
-            // Keep these methods for compatibility but they won't be used
+            // Remove unused methods but keep for compatibility
             setupPlayer: function () {
-                // This method is now unused - handled by PHP script
+                // No longer used - handled by PHP
+                if (ADCVideo.config.debug) {
+                    console.log('ADC: setupPlayer() deprecated - handled by PHP');
+                }
             },
 
             addCustomButtons: function (player) {
-                // This method is now unused - handled by PHP script
+                // No longer used - using native controls
+                if (ADCVideo.config.debug) {
+                    console.log('ADC: Custom buttons disabled - using native controls');
+                }
             },
 
             styleCustomButtons: function (player) {
-                // This method is now unused - handled by PHP script
+                // No longer used - using native controls
+                if (ADCVideo.config.debug) {
+                    console.log('ADC: Custom button styling disabled - using native controls');
+                }
             }
         },
 
