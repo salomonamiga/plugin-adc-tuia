@@ -1144,6 +1144,7 @@
         }
     };
 
+
     // Initialize ADC Video
     function initializeADCVideo() {
         if (window.ADCVideoInitialized) {
@@ -1175,7 +1176,7 @@
                 console.error('ADC Video initialization error:', error);
             }
         }
-    };
+    }
 
     // Multiple initialization strategies
     function handleDOMReady() {
