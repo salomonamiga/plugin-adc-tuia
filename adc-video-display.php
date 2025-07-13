@@ -1234,6 +1234,10 @@ public function init_url_routing()
         $output .= '<link href="https://unpkg.com/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">';
         $output .= '<script src="https://unpkg.com/video.js@8.10.0/dist/video.min.js"></script>';
 
+        // DEBUG: Check video data
+        $output .= '<!-- DEBUG VIDEO DATA: ' . esc_html(json_encode($video)) . ' -->';
+        $output .= '<!-- DEBUG VIDEO URL: ' . esc_html($video['video']) . ' -->';
+
         // Player with proper aspect ratio
         $output .= '<div class="adc-video-player" style="position:relative; padding-top:56.25%;">';
         $output .= '<video id="adc-player" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" style="position:absolute; top:0; left:0; width:100%; height:100%;" data-setup="{}">';
@@ -1305,25 +1309,47 @@ public function init_url_routing()
     }
 
     /**
-     * Generate video player script - MODERNIZED: Video.js 8.x syntax without errors
+     * Generate video player script - SAFE DOM VERIFICATION
      */
     private function generate_video_player_script($next_url, $countdown)
     {
         return '<script>
         document.addEventListener("DOMContentLoaded", function() {
-            if (typeof videojs !== "undefined" && document.getElementById("adc-player")) {
+            if (typeof videojs === "undefined") {
+                console.log("Video.js not loaded");
+                return;
+            }
+            
+            // Safe element verification with retry
+            function initializePlayer() {
+                var playerElement = document.getElementById("adc-player");
+                
+                if (!playerElement) {
+                    console.log("Player element not found, retrying...");
+                    setTimeout(initializePlayer, 200);
+                    return;
+                }
+                
                 // Check if player already exists and dispose it properly
                 try {
                     var existingPlayer = videojs.getPlayer("adc-player");
                     if (existingPlayer) {
                         existingPlayer.dispose();
+                        // Wait for disposal to complete
+                        setTimeout(function() {
+                            createNewPlayer();
+                        }, 300);
+                        return;
                     }
                 } catch (e) {
-                    // Player might not exist, continue
+                    // No existing player, continue
                 }
                 
-                // Small delay to ensure proper cleanup
-                setTimeout(function() {
+                createNewPlayer();
+            }
+            
+            function createNewPlayer() {
+                try {
                     var player = videojs("adc-player");
                     var overlay = document.getElementById("adc-next-overlay");
                     var countdownEl = document.getElementById("adc-countdown");
@@ -1335,57 +1361,119 @@ public function init_url_routing()
                     player.ready(function() {
                         player.volume(0.5);
                         
-                        // Modern Video.js 8.x - Add custom buttons using class syntax
+                        // Add native-style custom buttons with SVG icons
                         var Button = videojs.getComponent("Button");
                         
-                        // Create Rewind Button using modern class syntax
+                        // Native-style Rewind Button
                         class RewindButton extends Button {
                             constructor(player, options) {
                                 super(player, options);
-                                this.controlText("Rewind 10 seconds");
+                                this.controlText("Retroceder 10 segundos");
                                 this.addClass("vjs-rewind-button");
                             }
                             
                             createEl() {
                                 var el = super.createEl("button", {
-                                    innerHTML: "⏪ 10s"
+                                    className: "vjs-control vjs-button vjs-rewind-button",
+                                    type: "button",
+                                    "aria-live": "polite",
+                                    title: "Retroceder 10 segundos"
                                 });
+                                
+                                // Native SVG icon style
+                                el.innerHTML = `
+                                    <span aria-hidden="true" class="vjs-icon-placeholder">
+                                        <svg viewBox="0 0 24 24" fill="currentColor" style="width: 1em; height: 1em;">
+                                            <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M8,12L13,7V10.5H22V13.5H13V17L8,12Z"/>
+                                        </svg>
+                                    </span>
+                                    <span class="vjs-control-text"> Retroceder 10 segundos</span>
+                                `;
+                                
                                 return el;
                             }
                             
                             handleClick() {
-                                this.player().currentTime(Math.max(0, this.player().currentTime() - 10));
+                                var currentTime = this.player().currentTime();
+                                this.player().currentTime(Math.max(0, currentTime - 10));
                             }
                         }
-                        
-                        // Create Forward Button using modern class syntax
+
+                        // Native-style Forward Button
                         class ForwardButton extends Button {
                             constructor(player, options) {
                                 super(player, options);
-                                this.controlText("Forward 10 seconds");
+                                this.controlText("Adelantar 10 segundos");
                                 this.addClass("vjs-forward-button");
                             }
                             
                             createEl() {
                                 var el = super.createEl("button", {
-                                    innerHTML: "10s ⏩"
+                                    className: "vjs-control vjs-button vjs-forward-button",
+                                    type: "button",
+                                    "aria-live": "polite",
+                                    title: "Adelantar 10 segundos"
                                 });
+                                
+                                // Native SVG icon style
+                                el.innerHTML = `
+                                    <span aria-hidden="true" class="vjs-icon-placeholder">
+                                        <svg viewBox="0 0 24 24" fill="currentColor" style="width: 1em; height: 1em;">
+                                            <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M16,12L11,17V13.5H2V10.5H11V7L16,12Z"/>
+                                        </svg>
+                                    </span>
+                                    <span class="vjs-control-text"> Adelantar 10 segundos</span>
+                                `;
+                                
                                 return el;
                             }
                             
                             handleClick() {
+                                var currentTime = this.player().currentTime();
                                 var duration = this.player().duration();
-                                this.player().currentTime(Math.min(duration, this.player().currentTime() + 10));
+                                this.player().currentTime(Math.min(duration, currentTime + 10));
                             }
                         }
                         
-                        // Register components with Video.js
-                        videojs.registerComponent("RewindButton", RewindButton);
-                        videojs.registerComponent("ForwardButton", ForwardButton);
+                        // Register and add buttons ONLY if they dont exist already
+                        try {
+                            if (!player.getChild("controlBar").getChild("RewindButton")) {
+                                videojs.registerComponent("RewindButton", RewindButton);
+                                player.getChild("controlBar").addChild("RewindButton", {}, 1);
+                            }
+                            
+                            if (!player.getChild("controlBar").getChild("ForwardButton")) {
+                                videojs.registerComponent("ForwardButton", ForwardButton);
+                                player.getChild("controlBar").addChild("ForwardButton", {}, 3);
+                            }
+                        } catch (e) {
+                            console.log("Error adding custom buttons:", e);
+                        }
                         
-                        // Add buttons to control bar
-                        player.getChild("controlBar").addChild("RewindButton", {}, 0);
-                        player.getChild("controlBar").addChild("ForwardButton", {}, 2);
+                        // Add native styling
+                        setTimeout(function() {
+                            var style = document.createElement("style");
+                            style.textContent = `
+                                .vjs-rewind-button .vjs-icon-placeholder,
+                                .vjs-forward-button .vjs-icon-placeholder {
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                }
+                                
+                                .vjs-rewind-button:hover .vjs-icon-placeholder,
+                                .vjs-forward-button:hover .vjs-icon-placeholder {
+                                    color: #6EC1E4;
+                                }
+                                
+                                .vjs-rewind-button svg,
+                                .vjs-forward-button svg {
+                                    width: 18px;
+                                    height: 18px;
+                                }
+                            `;
+                            document.head.appendChild(style);
+                        }, 100);
                     });
                     
                     player.on("ended", function() {
@@ -1419,8 +1507,13 @@ public function init_url_routing()
                             clearInterval(interval);
                         });
                     }
-                }, 100); // Small delay for cleanup
+                } catch (error) {
+                    console.error("Error initializing Video.js player:", error);
+                }
             }
+            
+            // Start initialization with small delay
+            setTimeout(initializePlayer, 100);
         });
         </script>';
     }
