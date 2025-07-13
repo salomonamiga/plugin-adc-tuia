@@ -1305,10 +1305,19 @@ public function init_url_routing()
     }
 
     /**
-     * Generate video player script - SIMPLIFICADO SIN BOTONES PERSONALIZADOS
+     * Generate video player script - CON DEBUG CONDICIONAL
      */
     private function generate_video_player_script($next_url, $countdown)
     {
+        // Check if debug mode is enabled
+        $debug_mode = isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1';
+        $debug_console = $debug_mode ? 'console.log("ADC: Video.js player initialized successfully");' : '';
+        $debug_ended = $debug_mode ? 'console.log("ADC: Video ended, showing redirect overlay");' : '';
+        $debug_redirect = $debug_mode ? 'console.log("ADC: Redirecting to next video");' : '';
+        $debug_cancel = $debug_mode ? 'console.log("ADC: Autoplay cancelled by user");' : '';
+        $debug_error = $debug_mode ? 'console.error("ADC: Video player error:", player.error());' : '';
+        $debug_not_found = $debug_mode ? 'console.error("ADC: Video.js not available or player element not found");' : '';
+
         return '<script>
         document.addEventListener("DOMContentLoaded", function() {
             if (typeof videojs !== "undefined" && document.getElementById("adc-player")) {
@@ -1331,14 +1340,14 @@ public function init_url_routing()
                     // Set volume
                     player.volume(0.5);
                     
-                    console.log("ADC: Video.js player initialized successfully");
+                    ' . $debug_console . '
                 });
                 
                 // Handle video end for redirect functionality
                 player.on("ended", function() {
                     if (!overlay || cancelled) return;
                     
-                    console.log("ADC: Video ended, showing redirect overlay");
+                    ' . $debug_ended . '
                     
                     // Exit fullscreen if active
                     if (player.isFullscreen()) {
@@ -1357,7 +1366,7 @@ public function init_url_routing()
                             
                             if (seconds <= 0 && !cancelled) {
                                 clearInterval(interval);
-                                console.log("ADC: Redirecting to next video");
+                                ' . $debug_redirect . '
                                 window.location.href = "' . esc_js($next_url) . '";
                             }
                         }, 1000);
@@ -1368,7 +1377,7 @@ public function init_url_routing()
                 if (cancelBtn) {
                     cancelBtn.addEventListener("click", function() {
                         cancelled = true;
-                        console.log("ADC: Autoplay cancelled by user");
+                        ' . $debug_cancel . '
                         
                         if (overlay) {
                             overlay.innerHTML = \'<p style="color:#aaa">Autoplay cancelado</p>\';
@@ -1382,11 +1391,11 @@ public function init_url_routing()
                 
                 // Error handling
                 player.on("error", function() {
-                    console.error("ADC: Video player error:", player.error());
+                    ' . $debug_error . '
                 });
                 
             } else {
-                console.error("ADC: Video.js not available or player element not found");
+                ' . $debug_not_found . '
             }
         });
         </script>';
