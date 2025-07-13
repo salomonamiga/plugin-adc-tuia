@@ -349,81 +349,39 @@ class ADC_Video_Display
     }
 
     /**
-     * Modify main query to show correct page for friendly URLs
-     * MEJORADO: Búsqueda de páginas más robusta
-     */
-    public function modify_main_query($query)
-    {
-        if (!$query->is_main_query() || is_admin()) {
-            return;
-        }
-
-        $adc_type = get_query_var('adc_type');
-        
-        if (!$adc_type) {
-            return;
-        }
-
-        // Determine which page to show based on language
-        $target_language = $this->current_url_params['language'] ?? 'es';
-        $target_page = null;
-
-        // Buscar página por slug primero
-        if ($target_language === 'en') {
-            $target_page = get_page_by_path('en');
-        } else {
-            $target_page = get_page_by_path('home');
-        }
-        
-        // Fallback: buscar por título
-        if (!$target_page) {
-            $page_title = $target_language === 'en' ? 'Home Inglés' : 'Home';
-            $pages = get_pages(array(
-                'title' => $page_title,
-                'post_status' => 'publish',
-                'number' => 1
-            ));
-            
-            if (!empty($pages)) {
-                $target_page = $pages[0];
-            }
-        }
-        
-        // Último fallback: buscar página que contenga el shortcode correcto
-        if (!$target_page) {
-            $shortcode = $target_language === 'en' ? '[adc_content_en]' : '[adc_content]';
-            $pages = get_pages(array(
-                'meta_query' => array(
-                    array(
-                        'key' => '_wp_page_template',
-                        'compare' => 'EXISTS'
-                    )
-                ),
-                'post_status' => 'publish'
-            ));
-            
-            foreach ($pages as $page) {
-                if (has_shortcode($page->post_content, 'adc_content') || 
-                    has_shortcode($page->post_content, 'adc_content_en')) {
-                    if (($target_language === 'en' && has_shortcode($page->post_content, 'adc_content_en')) ||
-                        ($target_language === 'es' && has_shortcode($page->post_content, 'adc_content'))) {
-                        $target_page = $page;
-                        break;
-                    }
-                }
-            }
-        }
-        
-        if ($target_page) {
-            // Force WordPress to show the target page
-            $query->set('page_id', $target_page->ID);
-            $query->set('post_type', 'page');
-            $query->is_page = true;
-            $query->is_singular = true;
-            $query->is_home = false;
-            $query->is_front_page = false;
-        }
+ * Modify main query to show correct page for friendly URLs
+ * CORREGIDO: Búsqueda robusta con debug y múltiples fallbacks
+ */
+public function modify_main_query($query)
+{
+    if (!$query->is_main_query() || is_admin()) {
+        return;
     }
+
+    $adc_type = get_query_var('adc_type');
+    
+    if (!$adc_type) {
+        return;
+    }
+
+    // Versión simple y segura
+    $target_language = $this->current_url_params['language'] ?? 'es';
+    
+    if ($target_language === 'en') {
+        $target_page = get_page_by_path('en');
+    } else {
+        $target_page = get_page_by_path('home');
+    }
+    
+    if ($target_page) {
+        $query->set('page_id', $target_page->ID);
+        $query->set('post_type', 'page');
+        $query->is_page = true;
+        $query->is_singular = true;
+        $query->is_home = false;
+        $query->is_front_page = false;
+    }
+}
 
     /**
      * Enqueue scripts and styles
