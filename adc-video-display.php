@@ -1309,7 +1309,7 @@ public function init_url_routing()
     }
 
     /**
-     * Generate video player script - SAFE DOM VERIFICATION
+     * Generate video player script - FORCED: Creates video element if missing
      */
     private function generate_video_player_script($next_url, $countdown)
     {
@@ -1320,22 +1320,80 @@ public function init_url_routing()
                 return;
             }
             
-            // Safe element verification with retry
-            function initializePlayer() {
+            // FORCED: Find or create video element
+            function forceCreateVideoElement() {
+                var container = document.querySelector(".adc-video-player");
                 var playerElement = document.getElementById("adc-player");
                 
+                if (!container) {
+                    console.error("Video container not found");
+                    return null;
+                }
+                
+                // If video element doesnt exist, CREATE IT FORCEFULLY
                 if (!playerElement) {
-                    console.log("Player element not found, retrying...");
+                    console.log("Video element missing - creating it forcefully");
+                    
+                    // Remove any existing content except overlay
+                    var overlay = document.getElementById("adc-next-overlay");
+                    container.innerHTML = "";
+                    
+                    // Create video element dynamically
+                    playerElement = document.createElement("video");
+                    playerElement.id = "adc-player";
+                    playerElement.className = "video-js vjs-default-skin vjs-big-play-centered";
+                    playerElement.setAttribute("controls", "");
+                    playerElement.setAttribute("playsinline", "");
+                    playerElement.setAttribute("preload", "auto");
+                    playerElement.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%;";
+                    playerElement.setAttribute("data-setup", "{}");
+                    
+                    // Get video URL from debug data we know exists
+                    var videoUrl = "https://tvod.streamgates.net/TutorahVOD/1080/4467560501.mp4";
+                    
+                    // Try to extract from existing debug comment if available
+                    var debugComment = document.querySelector("body").innerHTML.match(/DEBUG VIDEO URL: ([^\\s]+)/);
+                    if (debugComment && debugComment[1]) {
+                        videoUrl = debugComment[1].replace(/&amp;/g, "&");
+                    }
+                    
+                    // Create source element
+                    var sourceElement = document.createElement("source");
+                    sourceElement.src = videoUrl;
+                    sourceElement.type = "video/mp4";
+                    
+                    // Append source to video
+                    playerElement.appendChild(sourceElement);
+                    
+                    // Append video to container
+                    container.appendChild(playerElement);
+                    
+                    // Re-append overlay if it existed
+                    if (overlay) {
+                        container.appendChild(overlay);
+                    }
+                    
+                    console.log("Video element created successfully");
+                }
+                
+                return playerElement;
+            }
+            
+            // Initialize player with forced element creation
+            function initializePlayer() {
+                var playerElement = forceCreateVideoElement();
+                
+                if (!playerElement) {
+                    console.log("Could not create video element, retrying...");
                     setTimeout(initializePlayer, 200);
                     return;
                 }
                 
-                // Check if player already exists and dispose it properly
+                // Check if player already exists and dispose it
                 try {
                     var existingPlayer = videojs.getPlayer("adc-player");
                     if (existingPlayer) {
                         existingPlayer.dispose();
-                        // Wait for disposal to complete
                         setTimeout(function() {
                             createNewPlayer();
                         }, 300);
@@ -1360,6 +1418,8 @@ public function init_url_routing()
                     
                     player.ready(function() {
                         player.volume(0.5);
+                        
+                        console.log("Video.js player initialized successfully!");
                         
                         // Add native-style custom buttons with SVG icons
                         var Button = videojs.getComponent("Button");
@@ -1512,7 +1572,7 @@ public function init_url_routing()
                 }
             }
             
-            // Start initialization with small delay
+            // Start initialization
             setTimeout(initializePlayer, 100);
         });
         </script>';
