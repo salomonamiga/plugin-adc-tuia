@@ -2,33 +2,53 @@
 /**
  * Plugin Name: ADC Video Display
  * Description: Muestra videos desde el sistema ADC en WordPress – Multiidioma (ES/EN) con URLs Amigables
- * Version:     3.2
+ * Version:     3.3
  * Author:      TuTorah Development Team
  */
 
-// Evita el canonical redirect **antes** de todo
-add_filter( 'redirect_canonical', function( $redirect_url ) {
-    $uri = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
-    // Captura /programa/... y /en/programa/...
-    if ( preg_match( '#^/(en/)?programa/#', $uri ) ) {
-        return false;
-    }
-    return $redirect_url;
-}, PHP_INT_MAX );
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
 
-// Quita cualquier <link rel="prefetch"> que WP o tu tema inyecten
-add_filter( 'wp_resource_hints', function( $hints, $relation_type ) {
-    if ( $relation_type === 'prefetch' ) {
-        return [];
+// FILTROS CRÍTICOS - Deben ejecutarse ANTES que cualquier otra cosa
+add_filter('redirect_canonical', 'adc_prevent_canonical_redirect', PHP_INT_MAX);
+add_filter('wp_resource_hints', 'adc_remove_prefetch_hints', 10, 2);
+
+/**
+ * Evita canonical redirects para TODAS nuestras URLs amigables
+ * CORREGIDO: Maneja correctamente español E inglés
+ */
+function adc_prevent_canonical_redirect($redirect_url)
+{
+    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    
+    // Patrones de URLs amigables que NO deben tener canonical redirect
+    $patterns = array(
+        '#^/programa/#',           // Español: /programa/algo
+        '#^/en/program/#',         // Inglés: /en/program/algo  
+        '#^/buscar/#',             // Español: /buscar/algo
+        '#^/en/search/#'           // Inglés: /en/search/algo
+    );
+    
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $uri)) {
+            return false; // No hacer canonical redirect
+        }
+    }
+    
+    return $redirect_url;
+}
+
+/**
+ * Elimina prefetch hints que pueden interferir
+ */
+function adc_remove_prefetch_hints($hints, $relation_type)
+{
+    if ($relation_type === 'prefetch') {
+        return array();
     }
     return $hints;
-}, 10, 2 );
-
-
-
-// Prevent direct access
-if ( ! defined( 'ABSPATH' ) ) {
-    exit;
 }
 
 // Define plugin constants
@@ -79,40 +99,39 @@ class ADC_Video_Display
         add_action('wp_ajax_adc_get_programs_menu', array($this, 'handle_ajax_get_programs_menu'));
         add_action('wp_ajax_nopriv_adc_get_programs_menu', array($this, 'handle_ajax_get_programs_menu'));
 
-        // NEW: Webhook endpoint for cache refresh
+        // Webhook endpoint for cache refresh
         add_action('wp_ajax_adc_webhook_refresh', array($this, 'handle_webhook_cache_refresh'));
         add_action('wp_ajax_nopriv_adc_webhook_refresh', array($this, 'handle_webhook_cache_refresh'));
 
-        // NEW: URL routing and redirection
+        // URL routing and redirection
         add_action('template_redirect', array($this, 'handle_url_routing'), 1);
         add_filter('request', array($this, 'handle_custom_urls'));
         
-        // NEW: Force correct page display for friendly URLs
+        // Force correct page display for friendly URLs
         add_action('pre_get_posts', array($this, 'modify_main_query'), 1);
     }
 
-/**
- * NEW: Initialize URL routing system
- */
-public function init_url_routing()
-{
-    // Add rewrite rules for friendly URLs
-    $this->add_rewrite_rules();
-    
-    // Add query vars
-    add_filter('query_vars', array($this, 'add_query_vars'));
-    
-    // Check if rewrite rules need to be flushed
-    if ( get_option('adc_rewrite_rules_flushed') !== '3.2' ) {
-        flush_rewrite_rules();
-        update_option('adc_rewrite_rules_flushed', '3.2');
+    /**
+     * Initialize URL routing system
+     */
+    public function init_url_routing()
+    {
+        // Add rewrite rules for friendly URLs
+        $this->add_rewrite_rules();
+        
+        // Add query vars
+        add_filter('query_vars', array($this, 'add_query_vars'));
+        
+        // Check if rewrite rules need to be flushed
+        if (get_option('adc_rewrite_rules_flushed') !== '3.3') {
+            flush_rewrite_rules();
+            update_option('adc_rewrite_rules_flushed', '3.3');
+        }
     }
 
-}
-
-
     /**
-     * NEW: Add rewrite rules for friendly URLs
+     * Add rewrite rules for friendly URLs
+     * CORREGIDO: Incluye TODAS las URLs (programas, videos Y búsquedas)
      */
     private function add_rewrite_rules()
     {
@@ -156,7 +175,7 @@ public function init_url_routing()
     }
 
     /**
-     * NEW: Add custom query vars
+     * Add custom query vars
      */
     public function add_query_vars($vars)
     {
@@ -170,7 +189,8 @@ public function init_url_routing()
     }
 
     /**
-     * NEW: Handle URL routing and redirections
+     * Handle URL routing and redirections
+     * MEJORADO: Redirección inteligente por idioma
      */
     public function handle_url_routing()
     {
@@ -182,52 +202,58 @@ public function init_url_routing()
     }
 
     /**
-     * NEW: Handle legacy URL redirects (301 redirects to friendly URLs)
+     * Handle legacy URL redirects (301 redirects to friendly URLs)
+     * CORREGIDO: Maneja redirecciones correctamente
      */
     private function handle_legacy_redirects()
-{
-    // Si la REQUEST_URI coincide con /programa/... o /en/program/... o /buscar/...,
-    // es un friendly URL y no debemos redirigir:
-    $uri = $_SERVER['REQUEST_URI'];
-    if ( preg_match('#^/(en/)?(programa|program)/#', $uri) ||
-         preg_match('#^/(en/)?(buscar|search)/#',   $uri) ) {
-        return;
+    {
+        $uri = $_SERVER['REQUEST_URI'];
+        
+        // Si es una URL amigable válida, no redirigir
+        $friendly_patterns = array(
+            '#^/(en/)?(programa|program)/#',
+            '#^/(en/)?(buscar|search)/#'
+        );
+        
+        foreach ($friendly_patterns as $pattern) {
+            if (preg_match($pattern, $uri)) {
+                return; // Es URL amigable, no redirigir
+            }
+        }
+
+        // Detectar parámetros legacy en query string
+        $categoria = isset($_GET['categoria']) ? sanitize_text_field($_GET['categoria']) : '';
+        $video = isset($_GET['video']) ? sanitize_text_field($_GET['video']) : '';
+        $adc_search = isset($_GET['adc_search']) ? sanitize_text_field($_GET['adc_search']) : '';
+
+        // Si no hay parámetros legacy, no hacer nada
+        if (!$categoria && !$video && !$adc_search) {
+            return;
+        }
+
+        // Detectar idioma desde URL
+        $language = ADC_Utils::detect_language();
+        $prefix = $language === 'en' ? 'en/' : '';
+
+        // Redirigir URLs legacy a friendly URLs
+        if ($adc_search) {
+            $keyword = $language === 'en' ? 'search' : 'buscar';
+            wp_redirect(home_url("/{$prefix}{$keyword}/" . urlencode($adc_search) . "/"), 301);
+            exit;
+        }
+
+        if ($categoria) {
+            $keyword = $language === 'en' ? 'program' : 'programa';
+            $base = home_url("/{$prefix}{$keyword}/{$categoria}/");
+            $url = $video ? "{$base}{$video}/" : $base;
+            wp_redirect($url, 301);
+            exit;
+        }
     }
-
-    // A partir de aquí, sólo legacy URLs query-based
-    $categoria  = isset($_GET['categoria'])  ? sanitize_text_field($_GET['categoria'])  : '';
-    $video      = isset($_GET['video'])      ? sanitize_text_field($_GET['video'])      : '';
-    $adc_search = isset($_GET['adc_search']) ? sanitize_text_field($_GET['adc_search']) : '';
-
-    // Si no hay parámetros legacy, no redirijas:
-    if ( ! $categoria && ! $video && ! $adc_search ) {
-        return;
-    }
-
-    // Detectar idioma
-    $lang   = ADC_Utils::detect_language();
-    $prefix = $lang === 'en' ? 'en/' : '';
-
-    // Legacy search → friendly /buscar/ ó /en/search/
-    if ( $adc_search ) {
-        $keyword = $lang === 'en' ? 'search' : 'buscar';
-        wp_redirect( home_url("/{$prefix}{$keyword}/" . urlencode($adc_search) . "/"), 301 );
-        exit;
-    }
-
-    // Legacy program/video → friendly /programa/slug[/video]/ ó /en/program/.../
-    if ( $categoria ) {
-        $keyword = $lang === 'en' ? 'program' : 'programa';
-        $base    = home_url("/{$prefix}{$keyword}/{$categoria}/");
-        $url     = $video ? "{$base}{$video}/" : $base;
-        wp_redirect( $url, 301 );
-        exit;
-    }
-}
-
 
     /**
-     * NEW: Handle friendly URL routing
+     * Handle friendly URL routing
+     * MEJORADO: Validación más robusta
      */
     private function handle_friendly_url_routing()
     {
@@ -248,7 +274,7 @@ public function init_url_routing()
 
         // Validate the friendly URL parameters
         if (!$this->validate_friendly_url_params()) {
-            // Invalid parameters, redirect to home
+            // CORREGIDO: Redirección inteligente por idioma
             $home_url = $this->current_url_params['language'] === 'en' ? home_url('/en/') : home_url('/');
             wp_redirect($home_url, 301);
             exit;
@@ -256,7 +282,8 @@ public function init_url_routing()
     }
 
     /**
-     * NEW: Validate friendly URL parameters against API data
+     * Validate friendly URL parameters against API data
+     * MEJORADO: Validación más específica
      */
     private function validate_friendly_url_params()
     {
@@ -275,8 +302,11 @@ public function init_url_routing()
                 
                 // Check if program exists
                 $programs = $api->get_programs();
-                $program_found = false;
+                if (empty($programs)) {
+                    return false;
+                }
                 
+                $program_found = false;
                 foreach ($programs as $program) {
                     if (ADC_Utils::slugify($program['name']) === $this->current_url_params['program']) {
                         $program_found = $program;
@@ -291,8 +321,11 @@ public function init_url_routing()
                 // If it's a video URL, validate the video exists
                 if ($this->current_url_params['type'] === 'video' && !empty($this->current_url_params['video'])) {
                     $materials = $api->get_materials($program_found['id']);
-                    $video_found = false;
+                    if (empty($materials)) {
+                        return false;
+                    }
                     
+                    $video_found = false;
                     foreach ($materials as $material) {
                         if (ADC_Utils::slugify($material['title']) === $this->current_url_params['video']) {
                             $video_found = true;
@@ -316,7 +349,8 @@ public function init_url_routing()
     }
 
     /**
-     * NEW: Modify main query to show correct page for friendly URLs
+     * Modify main query to show correct page for friendly URLs
+     * MEJORADO: Búsqueda de páginas más robusta
      */
     public function modify_main_query($query)
     {
@@ -330,22 +364,53 @@ public function init_url_routing()
             return;
         }
 
-        // Determine which page to show based on language - CORREGIDO
-        $target_page_slug = $this->current_url_params['language'] === 'en' ? 'home-en' : 'home';
+        // Determine which page to show based on language
+        $target_language = $this->current_url_params['language'] ?? 'es';
+        $target_page = null;
+
+        // Buscar página por slug primero
+        if ($target_language === 'en') {
+            $target_page = get_page_by_path('home-en');
+        } else {
+            $target_page = get_page_by_path('home');
+        }
         
-        // Find the page with the appropriate shortcode
-        $target_page = get_page_by_path($target_page_slug);
-        
+        // Fallback: buscar por título
         if (!$target_page) {
-            // Fallback: find page by title
-            $page_title = $this->current_url_params['language'] === 'en' ? 'Home Inglés' : 'Home';
+            $page_title = $target_language === 'en' ? 'Home Inglés' : 'Home';
             $pages = get_pages(array(
                 'title' => $page_title,
-                'post_status' => 'publish'
+                'post_status' => 'publish',
+                'number' => 1
             ));
             
             if (!empty($pages)) {
                 $target_page = $pages[0];
+            }
+        }
+        
+        // Último fallback: buscar página que contenga el shortcode correcto
+        if (!$target_page) {
+            $shortcode = $target_language === 'en' ? '[adc_content_en]' : '[adc_content]';
+            $pages = get_pages(array(
+                'meta_query' => array(
+                    array(
+                        'key' => '_wp_page_template',
+                        'compare' => 'EXISTS'
+                    )
+                ),
+                'post_status' => 'publish'
+            ));
+            
+            foreach ($pages as $page) {
+                if (has_shortcode($page->post_content, 'adc_content') || 
+                    has_shortcode($page->post_content, 'adc_content_en')) {
+                    if (($target_language === 'en' && has_shortcode($page->post_content, 'adc_content_en')) ||
+                        ($target_language === 'es' && has_shortcode($page->post_content, 'adc_content'))) {
+                        $target_page = $page;
+                        break;
+                    }
+                }
             }
         }
         
@@ -356,7 +421,7 @@ public function init_url_routing()
             $query->is_page = true;
             $query->is_singular = true;
             $query->is_home = false;
-            $query->is_front_page = true;
+            $query->is_front_page = false;
         }
     }
 
@@ -370,7 +435,7 @@ public function init_url_routing()
             'adc-style',
             ADC_PLUGIN_URL . 'style.css',
             array(),
-            '3.2'
+            '3.3'
         );
 
         // Enqueue JavaScript
@@ -378,7 +443,7 @@ public function init_url_routing()
             'adc-script',
             ADC_PLUGIN_URL . 'script.js',
             array('jquery'),
-            '3.2',
+            '3.3',
             true
         );
 
@@ -396,7 +461,7 @@ public function init_url_routing()
     }
 
     /**
-     * NEW: Handle webhook cache refresh from ADC
+     * Handle webhook cache refresh from ADC
      */
     public function handle_webhook_cache_refresh()
     {
@@ -443,7 +508,7 @@ public function init_url_routing()
                 'languages_cleared' => $cleared_languages,
                 'total_languages' => $total_cleared,
                 'timestamp' => current_time('mysql'),
-                'version' => '3.2'
+                'version' => '3.3'
             ));
         } catch (Exception $e) {
             // Error response
@@ -542,29 +607,16 @@ public function init_url_routing()
 
     /**
      * Main content display handler - UPDATED for friendly URLs
+     * LIMPIO: Sin debug code
      */
     public function display_content($atts)
     {
-        // DEBUG TEMPORAL - Ver en consola del navegador
-        echo '<script>
-        console.log("=== ADC DEBUG START ===");
-        console.log("API configurada:", ' . ($this->api->is_configured() ? 'true' : 'false') . ');
-        console.log("adc_type:", "' . get_query_var('adc_type') . '");
-        console.log("adc_language:", "' . get_query_var('adc_language') . '");
-        console.log("adc_program:", "' . get_query_var('adc_program') . '");
-        console.log("adc_video:", "' . get_query_var('adc_video') . '");
-        console.log("current_url_params:", ' . json_encode($this->current_url_params) . ');
-        console.log("current language:", "' . $this->language . '");
-        console.log("Current URL:", window.location.href);
-        console.log("=== ADC DEBUG END ===");
-        </script>';
-
         // Check if API is configured
         if (!$this->api->is_configured()) {
             return '<div class="adc-error">El plugin ADC Video Display no está configurado. Por favor configura la API en el panel de administración.</div>';
         }
 
-        // NEW: Check for friendly URL parameters first
+        // Check for friendly URL parameters first
         $adc_type = get_query_var('adc_type');
         
         if ($adc_type) {
@@ -591,7 +643,7 @@ public function init_url_routing()
     }
 
     /**
-     * NEW: Handle content display for friendly URLs
+     * Handle content display for friendly URLs
      */
     private function handle_friendly_url_content()
     {
@@ -662,7 +714,7 @@ public function init_url_routing()
                 $category_slug = ADC_Utils::slugify($video['category']);
                 $video_slug = ADC_Utils::slugify($video['title']);
                 
-                // NEW: Use friendly URLs
+                // Use friendly URLs
                 $url = $this->build_friendly_video_url($category_slug, $video_slug);
                 $output .= $this->render_video_card($video, $url);
             }
@@ -675,7 +727,7 @@ public function init_url_routing()
     }
 
     /**
-     * NEW: Render no results message with recommended videos
+     * Render no results message with recommended videos
      */
     private function render_no_results_message($search_term, $language)
     {
@@ -744,7 +796,7 @@ public function init_url_routing()
             $program_slug = ADC_Utils::slugify($video['category']);
             $video_slug = ADC_Utils::slugify($video['title']);
             
-            // NEW: Use friendly URLs
+            // Use friendly URLs
             $url = $this->build_friendly_video_url($program_slug, $video_slug);
             $output .= $this->render_video_card($video, $url);
         }
@@ -754,7 +806,7 @@ public function init_url_routing()
     }
 
     /**
-     * NEW: Build friendly URL for videos
+     * Build friendly URL for videos
      */
     private function build_friendly_video_url($program_slug, $video_slug)
     {
@@ -768,7 +820,7 @@ public function init_url_routing()
     }
 
     /**
-     * NEW: Build friendly URL for programs
+     * Build friendly URL for programs
      */
     private function build_friendly_program_url($program_slug)
     {
@@ -856,7 +908,7 @@ public function init_url_routing()
             // Coming soon - no link, special styling
             $output .= '<div class="adc-category-card adc-coming-soon-card">';
         } else {
-            // NEW: Use friendly URLs for category links
+            // Use friendly URLs for category links
             $friendly_url = $this->build_friendly_program_url($slug);
             $output .= '<a class="adc-category-card" href="' . esc_url($friendly_url) . '">';
         }
@@ -949,7 +1001,7 @@ public function init_url_routing()
                 // Use thumbnail from API
                 $thumbnail_url = ADC_Utils::get_thumbnail_url($video['thumbnail']);
 
-                // NEW: Use friendly URLs for video links
+                // Use friendly URLs for video links
                 $video_url = $this->build_friendly_video_url($category_slug, $video_slug);
 
                 $output .= '<div class="adc-video-item">';
@@ -1060,7 +1112,7 @@ public function init_url_routing()
             $next_video = $materials[$video_index + 1];
             $next_slug = ADC_Utils::slugify($next_video['title']);
             
-            // NEW: Use friendly URL for next video
+            // Use friendly URL for next video
             $next_url = $this->build_friendly_video_url($category_slug, $next_slug);
         }
 
@@ -1070,7 +1122,7 @@ public function init_url_routing()
         $output .= '<div class="adc-video-header">';
         $output .= '<h1 class="adc-video-main-title">' . esc_html($video['title']) . '</h1>';
         
-        // NEW: Use friendly URL for back button
+        // Use friendly URL for back button
         $back_url = $this->build_friendly_program_url($category_slug);
         $output .= '<a href="' . esc_url($back_url) . '" class="adc-back-program-button">' .
             ADC_Utils::get_text('back_to', $this->language) . ' ' . esc_html($category['name']) . '</a>';
@@ -1114,7 +1166,7 @@ public function init_url_routing()
         foreach ($related_videos as $index => $related_video) {
             $related_slug = ADC_Utils::slugify($related_video['title']);
 
-            // NEW: Use friendly URLs for related videos
+            // Use friendly URLs for related videos
             $related_url = $this->build_friendly_video_url($category_slug, $related_slug);
 
             $output .= '<div class="adc-video-item adc-related-video-item">';
@@ -1415,170 +1467,7 @@ function adc_display_cache_clear_page() {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title><?php echo $is_english ? 'Cache Cleared' : 'Caché Limpiado'; ?> - TuIA</title>
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            
-            body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                min-height: 100vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: #333;
-            }
-            
-            .container {
-                background: white;
-                padding: 3rem;
-                border-radius: 20px;
-                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                text-align: center;
-                max-width: 500px;
-                width: 90%;
-                position: relative;
-                overflow: hidden;
-            }
-            
-            .container::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 5px;
-                background: linear-gradient(90deg, #6EC1E4, #4A90E2);
-            }
-            
-            .success-icon {
-                font-size: 4rem;
-                margin-bottom: 1rem;
-                animation: bounceIn 0.6s ease-out;
-            }
-            
-            .error-icon {
-                font-size: 4rem;
-                margin-bottom: 1rem;
-                color: #e74c3c;
-                animation: shake 0.6s ease-out;
-            }
-            
-            .title {
-                font-size: 2rem;
-                font-weight: 600;
-                margin-bottom: 1rem;
-                color: #2c3e50;
-            }
-            
-            .success-title {
-                color: #27ae60;
-            }
-            
-            .error-title {
-                color: #e74c3c;
-            }
-            
-            .message {
-                font-size: 1.1rem;
-                color: #7f8c8d;
-                margin-bottom: 2rem;
-                line-height: 1.6;
-            }
-            
-            .error-details {
-                background: #ffeaea;
-                border: 1px solid #ffcccb;
-                border-radius: 8px;
-                padding: 1rem;
-                margin: 1rem 0;
-                color: #c0392b;
-                font-family: monospace;
-                font-size: 0.9rem;
-                text-align: left;
-            }
-            
-            .countdown {
-                font-size: 1.2rem;
-                font-weight: 600;
-                color: #6EC1E4;
-                margin-bottom: 1.5rem;
-            }
-            
-            .countdown-number {
-                display: inline-block;
-                background: #6EC1E4;
-                color: white;
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                line-height: 40px;
-                margin: 0 0.5rem;
-                animation: pulse 1s infinite;
-            }
-            
-            .home-button {
-                display: inline-block;
-                padding: 0.8rem 2rem;
-                background: #6EC1E4;
-                color: white;
-                text-decoration: none;
-                border-radius: 25px;
-                font-weight: 600;
-                transition: all 0.3s ease;
-                border: none;
-                cursor: pointer;
-                font-size: 1rem;
-            }
-            
-            .home-button:hover {
-                background: #5AB0D3;
-                transform: translateY(-2px);
-                box-shadow: 0 5px 15px rgba(106, 193, 228, 0.4);
-            }
-            
-            @keyframes bounceIn {
-                0% { transform: scale(0.3); opacity: 0; }
-                50% { transform: scale(1.05); }
-                70% { transform: scale(0.9); }
-                100% { transform: scale(1); opacity: 1; }
-            }
-            
-            @keyframes shake {
-                0%, 100% { transform: translateX(0); }
-                10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-                20%, 40%, 60%, 80% { transform: translateX(5px); }
-            }
-            
-            @keyframes pulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.1); }
-                100% { transform: scale(1); }
-            }
-            
-            .logo {
-                margin-bottom: 1rem;
-                opacity: 0.8;
-            }
-            
-            @media (max-width: 600px) {
-                .container {
-                    padding: 2rem;
-                    margin: 1rem;
-                }
-                
-                .title {
-                    font-size: 1.5rem;
-                }
-                
-                .success-icon, .error-icon {
-                    font-size: 3rem;
-                }
-            }
-        </style>
+        <link rel="stylesheet" href="<?php echo ADC_PLUGIN_URL; ?>cache-clear-styles.css">
     </head>
     <body>
         <div class="container">
@@ -1652,7 +1541,7 @@ function adc_display_cache_clear_page() {
     <?php
 }
 
-// Flush rewrite rules on plugin activation (agregar al activation hook existente)
+// Flush rewrite rules on plugin activation
 register_activation_hook(__FILE__, 'adc_flush_rewrite_rules_on_activation');
 function adc_flush_rewrite_rules_on_activation() {
     adc_add_cache_clear_endpoint();
