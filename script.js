@@ -892,209 +892,257 @@
             }
         },
 
-       // Events Module
-events: {
-    initialized: false,
+        // Events Module
+        events: {
+            initialized: false,
 
-    init: function () {
-        if (this.initialized) return;
+            init: function () {
+                if (this.initialized) return;
 
-        this.bindKeyboardEvents();
-        this.bindButtonEvents();
-        this.bindGeneralEvents();
-        this.bindFriendlyUrlEvents();
+                this.bindKeyboardEvents();
+                this.bindButtonEvents();
+                this.bindGeneralEvents();
+                this.bindFriendlyUrlEvents();
 
-        this.initialized = true;
-    },
+                this.initialized = true;
+            },
 
-    bindKeyboardEvents: function () {
-        ADCVideo.cache.$document.on('keydown.adc-video', function (e) {
-            var player = ADCVideo.state.player;
-            if (!player) return;
-            if ($(e.target).is('input, textarea, select')) return;
+            bindKeyboardEvents: function () {
+                ADCVideo.cache.$document.on('keydown.adc-video', function (e) {
+                    var player = ADCVideo.state.player;
+                    if (!player) return;
 
-            switch (e.keyCode) {
-                case 37: // Left arrow
-                    player.currentTime(Math.max(0, player.currentTime() - 10));
-                    e.preventDefault();
-                    break;
-                case 39: // Right arrow
-                    player.currentTime(Math.min(player.duration(), player.currentTime() + 10));
-                    e.preventDefault();
-                    break;
-                case 32: // Spacebar
-                    if (player.paused()) player.play();
-                    else player.pause();
-                    e.preventDefault();
-                    break;
-                case 70: // F key
-                    if (e.ctrlKey || e.metaKey) return;
-                    if (player.isFullscreen()) player.exitFullscreen();
-                    else player.requestFullscreen();
-                    e.preventDefault();
-                    break;
-                case 77: // M key
-                    if (e.ctrlKey || e.metaKey) return;
-                    player.muted(!player.muted());
-                    e.preventDefault();
-                    break;
-            }
-        });
+                    if ($(e.target).is('input, textarea, select')) return;
 
-        ADCVideo.cache.$document.on('keydown.adc-escape', function (e) {
-            if (e.key === 'Escape' || e.keyCode === 27) {
-                $('.adc-wp-programs-dropdown').slideUp(200);
-                $('.dropdown-arrow').css('transform', 'rotate(0deg)');
-                if (ADCVideo.state.countdownInterval) {
-                    ADCVideo.autoplay.cancelAutoplay();
-                }
-            }
-        });
-    },
+                    switch (e.keyCode) {
+                        case 37: // Left arrow
+                            player.currentTime(Math.max(0, player.currentTime() - 10));
+                            e.preventDefault();
+                            break;
 
-    bindButtonEvents: function () {
-        ADCVideo.cache.$document
-            .on('click.adc-video', '#adc-cancel-autoplay', function (e) {
-                e.preventDefault();
-                ADCVideo.autoplay.cancelAutoplay();
-            })
-            .on('click.adc-video', '.adc-nav-item', function (e) {
-                var href = this.getAttribute('href');
-                if (href && href.startsWith('#')) {
-                    e.preventDefault();
-                    var target = $(href);
-                    if (target.length) {
-                        $('html, body').animate({ scrollTop: target.offset().top - 100 }, 500);
+                        case 39: // Right arrow
+                            player.currentTime(Math.min(player.duration(), player.currentTime() + 10));
+                            e.preventDefault();
+                            break;
+
+                        case 32: // Spacebar
+                            if (player.paused()) {
+                                player.play();
+                            } else {
+                                player.pause();
+                            }
+                            e.preventDefault();
+                            break;
+
+                        case 70: // F key
+                            if (e.ctrlKey || e.metaKey) return;
+
+                            if (player.isFullscreen()) {
+                                player.exitFullscreen();
+                            } else {
+                                player.requestFullscreen();
+                            }
+                            e.preventDefault();
+                            break;
+
+                        case 77: // M key
+                            if (e.ctrlKey || e.metaKey) return;
+
+                            player.muted(!player.muted());
+                            e.preventDefault();
+                            break;
                     }
+                });
+
+                ADCVideo.cache.$document.on('keydown.adc-escape', function (e) {
+                    if (e.key === 'Escape' || e.keyCode === 27) {
+                        $('.adc-wp-programs-dropdown').slideUp(200);
+                        $('.dropdown-arrow').css('transform', 'rotate(0deg)');
+
+                        if (ADCVideo.state.countdownInterval) {
+                            ADCVideo.autoplay.cancelAutoplay();
+                        }
+                    }
+                });
+            },
+
+            bindButtonEvents: function () {
+                ADCVideo.cache.$document.on('click.adc-video', '#adc-cancel-autoplay', function (e) {
+                    e.preventDefault();
+                    ADCVideo.autoplay.cancelAutoplay();
+                });
+
+                ADCVideo.cache.$document.on('click.adc-video', '.adc-nav-item', function (e) {
+                    var href = this.getAttribute('href');
+                    if (href && href.startsWith('#')) {
+                        e.preventDefault();
+                        var target = $(href);
+                        if (target.length) {
+                            $('html, body').animate({
+                                scrollTop: target.offset().top - 100
+                            }, 500);
+                        }
+                    }
+                });
+
+                ADCVideo.cache.$document.on('mouseenter.adc-video', '.adc-back-button, .adc-view-all-button, .adc-view-more-button', function () {
+                    $(this).addClass('adc-button-hover');
+                }).on('mouseleave.adc-video', '.adc-back-button, .adc-view-all-button, .adc-view-more-button', function () {
+                    $(this).removeClass('adc-button-hover');
+                });
+            },
+
+            bindGeneralEvents: function () {
+                var resizeHandler = ADCVideo.utils.debounce(function () {
+                    if (ADCVideo.state.player) {
+                        ADCVideo.state.player.trigger('resize');
+                    }
+
+                    $('.adc-wp-programs-dropdown').slideUp(200);
+                    $('.dropdown-arrow').css('transform', 'rotate(0deg)');
+                }, 250);
+
+                ADCVideo.cache.$window.on('resize.adc-video', resizeHandler);
+
+                document.addEventListener('visibilitychange', function () {
+                    if (document.hidden) {
+                        if (ADCVideo.state.player && !ADCVideo.state.player.paused()) {
+                            ADCVideo.state.player.pause();
+                        }
+                    }
+                });
+
+                ADCVideo.cache.$window.on('orientationchange.adc-video', function () {
+                    setTimeout(function () {
+                        $('.adc-wp-programs-dropdown').slideUp(200);
+                        $('.dropdown-arrow').css('transform', 'rotate(0deg)');
+                    }, 100);
+                });
+            },
+
+            // NEW: Bind events for friendly URL navigation
+            bindFriendlyUrlEvents: function () {
+                // Intercept category card clicks to use friendly URLs
+                ADCVideo.cache.$document.on('click.adc-friendly', '.adc-category-card', function (e) {
+                    var href = this.getAttribute('href');
+                    if (href && !href.startsWith('http') && !href.startsWith('//')) {
+                        // It's already a friendly URL, let it proceed normally
+                        return true;
+                    }
+
+                    // Handle old-style URLs if any exist
+                    var urlParams = new URLSearchParams(href.split('?')[1] || '');
+                    var categoria = urlParams.get('categoria');
+
+                    if (categoria) {
+                        e.preventDefault();
+                        var friendlyUrl = ADCVideo.utils.buildProgramUrl(categoria, ADCVideo.state.currentLanguage);
+                        ADCVideo.utils.navigateTo(friendlyUrl);
+                        return false;
+                    }
+                });
+
+                // Intercept video card clicks to use friendly URLs
+                ADCVideo.cache.$document.on('click.adc-friendly', '.adc-video-link', function (e) {
+                    var href = this.getAttribute('href');
+                    if (href && !href.startsWith('http') && !href.startsWith('//')) {
+                        // It's already a friendly URL, let it proceed normally
+                        return true;
+                    }
+
+                    // Handle old-style URLs if any exist
+                    var urlParams = new URLSearchParams(href.split('?')[1] || '');
+                    var categoria = urlParams.get('categoria');
+                    var video = urlParams.get('video');
+
+                    if (categoria && video) {
+                        e.preventDefault();
+                        var friendlyUrl = ADCVideo.utils.buildVideoUrl(categoria, video, ADCVideo.state.currentLanguage);
+                        ADCVideo.utils.navigateTo(friendlyUrl);
+                        return false;
+                    }
+                });
+
+                // Handle back button clicks to ensure friendly URLs
+                ADCVideo.cache.$document.on('click.adc-friendly', '.adc-back-button, .adc-back-program-button', function (e) {
+                    var href = this.getAttribute('href');
+
+                    // If it's already a friendly URL or absolute URL, let it proceed
+                    if (!href || href.startsWith('http') || href.startsWith('//') || href.indexOf('?') === -1) {
+                        return true;
+                    }
+
+                    // Handle old-style URLs
+                    var urlParams = new URLSearchParams(href.split('?')[1] || '');
+                    var categoria = urlParams.get('categoria');
+
+                    if (categoria) {
+                        e.preventDefault();
+                        var friendlyUrl = ADCVideo.utils.buildProgramUrl(categoria, ADCVideo.state.currentLanguage);
+                        ADCVideo.utils.navigateTo(friendlyUrl);
+                        return false;
+                    } else {
+                        // Back to home
+                        e.preventDefault();
+                        var homeUrl = ADCVideo.utils.getBaseUrl(ADCVideo.state.currentLanguage);
+                        ADCVideo.utils.navigateTo(homeUrl);
+                        return false;
+                    }
+                });
+
+                // Handle "view all" and similar navigation buttons
+                ADCVideo.cache.$document.on('click.adc-friendly', '.adc-view-all-button:not(.adc-view-next-video)', function (e) {
+                    var href = this.getAttribute('href');
+
+                    // If it's already a friendly URL or doesn't have query params, let it proceed
+                    if (!href || href.indexOf('?categoria=') === -1) {
+                        return true;
+                    }
+
+                    // Handle old-style category URLs
+                    var urlParams = new URLSearchParams(href.split('?')[1] || '');
+                    var categoria = urlParams.get('categoria');
+
+                    if (categoria) {
+                        e.preventDefault();
+                        var friendlyUrl = ADCVideo.utils.buildProgramUrl(categoria, ADCVideo.state.currentLanguage);
+                        ADCVideo.utils.navigateTo(friendlyUrl);
+                        return false;
+                    }
+                });
+            }
+        },
+
+        // Destroy method
+        destroy: function () {
+            if (this.state.countdownInterval) {
+                clearInterval(this.state.countdownInterval);
+                this.state.countdownInterval = null;
+            }
+
+            if (this.state.player) {
+                try {
+                    this.state.player.dispose();
+                    this.state.player = null;
+                } catch (e) {
+                    // Ignore errors
                 }
-            })
-            .on('mouseenter.adc-video mouseleave.adc-video', '.adc-back-button, .adc-view-all-button, .adc-view-more-button', function (e) {
-                $(this).toggleClass('adc-button-hover', e.type === 'mouseenter');
-            });
-    },
-
-    bindGeneralEvents: function () {
-        var resizeHandler = ADCVideo.utils.debounce(function () {
-            if (ADCVideo.state.player) {
-                ADCVideo.state.player.trigger('resize');
             }
-            $('.adc-wp-programs-dropdown').slideUp(200);
-            $('.dropdown-arrow').css('transform', 'rotate(0deg)');
-        }, 250);
 
-        ADCVideo.cache.$window.on('resize.adc-video', resizeHandler);
-        document.addEventListener('visibilitychange', function () {
-            if (document.hidden && ADCVideo.state.player && !ADCVideo.state.player.paused()) {
-                ADCVideo.state.player.pause();
+            this.cache.$document.off('.adc-video .programs-menu .programs-menu-outside .programs-menu-li .adc-friendly');
+            this.cache.$window.off('.adc-video');
+
+            if (this.menu.observer) {
+                this.menu.observer.disconnect();
+                this.menu.observer = null;
             }
-        });
-        ADCVideo.cache.$window.on('orientationchange.adc-video', function () {
-            setTimeout(function () {
-                $('.adc-wp-programs-dropdown').slideUp(200);
-                $('.dropdown-arrow').css('transform', 'rotate(0deg)');
-            }, 100);
-        });
-    },
 
-    // NEW: Bind events for friendly URL navigation
-    bindFriendlyUrlEvents: function () {
-        // Categorías (programas)
-        ADCVideo.cache.$document.on('click.adc-friendly', '.adc-category-card', function (e) {
-            var href = this.getAttribute('href');
-            // si ya es friendly (no querystring), dejamos pasar
-            if (href && href.indexOf('?') === -1) return true;
-
-            e.preventDefault();
-            var params = new URLSearchParams(href.split('?')[1] || '');
-            var categoria = params.get('categoria');
-            if (categoria) {
-                var friendly = ADCVideo.utils.buildProgramUrl(categoria, ADCVideo.state.currentLanguage);
-                ADCVideo.utils.navigateTo(friendly);
-            }
-            return false;
-        });
-
-        // Vídeos
-        ADCVideo.cache.$document.on('click.adc-friendly', '.adc-video-link', function (e) {
-            var href = this.getAttribute('href');
-            if (href && href.indexOf('?') === -1) return true;
-
-            e.preventDefault();
-            var params = new URLSearchParams(href.split('?')[1] || '');
-            var categoria = params.get('categoria');
-            var video     = params.get('video');
-            if (categoria && video) {
-                var friendly = ADCVideo.utils.buildVideoUrl(categoria, video, ADCVideo.state.currentLanguage);
-                ADCVideo.utils.navigateTo(friendly);
-            }
-            return false;
-        });
-
-        // Botones de “volver”
-        ADCVideo.cache.$document.on('click.adc-friendly', '.adc-back-button, .adc-back-program-button', function (e) {
-            var href = this.getAttribute('href');
-            if (href && href.indexOf('?') === -1) return true;
-
-            e.preventDefault();
-            var params = new URLSearchParams(href.split('?')[1] || '');
-            var categoria = params.get('categoria');
-            if (categoria) {
-                var friendly = ADCVideo.utils.buildProgramUrl(categoria, ADCVideo.state.currentLanguage);
-                ADCVideo.utils.navigateTo(friendly);
-            } else {
-                var home = ADCVideo.utils.getBaseUrl(ADCVideo.state.currentLanguage);
-                ADCVideo.utils.navigateTo(home);
-            }
-            return false;
-        });
-
-        // “Ver todos” / “Ver siguiente”
-        ADCVideo.cache.$document.on('click.adc-friendly', '.adc-view-all-button:not(.adc-view-next-video)', function (e) {
-            var href = this.getAttribute('href');
-            if (!href || href.indexOf('?categoria=') === -1) return true;
-
-            e.preventDefault();
-            var params = new URLSearchParams(href.split('?')[1] || '');
-            var categoria = params.get('categoria');
-            if (categoria) {
-                var friendly = ADCVideo.utils.buildProgramUrl(categoria, ADCVideo.state.currentLanguage);
-                ADCVideo.utils.navigateTo(friendly);
-            }
-            return false;
-        });
-    },  // ← ← ← COMA aquí para separar de la propiedad siguiente
-
-},  // ← ← ← COMA aquí para cerrar `events` y pasar a `destroy`
-
-// Destroy method
-destroy: function () {
-    if (this.state.countdownInterval) {
-        clearInterval(this.state.countdownInterval);
-        this.state.countdownInterval = null;
-    }
-    if (this.state.player) {
-        try {
-            this.state.player.dispose();
-            this.state.player = null;
-        } catch (e) {
-            // Ignore errors
+            this.state.isInitialized = false;
+            this.menu.initialized = false;
+            this.search.initialized = false;
+            this.events.initialized = false;
         }
-    }
-
-    // Desuscribimos solo el namespace .adc-friendly y .adc-video
-    this.cache.$document.off('click.adc-friendly');
-    this.cache.$window.off('.adc-video');
-
-    if (this.menu.observer) {
-        this.menu.observer.disconnect();
-        this.menu.observer = null;
-    }
-    this.state.isInitialized = false;
-    this.menu.initialized = false;
-    this.search.initialized = false;
-    this.events.initialized = false;
-},
-
+    },
 
     // Initialize ADC Video
     function initializeADCVideo() {
