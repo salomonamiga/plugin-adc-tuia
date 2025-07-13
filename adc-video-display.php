@@ -3,7 +3,7 @@
 /**
  * Plugin Name: ADC Video Display
  * Description: Muestra videos desde el sistema ADC en WordPress - Multiidioma (ES/EN)
- * Version: 3.1
+ * Version: 3.2
  * Author: TuTorah Development Team
  */
 
@@ -59,8 +59,8 @@ class ADC_Video_Display
         add_action('wp_ajax_adc_webhook_refresh', array($this, 'handle_webhook_cache_refresh'));
         add_action('wp_ajax_nopriv_adc_webhook_refresh', array($this, 'handle_webhook_cache_refresh'));
 
-        // Handle custom URLs
-        add_filter('request', array($this, 'handle_custom_urls'));
+        // UPDATED: Handle friendly URLs with dynamic routing
+        add_filter('request', array($this, 'handle_friendly_urls'));
     }
 
     /**
@@ -73,7 +73,7 @@ class ADC_Video_Display
             'adc-style',
             ADC_PLUGIN_URL . 'style.css',
             array(),
-            '3.1'
+            '3.2'
         );
 
         // Enqueue JavaScript
@@ -81,7 +81,7 @@ class ADC_Video_Display
             'adc-script',
             ADC_PLUGIN_URL . 'script.js',
             array('jquery'),
-            '3.1',
+            '3.2',
             true
         );
 
@@ -93,7 +93,11 @@ class ADC_Video_Display
             'nonce' => wp_create_nonce('adc_nonce'),
             'search_page' => home_url('/'),
             'debug' => isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1',
-            'cache_enabled' => $this->is_cache_enabled()
+            'cache_enabled' => $this->is_cache_enabled(),
+            // NEW: Base URLs for friendly URL generation
+            'base_url_es' => home_url('/'),
+            'base_url_en' => home_url('/en/'),
+            'friendly_urls' => true
         ));
     }
 
@@ -145,7 +149,7 @@ class ADC_Video_Display
                 'languages_cleared' => $cleared_languages,
                 'total_languages' => $total_cleared,
                 'timestamp' => current_time('mysql'),
-                'version' => '3.1'
+                'version' => '3.2'
             ));
         } catch (Exception $e) {
             // Error response
@@ -218,11 +222,243 @@ class ADC_Video_Display
     }
 
     /**
-     * Handle custom URLs
+     * CORRECTED: Handle friendly URLs with dynamic validation
      */
-    public function handle_custom_urls($vars)
+    public function handle_friendly_urls($vars)
     {
+        global $wp;
+
+        $current_url = $wp->request;
+        
+        // Skip if empty or admin
+        if (empty($current_url) || is_admin()) {
+            return $vars;
+        }
+
+        // Parse the URL
+        $url_parts = explode('/', trim($current_url, '/'));
+        
+        // Determine language
+        $language = 'es';
+        $offset = 0;
+        
+        if (!empty($url_parts[0]) && $url_parts[0] === 'en') {
+            $language = 'en';
+            $offset = 1;
+        }
+
+        // Get the action (programa/program, buscar/search)
+        $action = isset($url_parts[$offset]) ? $url_parts[$offset] : '';
+        
+        // Handle different URL patterns
+        if ($this->is_program_url($action, $language)) {
+            return $this->handle_program_url($url_parts, $offset, $language, $vars);
+        } elseif ($this->is_search_url($action, $language)) {
+            return $this->handle_search_url($url_parts, $offset, $language, $vars);
+        }
+        
+        // If URL doesn't match any pattern, redirect to home
+        $this->redirect_to_home($language);
+        
         return $vars;
+    }
+
+    /**
+     * Check if URL is a program URL
+     */
+    private function is_program_url($action, $language)
+    {
+        $program_keywords = array(
+            'es' => 'programa',
+            'en' => 'program'
+        );
+        
+        return $action === $program_keywords[$language];
+    }
+
+    /**
+     * Check if URL is a search URL
+     */
+    private function is_search_url($action, $language)
+    {
+        $search_keywords = array(
+            'es' => 'buscar',
+            'en' => 'search'
+        );
+        
+        return $action === $search_keywords[$language];
+    }
+
+    /**
+     * Handle program URLs dynamically
+     */
+    private function handle_program_url($url_parts, $offset, $language, $vars)
+    {
+        $program_slug = isset($url_parts[$offset + 1]) ? sanitize_text_field($url_parts[$offset + 1]) : '';
+        $video_slug = isset($url_parts[$offset + 2]) ? sanitize_text_field($url_parts[$offset + 2]) : '';
+        
+        if (empty($program_slug)) {
+            $this->redirect_to_home($language);
+            return $vars;
+        }
+
+        // Validate program exists dynamically
+        if (!$this->validate_program_exists($program_slug, $language)) {
+            $this->redirect_to_home($language);
+            return $vars;
+        }
+
+        // If video slug exists, validate it
+        if (!empty($video_slug)) {
+            if (!$this->validate_video_exists($program_slug, $video_slug, $language)) {
+                $this->redirect_to_home($language);
+                return $vars;
+            }
+            
+            // Set video parameters
+            $_GET['categoria'] = $program_slug;
+            $_GET['video'] = $video_slug;
+        } else {
+            // Set program parameter
+            $_GET['categoria'] = $program_slug;
+        }
+
+        // CORRECTED: Find and set the page with the appropriate shortcode
+        return $this->set_page_for_language($language, $vars);
+    }
+
+    /**
+     * Handle search URLs
+     */
+    private function handle_search_url($url_parts, $offset, $language, $vars)
+    {
+        $search_term = isset($url_parts[$offset + 1]) ? sanitize_text_field($url_parts[$offset + 1]) : '';
+        
+        if (empty($search_term)) {
+            $this->redirect_to_home($language);
+            return $vars;
+        }
+
+        // URL decode the search term
+        $search_term = urldecode($search_term);
+        
+        // Set search parameter
+        $_GET['adc_search'] = $search_term;
+
+        // CORRECTED: Find and set the page with the appropriate shortcode
+        return $this->set_page_for_language($language, $vars);
+    }
+
+    /**
+     * Dynamically validate if program exists
+     */
+    private function validate_program_exists($program_slug, $language)
+    {
+        try {
+            $api = new ADC_API($language);
+            $programs = $api->get_programs();
+            
+            foreach ($programs as $program) {
+                if (ADC_Utils::slugify($program['name']) === $program_slug) {
+                    return true;
+                }
+            }
+            
+            return false;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Dynamically validate if video exists in program
+     */
+    private function validate_video_exists($program_slug, $video_slug, $language)
+    {
+        try {
+            $api = new ADC_API($language);
+            $programs = $api->get_programs();
+            
+            // Find the program
+            $program_id = null;
+            foreach ($programs as $program) {
+                if (ADC_Utils::slugify($program['name']) === $program_slug) {
+                    $program_id = $program['id'];
+                    break;
+                }
+            }
+            
+            if (!$program_id) {
+                return false;
+            }
+            
+            // Get materials and check if video exists
+            $materials = $api->get_materials($program_id);
+            
+            foreach ($materials as $material) {
+                if (ADC_Utils::slugify($material['title']) === $video_slug) {
+                    return true;
+                }
+            }
+            
+            return false;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * CORRECTED: Set the correct page based on language - Find page dynamically
+     */
+    private function set_page_for_language($language, $vars)
+    {
+        // Find page with the appropriate shortcode
+        $shortcode = $language === 'en' ? 'adc_content_en' : 'adc_content';
+        
+        // Get all pages
+        $pages = get_pages(array(
+            'post_status' => 'publish',
+            'number' => 100
+        ));
+        
+        foreach ($pages as $page) {
+            // Check if page content contains the shortcode
+            if (has_shortcode($page->post_content, $shortcode)) {
+                // For Spanish, check if it's the homepage or a page
+                if ($language === 'es') {
+                    // Check if this is the front page
+                    $front_page_id = get_option('page_on_front');
+                    if ($front_page_id && $page->ID == $front_page_id) {
+                        // It's the homepage, handle as such
+                        $vars['page_id'] = $page->ID;
+                        unset($vars['pagename']);
+                        break;
+                    } else {
+                        // Regular page
+                        $vars['pagename'] = $page->post_name;
+                        $vars['page_id'] = $page->ID;
+                        break;
+                    }
+                } else {
+                    // For English, use the page directly
+                    $vars['pagename'] = $page->post_name;
+                    $vars['page_id'] = $page->ID;
+                    break;
+                }
+            }
+        }
+        
+        return $vars;
+    }
+
+    /**
+     * Redirect to home based on language
+     */
+    private function redirect_to_home($language)
+    {
+        $home_url = $language === 'en' ? home_url('/en/') : home_url('/');
+        wp_redirect($home_url, 301);
+        exit;
     }
 
     /**
@@ -310,7 +546,7 @@ class ADC_Video_Display
             foreach ($results as $video) {
                 $category_slug = ADC_Utils::slugify($video['category']);
                 $video_slug = ADC_Utils::slugify($video['title']);
-                $url = '?categoria=' . $category_slug . '&video=' . $video_slug;
+                $url = $this->build_friendly_video_url($category_slug, $video_slug, $this->language);
                 $output .= $this->render_video_card($video, $url);
             }
 
@@ -319,6 +555,39 @@ class ADC_Video_Display
 
         $output .= '</div>';
         return $output;
+    }
+
+    /**
+     * NEW: Build friendly video URL
+     */
+    private function build_friendly_video_url($category_slug, $video_slug, $language)
+    {
+        $base_url = $language === 'en' ? home_url('/en/') : home_url('/');
+        $program_keyword = $language === 'en' ? 'program' : 'programa';
+        
+        return $base_url . $program_keyword . '/' . $category_slug . '/' . $video_slug . '/';
+    }
+
+    /**
+     * NEW: Build friendly category URL
+     */
+    private function build_friendly_category_url($category_slug, $language)
+    {
+        $base_url = $language === 'en' ? home_url('/en/') : home_url('/');
+        $program_keyword = $language === 'en' ? 'program' : 'programa';
+        
+        return $base_url . $program_keyword . '/' . $category_slug . '/';
+    }
+
+    /**
+     * NEW: Build friendly search URL
+     */
+    private function build_friendly_search_url($search_term, $language)
+    {
+        $base_url = $language === 'en' ? home_url('/en/') : home_url('/');
+        $search_keyword = $language === 'en' ? 'search' : 'buscar';
+        
+        return $base_url . $search_keyword . '/' . urlencode($search_term) . '/';
     }
 
     /**
@@ -390,7 +659,7 @@ class ADC_Video_Display
         foreach ($recommended_videos as $video) {
             $program_slug = ADC_Utils::slugify($video['category']);
             $video_slug = ADC_Utils::slugify($video['title']);
-            $url = '?categoria=' . $program_slug . '&video=' . $video_slug;
+            $url = $this->build_friendly_video_url($program_slug, $video_slug, $this->language);
             $output .= $this->render_video_card($video, $url);
         }
 
@@ -474,8 +743,9 @@ class ADC_Video_Display
             // Coming soon - no link, special styling
             $output .= '<div class="adc-category-card adc-coming-soon-card">';
         } else {
-            // Regular clickable card
-            $output .= '<a class="adc-category-card" href="?categoria=' . esc_attr($slug) . '">';
+            // Regular clickable card with friendly URL
+            $friendly_url = $this->build_friendly_category_url($slug, $this->language);
+            $output .= '<a class="adc-category-card" href="' . esc_url($friendly_url) . '">';
         }
 
         $output .= '<div class="adc-category-image-circle">';
@@ -539,7 +809,7 @@ class ADC_Video_Display
         // Group by season
         $seasons = $this->api->group_materials_by_season($materials);
 
-        $home_url = ADC_Utils::get_base_url($this->language);
+        $home_url = $this->language === 'en' ? home_url('/en/') : home_url('/');
 
         $output = '<div class="adc-category-header">';
         $output .= '<h1 class="adc-category-title">' . esc_html($category['name']) . '</h1>';
@@ -567,8 +837,11 @@ class ADC_Video_Display
                 // CAMBIO IMPORTANTE: Usar thumbnail de la API
                 $thumbnail_url = ADC_Utils::get_thumbnail_url($video['thumbnail']);
 
+                // NEW: Use friendly URL for videos
+                $video_url = $this->build_friendly_video_url($category_slug, $video_slug, $this->language);
+
                 $output .= '<div class="adc-video-item">';
-                $output .= '<a href="?categoria=' . esc_attr($category_slug) . '&video=' . esc_attr($video_slug) . '" class="adc-video-link">';
+                $output .= '<a href="' . esc_url($video_url) . '" class="adc-video-link">';
                 $output .= '<div class="adc-video-thumbnail">';
                 $output .= '<img src="' . esc_url($thumbnail_url) . '" alt="' . esc_attr($video['title']) . '" loading="lazy">';
                 $output .= '<div class="adc-video-play-icon"></div>';
@@ -632,7 +905,7 @@ class ADC_Video_Display
     }
 
     /**
-     * Display single video - ACTUALIZADO PARA USAR THUMBNAILS DE API
+     * Display single video - ACTUALIZADO PARA USAR THUMBNAILS DE API Y URLs amigables
      */
     private function display_video($category_slug, $video_slug)
     {
@@ -674,15 +947,17 @@ class ADC_Video_Display
         if ($video_index < count($materials) - 1) {
             $next_video = $materials[$video_index + 1];
             $next_slug = ADC_Utils::slugify($next_video['title']);
-            $next_url = ADC_Utils::build_video_url($category_slug, $next_slug, $this->language);
+            $next_url = $this->build_friendly_video_url($category_slug, $next_slug, $this->language);
         }
 
         $output = '<div class="adc-video-container">';
 
         // Video title and back button container
+        $category_url = $this->build_friendly_category_url($category_slug, $this->language);
+        
         $output .= '<div class="adc-video-header">';
         $output .= '<h1 class="adc-video-main-title">' . esc_html($video['title']) . '</h1>';
-        $output .= '<a href="?categoria=' . esc_attr($category_slug) . '" class="adc-back-program-button">' .
+        $output .= '<a href="' . esc_url($category_url) . '" class="adc-back-program-button">' .
             ADC_Utils::get_text('back_to', $this->language) . ' ' . esc_html($category['name']) . '</a>';
         $output .= '</div>';
 
@@ -723,9 +998,10 @@ class ADC_Video_Display
 
         foreach ($related_videos as $index => $related_video) {
             $related_slug = ADC_Utils::slugify($related_video['title']);
+            $related_url = $this->build_friendly_video_url($category_slug, $related_slug, $this->language);
 
             $output .= '<div class="adc-video-item adc-related-video-item">';
-            $output .= '<a href="?categoria=' . esc_attr($category_slug) . '&video=' . esc_attr($related_slug) . '" class="adc-video-link">';
+            $output .= '<a href="' . esc_url($related_url) . '" class="adc-video-link">';
             $output .= '<div class="adc-video-thumbnail">';
 
             // CAMBIO IMPORTANTE: Usar thumbnail de la API para videos relacionados
@@ -923,6 +1199,42 @@ function adc_video_display_init()
 }
 add_action('plugins_loaded', 'adc_video_display_init');
 
+// NEW: Add rewrite rules for friendly URLs - CORREGIDOS
+add_action('init', 'adc_add_friendly_url_rules');
+function adc_add_friendly_url_rules() {
+    // Spanish URLs - NO usar pagename específico
+    add_rewrite_rule('^programa/([^/]+)/([^/]+)/?$', 'index.php?categoria=$matches[1]&video=$matches[2]', 'top');
+    add_rewrite_rule('^programa/([^/]+)/?$', 'index.php?categoria=$matches[1]', 'top');
+    add_rewrite_rule('^buscar/([^/]+)/?$', 'index.php?adc_search=$matches[1]', 'top');
+    
+    // English URLs - NO usar pagename específico
+    add_rewrite_rule('^en/program/([^/]+)/([^/]+)/?$', 'index.php?categoria=$matches[1]&video=$matches[2]', 'top');
+    add_rewrite_rule('^en/program/([^/]+)/?$', 'index.php?categoria=$matches[1]', 'top');
+    add_rewrite_rule('^en/search/([^/]+)/?$', 'index.php?adc_search=$matches[1]', 'top');
+}
+
+// Register query vars
+add_filter('query_vars', 'adc_add_query_vars');
+function adc_add_query_vars($vars) {
+    $vars[] = 'categoria';
+    $vars[] = 'video';
+    $vars[] = 'adc_search';
+    return $vars;
+}
+
+// Handle 404 redirects to home
+add_action('wp', 'adc_handle_404_redirect');
+function adc_handle_404_redirect() {
+    if (is_404() && !is_admin()) {
+        // Detect language from URL
+        $language = ADC_Utils::detect_language();
+        $home_url = $language === 'en' ? home_url('/en/') : home_url('/');
+        
+        wp_redirect($home_url, 301);
+        exit;
+    }
+}
+
 // Activation hook
 register_activation_hook(__FILE__, 'adc_video_display_activate');
 function adc_video_display_activate()
@@ -948,6 +1260,10 @@ function adc_video_display_activate()
     // Initialize program order options for each language (only ES and EN now)
     add_option('adc_programs_order_es', array());
     add_option('adc_programs_order_en', array());
+
+    // Add rewrite rules and flush
+    adc_add_friendly_url_rules();
+    flush_rewrite_rules();
 }
 
 // Deactivation hook
@@ -955,6 +1271,7 @@ register_deactivation_hook(__FILE__, 'adc_video_display_deactivate');
 function adc_video_display_deactivate()
 {
     // Clean up if needed - but preserve settings for reactivation
+    flush_rewrite_rules();
 }
 
 /**
@@ -1261,5 +1578,6 @@ function adc_display_cache_clear_page() {
 register_activation_hook(__FILE__, 'adc_flush_rewrite_rules_on_activation');
 function adc_flush_rewrite_rules_on_activation() {
     adc_add_cache_clear_endpoint();
+    adc_add_friendly_url_rules();
     flush_rewrite_rules();
 }
