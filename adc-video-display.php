@@ -295,7 +295,7 @@ class ADC_Video_Display
         }
     }
 
-    /**
+/**
      * NEW: Modify main query to show correct page for friendly URLs
      */
     public function modify_main_query($query)
@@ -310,15 +310,15 @@ class ADC_Video_Display
             return;
         }
 
-        // Determine which page to show based on language
-        $target_page_slug = $this->current_url_params['language'] === 'en' ? 'home-ingles' : 'home';
+        // Determine which page to show based on language - CORREGIDO
+        $target_page_slug = $this->current_url_params['language'] === 'en' ? 'home-en' : 'home';
         
         // Find the page with the appropriate shortcode
         $target_page = get_page_by_path($target_page_slug);
         
         if (!$target_page) {
             // Fallback: find page by title
-            $page_title = $this->current_url_params['language'] === 'en' ? 'Home Ingles' : 'Home';
+            $page_title = $this->current_url_params['language'] === 'en' ? 'Home Inglés' : 'Home';
             $pages = get_pages(array(
                 'title' => $page_title,
                 'post_status' => 'publish'
