@@ -355,7 +355,7 @@ class ADC_Video_Display
     }
 
     /**
-     * NEW: Modify main query to show correct page for friendly URLs
+     * NEW: Modify main query to show correct page for friendly URLs - CORREGIDO
      */
     public function modify_main_query($query)
     {
@@ -370,15 +370,15 @@ class ADC_Video_Display
         }
 
         // Determine which page to show based on language
-        $target_language = isset($this->current_url_params['language']) ? $this->current_url_params['language'] : 'es';
-        $target_page_slug = $target_language === 'en' ? 'home-en' : 'home';
+        $adc_language = get_query_var('adc_language') ?: 'es';
+        $target_page_slug = $adc_language === 'en' ? 'home-en' : 'home';
         
         // Find the page with the appropriate shortcode
         $target_page = get_page_by_path($target_page_slug);
         
         if (!$target_page) {
             // Fallback: find page by title
-            $page_title = $target_language === 'en' ? 'Home Inglés' : 'Home';
+            $page_title = $adc_language === 'en' ? 'Home Inglés' : 'Home';
             $pages = get_pages(array(
                 'title' => $page_title,
                 'post_status' => 'publish'
@@ -390,13 +390,25 @@ class ADC_Video_Display
         }
         
         if ($target_page) {
-            // Force WordPress to show the target page
+            // CLAVE: Force WordPress to show the target page but keep it as a page
             $query->set('page_id', $target_page->ID);
             $query->set('post_type', 'page');
             $query->is_page = true;
             $query->is_singular = true;
             $query->is_home = false;
             $query->is_front_page = false;
+            
+            // CRÍTICO: No marcar como 404
+            $query->is_404 = false;
+            
+            // NUEVO: Forzar que WordPress reconozca esta como una página válida
+            $query->queried_object = $target_page;
+            $query->queried_object_id = $target_page->ID;
+            
+            // NUEVO: Asegurar que se ejecute el shortcode
+            global $post;
+            $post = $target_page;
+            setup_postdata($post);
         }
     }
 
