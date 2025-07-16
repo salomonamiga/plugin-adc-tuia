@@ -185,47 +185,61 @@ public function init_url_routing()
 
     /**
      * NEW: Handle legacy URL redirects (301 redirects to friendly URLs)
+     * CORREGIDO: No redirige búsquedas de formularios
      */
     private function handle_legacy_redirects()
-{
-    // Si la REQUEST_URI coincide con /programa/... o /en/program/... o /buscar/...,
-    // es un friendly URL y no debemos redirigir:
-    $uri = $_SERVER['REQUEST_URI'];
-    if ( preg_match('#^/(en/)?(programa|program)/#', $uri) ||
-         preg_match('#^/(en/)?(buscar|search)/#',   $uri) ) {
-        return;
+    {
+        // Si la REQUEST_URI coincide con /programa/... o /en/program/... o /buscar/...,
+        // es un friendly URL y no debemos redirigir:
+        $uri = $_SERVER['REQUEST_URI'];
+        if ( preg_match('#^/(en/)?(programa|program)/#', $uri) ||
+            preg_match('#^/(en/)?(buscar|search)/#',   $uri) ) {
+            return;
+        }
+
+        // NUEVO: No redirigir si es una petición POST (formulario de búsqueda)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            return;
+        }
+
+        // NUEVO: No redirigir si viene del mismo dominio (búsqueda interna)
+        $referer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
+        $current_domain = $_SERVER['HTTP_HOST'];
+        if (!empty($referer) && strpos($referer, $current_domain) !== false) {
+            // Es una búsqueda interna, no redirigir
+            return;
+        }
+
+        // A partir de aquí, sólo legacy URLs query-based EXTERNAS
+        $categoria  = isset($_GET['categoria'])  ? sanitize_text_field($_GET['categoria'])  : '';
+        $video      = isset($_GET['video'])      ? sanitize_text_field($_GET['video'])      : '';
+        $adc_search = isset($_GET['adc_search']) ? sanitize_text_field($_GET['adc_search']) : '';
+
+        // Si no hay parámetros legacy, no redirijas:
+        if ( ! $categoria && ! $video && ! $adc_search ) {
+            return;
+        }
+
+        // Detectar idioma
+        $lang   = ADC_Utils::detect_language();
+        $prefix = $lang === 'en' ? 'en/' : '';
+
+        // Legacy search → friendly /buscar/ ó /en/search/
+        if ( $adc_search ) {
+            $keyword = $lang === 'en' ? 'search' : 'buscar';
+            wp_redirect( home_url("/{$prefix}{$keyword}/" . urlencode($adc_search) . "/"), 301 );
+            exit;
+        }
+
+        // Legacy program/video → friendly /programa/slug[/video]/ ó /en/program/.../
+        if ( $categoria ) {
+            $keyword = $lang === 'en' ? 'program' : 'programa';
+            $base    = home_url("/{$prefix}{$keyword}/{$categoria}/");
+            $url     = $video ? "{$base}{$video}/" : $base;
+            wp_redirect( $url, 301 );
+            exit;
+        }
     }
-
-    // A partir de aquí, sólo legacy URLs query-based
-    $categoria  = isset($_GET['categoria'])  ? sanitize_text_field($_GET['categoria'])  : '';
-    $video      = isset($_GET['video'])      ? sanitize_text_field($_GET['video'])      : '';
-    $adc_search = isset($_GET['adc_search']) ? sanitize_text_field($_GET['adc_search']) : '';
-
-    // Si no hay parámetros legacy, no redirijas:
-    if ( ! $categoria && ! $video && ! $adc_search ) {
-        return;
-    }
-
-    // Detectar idioma
-    $lang   = ADC_Utils::detect_language();
-    $prefix = $lang === 'en' ? 'en/' : '';
-
-    // Legacy search → friendly /buscar/ ó /en/search/
-    if ( $adc_search ) {
-        $keyword = $lang === 'en' ? 'search' : 'buscar';
-        wp_redirect( home_url("/{$prefix}{$keyword}/" . urlencode($adc_search) . "/"), 301 );
-        exit;
-    }
-
-    // Legacy program/video → friendly /programa/slug[/video]/ ó /en/program/.../
-    if ( $categoria ) {
-        $keyword = $lang === 'en' ? 'program' : 'programa';
-        $base    = home_url("/{$prefix}{$keyword}/{$categoria}/");
-        $url     = $video ? "{$base}{$video}/" : $base;
-        wp_redirect( $url, 301 );
-        exit;
-    }
-}
 
 
     /**
