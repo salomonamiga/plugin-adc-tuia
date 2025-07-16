@@ -602,8 +602,80 @@ class ADC_Video_Display
             return '<div class="adc-error">El plugin ADC Video Display no está configurado. Por favor configura la API en el panel de administración.</div>';
         }
 
-        // NEW: Check for friendly URL parameters first
+        // NEW: Check for friendly URL parameters first - CORREGIDO
         $adc_type = get_query_var('adc_type');
+        
+        // FALLBACK: Si get_query_var no funciona, parsear URL directamente
+        if (empty($adc_type)) {
+            $current_uri = $_SERVER['REQUEST_URI'] ?? '';
+            
+            // Parsear URL para buscar patrón de búsqueda
+            if (preg_match('#/buscar/([^/]+)/?#', $current_uri, $matches)) {
+                $adc_type = 'search';
+                $search_term = urldecode($matches[1]);
+                
+                // Forzar los parámetros manualmente
+                $this->current_url_params = array(
+                    'language' => 'es',
+                    'type' => 'search',
+                    'program' => null,
+                    'video' => null,
+                    'search' => $search_term
+                );
+            } elseif (preg_match('#/en/search/([^/]+)/?#', $current_uri, $matches)) {
+                $adc_type = 'search';
+                $search_term = urldecode($matches[1]);
+                
+                // Forzar los parámetros manualmente
+                $this->current_url_params = array(
+                    'language' => 'en',
+                    'type' => 'search',
+                    'program' => null,
+                    'video' => null,
+                    'search' => $search_term
+                );
+            } elseif (preg_match('#/programa/([^/]+)/([^/]+)/?#', $current_uri, $matches)) {
+                $adc_type = 'video';
+                
+                $this->current_url_params = array(
+                    'language' => 'es',
+                    'type' => 'video',
+                    'program' => $matches[1],
+                    'video' => $matches[2],
+                    'search' => null
+                );
+            } elseif (preg_match('#/programa/([^/]+)/?#', $current_uri, $matches)) {
+                $adc_type = 'program';
+                
+                $this->current_url_params = array(
+                    'language' => 'es',
+                    'type' => 'program',
+                    'program' => $matches[1],
+                    'video' => null,
+                    'search' => null
+                );
+            } elseif (preg_match('#/en/program/([^/]+)/([^/]+)/?#', $current_uri, $matches)) {
+                $adc_type = 'video';
+                
+                $this->current_url_params = array(
+                    'language' => 'en',
+                    'type' => 'video',
+                    'program' => $matches[1],
+                    'video' => $matches[2],
+                    'search' => null
+                );
+            } elseif (preg_match('#/en/program/([^/]+)/?#', $current_uri, $matches)) {
+                $adc_type = 'program';
+                
+                $this->current_url_params = array(
+                    'language' => 'en',
+                    'type' => 'program',
+                    'program' => $matches[1],
+                    'video' => null,
+                    'search' => null
+                );
+            }
+        }
         
         if ($adc_type) {
             return $this->handle_friendly_url_content();
