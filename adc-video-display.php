@@ -24,8 +24,6 @@ add_filter( 'wp_resource_hints', function( $hints, $relation_type ) {
     return $hints;
 }, 10, 2 );
 
-
-
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -93,25 +91,23 @@ class ADC_Video_Display
         add_action('pre_get_posts', array($this, 'modify_main_query'), 1);
     }
 
-/**
- * NEW: Initialize URL routing system
- */
-public function init_url_routing()
-{
-    // Add rewrite rules for friendly URLs
-    $this->add_rewrite_rules();
-    
-    // Add query vars
-    add_filter('query_vars', array($this, 'add_query_vars'));
-    
-    // Check if rewrite rules need to be flushed
-    if ( get_option('adc_rewrite_rules_flushed') !== '3.2' ) {
-        flush_rewrite_rules();
-        update_option('adc_rewrite_rules_flushed', '3.2');
+    /**
+     * NEW: Initialize URL routing system
+     */
+    public function init_url_routing()
+    {
+        // Add rewrite rules for friendly URLs
+        $this->add_rewrite_rules();
+        
+        // Add query vars
+        add_filter('query_vars', array($this, 'add_query_vars'));
+        
+        // Check if rewrite rules need to be flushed
+        if ( get_option('adc_rewrite_rules_flushed') !== '3.2' ) {
+            flush_rewrite_rules();
+            update_option('adc_rewrite_rules_flushed', '3.2');
+        }
     }
-
-}
-
 
     /**
      * NEW: Add rewrite rules for friendly URLs
@@ -185,7 +181,6 @@ public function init_url_routing()
 
     /**
      * NEW: Handle legacy URL redirects (301 redirects to friendly URLs)
-     * CORREGIDO: No redirige búsquedas de formularios
      */
     private function handle_legacy_redirects()
     {
@@ -193,7 +188,7 @@ public function init_url_routing()
         // es un friendly URL y no debemos redirigir:
         $uri = $_SERVER['REQUEST_URI'];
         if ( preg_match('#^/(en/)?(programa|program)/#', $uri) ||
-            preg_match('#^/(en/)?(buscar|search)/#',   $uri) ) {
+             preg_match('#^/(en/)?(buscar|search)/#',   $uri) ) {
             return;
         }
 
@@ -240,7 +235,6 @@ public function init_url_routing()
             exit;
         }
     }
-
 
     /**
      * NEW: Handle friendly URL routing
@@ -297,7 +291,7 @@ public function init_url_routing()
         }
     }
 
-     /**
+    /**
      * NEW: Validate friendly URL parameters against API data
      */
     private function validate_friendly_url_params()
@@ -410,8 +404,9 @@ public function init_url_routing()
                 return false;
         }
     }
+}
 
-    /**
+/**
      * NEW: Handle 404 errors with smart language-based redirects
      */
     public function handle_smart_404_redirects()
