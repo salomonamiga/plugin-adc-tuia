@@ -503,49 +503,88 @@ private function validate_friendly_url_params()
     }
 
     /**
-     * NEW: Modify main query to show correct page for friendly URLs
-     */
-    public function modify_main_query($query)
-    {
-        if (!$query->is_main_query() || is_admin()) {
-            return;
-        }
+ * NEW: Modify main query to show correct page for friendly URLs
+ */
+public function modify_main_query($query)
+{
+    if (!$query->is_main_query() || is_admin()) {
+        return;
+    }
 
-        $adc_type = get_query_var('adc_type');
-        
-        if (!$adc_type) {
-            return;
+    $adc_type = get_query_var('adc_type');
+    
+    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+        echo '<script>console.log("🔄 MODIFY_QUERY: adc_type = ", "' . esc_js($adc_type) . '");</script>';
+    }
+    
+    if (!$adc_type) {
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔄 MODIFY_QUERY: No adc_type, returning");</script>';
         }
+        return;
+    }
 
-        // Determine which page to show based on language - CORREGIDO
-        $target_page_slug = $this->current_url_params['language'] === 'en' ? 'home-en' : 'home';
+    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+        echo '<script>console.log("🔄 MODIFY_QUERY: Processing adc_type, current_url_params = ", ' . wp_json_encode($this->current_url_params) . ');</script>';
+    }
+
+    // Determine which page to show based on language
+    $target_language = isset($this->current_url_params['language']) ? $this->current_url_params['language'] : 'es';
+    $target_page_slug = $target_language === 'en' ? 'home-en' : 'home';
+    
+    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+        echo '<script>console.log("🔄 MODIFY_QUERY: Looking for page slug = ", "' . esc_js($target_page_slug) . '");</script>';
+    }
+    
+    // Find the page with the appropriate shortcode
+    $target_page = get_page_by_path($target_page_slug);
+    
+    if (!$target_page) {
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔄 MODIFY_QUERY: Page not found by path, trying by title...");</script>';
+        }
         
-        // Find the page with the appropriate shortcode
-        $target_page = get_page_by_path($target_page_slug);
+        // Fallback: find page by title
+        $page_title = $target_language === 'en' ? 'Home Inglés' : 'Home';
+        $pages = get_pages(array(
+            'title' => $page_title,
+            'post_status' => 'publish'
+        ));
         
-        if (!$target_page) {
-            // Fallback: find page by title
-            $page_title = $this->current_url_params['language'] === 'en' ? 'Home Inglés' : 'Home';
-            $pages = get_pages(array(
-                'title' => $page_title,
-                'post_status' => 'publish'
-            ));
-            
-            if (!empty($pages)) {
-                $target_page = $pages[0];
+        if (!empty($pages)) {
+            $target_page = $pages[0];
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🔄 MODIFY_QUERY: Found page by title = ", "' . esc_js($target_page->post_title) . '");</script>';
             }
         }
-        
-        if ($target_page) {
-            // Force WordPress to show the target page
-            $query->set('page_id', $target_page->ID);
-            $query->set('post_type', 'page');
-            $query->is_page = true;
-            $query->is_singular = true;
-            $query->is_home = false;
-            $query->is_front_page = true;
+    } else {
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔄 MODIFY_QUERY: Found page by path = ", "' . esc_js($target_page->post_title) . '");</script>';
         }
     }
+    
+    if ($target_page) {
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔄 MODIFY_QUERY: Setting up page ID = ", ' . $target_page->ID . ');</script>';
+        }
+        
+        // Force WordPress to show the target page
+        $query->set('page_id', $target_page->ID);
+        $query->set('post_type', 'page');
+        $query->is_page = true;
+        $query->is_singular = true;
+        $query->is_home = false;
+        $query->is_front_page = false;
+        
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔄 MODIFY_QUERY: Query modified successfully");</script>';
+        }
+    } else {
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔄 MODIFY_QUERY: No target page found!");</script>';
+        }
+    }
+}
 
     /**
      * Enqueue scripts and styles
