@@ -249,7 +249,14 @@ public function init_url_routing()
     {
         $adc_type = get_query_var('adc_type');
         
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔍 DEBUG: adc_type = ", "' . esc_js($adc_type) . '");</script>';
+        }
+        
         if (!$adc_type) {
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🔍 DEBUG: No adc_type found, returning");</script>';
+            }
             return;
         }
 
@@ -262,30 +269,59 @@ public function init_url_routing()
             'search' => get_query_var('adc_search')
         );
 
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔍 DEBUG: current_url_params = ", ' . wp_json_encode($this->current_url_params) . ');</script>';
+        }
+
         // Validate the friendly URL parameters
-        if (!$this->validate_friendly_url_params()) {
+        $is_valid = $this->validate_friendly_url_params();
+        
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔍 DEBUG: URL validation result = ", ' . ($is_valid ? 'true' : 'false') . ');</script>';
+        }
+        
+        if (!$is_valid) {
             // Invalid parameters, redirect to home
             $home_url = $this->current_url_params['language'] === 'en' ? home_url('/en/') : home_url('/');
+            
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🔍 DEBUG: REDIRECTING TO HOME because validation failed: ", "' . esc_js($home_url) . '");</script>';
+            }
+            
             wp_redirect($home_url, 301);
             exit;
         }
+        
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔍 DEBUG: URL validation PASSED, continuing...");</script>';
+        }
     }
 
-    /**
+     /**
      * NEW: Validate friendly URL parameters against API data
      */
     private function validate_friendly_url_params()
     {
         if (empty($this->current_url_params['type'])) {
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🔍 DEBUG VALIDATION: Empty type, returning false");</script>';
+            }
             return false;
         }
 
         $api = new ADC_API($this->current_url_params['language']);
         
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔍 DEBUG VALIDATION: Checking type: ", "' . esc_js($this->current_url_params['type']) . '");</script>';
+        }
+        
         switch ($this->current_url_params['type']) {
             case 'program':
             case 'video':
                 if (empty($this->current_url_params['program'])) {
+                    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                        echo '<script>console.log("🔍 DEBUG VALIDATION: Empty program parameter");</script>';
+                    }
                     return false;
                 }
                 
@@ -293,14 +329,32 @@ public function init_url_routing()
                 $programs = $api->get_programs();
                 $program_found = false;
                 
+                if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                    echo '<script>console.log("🔍 DEBUG VALIDATION: Got programs count: ", ' . count($programs) . ');</script>';
+                    echo '<script>console.log("🔍 DEBUG VALIDATION: Looking for program slug: ", "' . esc_js($this->current_url_params['program']) . '");</script>';
+                }
+                
                 foreach ($programs as $program) {
-                    if (ADC_Utils::slugify($program['name']) === $this->current_url_params['program']) {
+                    $program_slug = ADC_Utils::slugify($program['name']);
+                    
+                    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                        echo '<script>console.log("🔍 DEBUG VALIDATION: Comparing slugs - program: ", "' . esc_js($program_slug) . '", looking for: ", "' . esc_js($this->current_url_params['program']) . '");</script>';
+                    }
+                    
+                    if ($program_slug === $this->current_url_params['program']) {
                         $program_found = $program;
+                        
+                        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                            echo '<script>console.log("🔍 DEBUG VALIDATION: Program found: ", "' . esc_js($program['name']) . '");</script>';
+                        }
                         break;
                     }
                 }
                 
                 if (!$program_found) {
+                    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                        echo '<script>console.log("🔍 DEBUG VALIDATION: Program NOT found, returning false");</script>';
+                    }
                     return false;
                 }
                 
@@ -309,24 +363,50 @@ public function init_url_routing()
                     $materials = $api->get_materials($program_found['id']);
                     $video_found = false;
                     
+                    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                        echo '<script>console.log("🔍 DEBUG VALIDATION: Got materials count: ", ' . count($materials) . ');</script>';
+                        echo '<script>console.log("🔍 DEBUG VALIDATION: Looking for video slug: ", "' . esc_js($this->current_url_params['video']) . '");</script>';
+                    }
+                    
                     foreach ($materials as $material) {
-                        if (ADC_Utils::slugify($material['title']) === $this->current_url_params['video']) {
+                        $video_slug = ADC_Utils::slugify($material['title']);
+                        if ($video_slug === $this->current_url_params['video']) {
                             $video_found = true;
+                            
+                            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                                echo '<script>console.log("🔍 DEBUG VALIDATION: Video found: ", "' . esc_js($material['title']) . '");</script>';
+                            }
                             break;
                         }
                     }
                     
                     if (!$video_found) {
+                        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                            echo '<script>console.log("🔍 DEBUG VALIDATION: Video NOT found, returning false");</script>';
+                        }
                         return false;
                     }
                 }
                 
+                if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                    echo '<script>console.log("🔍 DEBUG VALIDATION: Program/Video validation PASSED");</script>';
+                }
                 return true;
                 
             case 'search':
-                return !empty($this->current_url_params['search']);
+                $search_valid = !empty($this->current_url_params['search']);
+                
+                if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                    echo '<script>console.log("🔍 DEBUG VALIDATION: Search term: ", "' . esc_js($this->current_url_params['search']) . '");</script>';
+                    echo '<script>console.log("🔍 DEBUG VALIDATION: Search validation result: ", ' . ($search_valid ? 'true' : 'false') . ');</script>';
+                }
+                
+                return $search_valid;
                 
             default:
+                if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                    echo '<script>console.log("🔍 DEBUG VALIDATION: Unknown type, returning false");</script>';
+                }
                 return false;
         }
     }
