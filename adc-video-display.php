@@ -296,65 +296,61 @@ private function handle_friendly_url_routing()
     }
 }
 
-    /**
-     * NEW: Validate friendly URL parameters against API data
-     */
-    private function validate_friendly_url_params()
-    {
+/**
+ * NEW: Validate friendly URL parameters against API data
+ */
+private function validate_friendly_url_params()
+{
+    try {
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔍 VALIDATION: Starting validation...");</script>';
+        }
+        
         if (empty($this->current_url_params['type'])) {
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🔍 VALIDATION: Empty type, returning false");</script>';
+            }
             return false;
         }
 
-        $api = new ADC_API($this->current_url_params['language']);
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔍 VALIDATION: Checking type: ", "' . esc_js($this->current_url_params['type']) . '");</script>';
+        }
         
         switch ($this->current_url_params['type']) {
+            case 'search':
+                $search_valid = !empty($this->current_url_params['search']);
+                
+                if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                    echo '<script>console.log("🔍 VALIDATION: Search term: ", "' . esc_js($this->current_url_params['search']) . '");</script>';
+                    echo '<script>console.log("🔍 VALIDATION: Search validation result: ", ' . ($search_valid ? 'true' : 'false') . ');</script>';
+                }
+                
+                return $search_valid;
+                
             case 'program':
             case 'video':
-                if (empty($this->current_url_params['program'])) {
-                    return false;
+                if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                    echo '<script>console.log("🔍 VALIDATION: Program/Video validation - skipping API calls for now");</script>';
                 }
                 
-                // Check if program exists
-                $programs = $api->get_programs();
-                $program_found = false;
-                
-                foreach ($programs as $program) {
-                    if (ADC_Utils::slugify($program['name']) === $this->current_url_params['program']) {
-                        $program_found = $program;
-                        break;
-                    }
-                }
-                
-                if (!$program_found) {
-                    return false;
-                }
-                
-                // If it's a video URL, validate the video exists
-                if ($this->current_url_params['type'] === 'video' && !empty($this->current_url_params['video'])) {
-                    $materials = $api->get_materials($program_found['id']);
-                    $video_found = false;
-                    
-                    foreach ($materials as $material) {
-                        if (ADC_Utils::slugify($material['title']) === $this->current_url_params['video']) {
-                            $video_found = true;
-                            break;
-                        }
-                    }
-                    
-                    if (!$video_found) {
-                        return false;
-                    }
-                }
-                
+                // TEMPORALMENTE: Skip API validation para ver si eso causa el error
                 return true;
                 
-            case 'search':
-                return !empty($this->current_url_params['search']);
-                
             default:
+                if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                    echo '<script>console.log("🔍 VALIDATION: Unknown type, returning false");</script>';
+                }
                 return false;
         }
+        
+    } catch (Exception $e) {
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.error("🔍 VALIDATION ERROR: ", "' . esc_js($e->getMessage()) . '");</script>';
+        }
+        return false;
     }
+}
 
     /**
      * NEW: Handle 404 errors with smart language-based redirects
