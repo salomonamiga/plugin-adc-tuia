@@ -92,8 +92,7 @@ class ADC_Video_Display
         // NEW: Force correct page display for friendly URLs
         add_action('pre_get_posts', array($this, 'modify_main_query'), 1);
 
-        // NEW: Force shortcode execution for friendly URLs
-add_action('wp', array($this, 'force_shortcode_execution'), 10);
+        add_action('template_redirect', array($this, 'handle_friendly_url_content_direct'), 5);
     }
 
 /**
@@ -999,8 +998,8 @@ private function display_search_results($search_term = null)
         }
 
         // TEMPORALMENTE: Skip API call para ver si eso causa el error
-        // $results = $this->api->search_materials($search_term);
-        $results = array(); // Simular respuesta vacía por ahora
+         $results = $this->api->search_materials($search_term);
+        //$results = array(); // Simular respuesta vacía por ahora
 
         if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
             echo '<script>console.log("🔍 SEARCH: API call completed, results count: ", ' . count($results) . ');</script>';
@@ -1667,9 +1666,9 @@ private function display_search_results($search_term = null)
     }
 
     /**
- * NEW: Force shortcode execution for friendly URLs
+ * NEW: Handle friendly URL content directly
  */
-public function force_shortcode_execution()
+public function handle_friendly_url_content_direct()
 {
     $adc_type = get_query_var('adc_type');
     
@@ -1678,51 +1677,31 @@ public function force_shortcode_execution()
     }
 
     if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-        echo '<script>console.log("🚀 FORCE_SHORTCODE: Detected adc_type = ", "' . esc_js($adc_type) . '", forcing content execution");</script>';
+        echo '<script>console.log("🎯 DIRECT: Detected adc_type = ", "' . esc_js($adc_type) . '", outputting content directly");</script>';
     }
 
-    // Add filter to force our content
-    add_filter('the_content', array($this, 'inject_adc_content'), 999);
-}
-
-/**
- * Inject ADC content when friendly URLs are detected
- */
-public function inject_adc_content($content)
-{
-    $adc_type = get_query_var('adc_type');
-    
-    if (!$adc_type) {
-        return $content;
-    }
-
-    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-        echo '<script>console.log("🚀 INJECT_CONTENT: Injecting ADC content for type = ", "' . esc_js($adc_type) . '");</script>';
-    }
-
-    // Get the language and call the appropriate shortcode function
+    // Get the language and generate content
     $language = get_query_var('adc_language') ?: 'es';
     
     if ($language === 'en') {
-        $adc_content = $this->display_content_en(array());
+        $content = $this->display_content_en(array());
     } else {
-        $adc_content = $this->display_content_es(array());
+        $content = $this->display_content_es(array());
     }
 
     if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-        echo '<script>console.log("🚀 INJECT_CONTENT: Generated content length = ", ' . strlen($adc_content) . ');</script>';
+        echo '<script>console.log("🎯 DIRECT: Generated content length = ", ' . strlen($content) . ');</script>';
     }
 
-    // Replace or append the ADC content
-    if (strpos($content, '[adc_content') !== false) {
-        // Replace shortcode if found
-        $content = preg_replace('/\[adc_content[^\]]*\]/', $adc_content, $content);
-    } else {
-        // Append if no shortcode found
-        $content .= $adc_content;
-    }
-
-    return $content;
+    // Output the content directly and exit
+    get_header();
+    echo '<div class="site-content">';
+    echo '<div class="container">';
+    echo $content;
+    echo '</div>';
+    echo '</div>';
+    get_footer();
+    exit;
 }
 
 }
