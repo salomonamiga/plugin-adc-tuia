@@ -732,197 +732,261 @@ private function validate_friendly_url_params()
  */
 public function display_content($atts)
 {
-    // DEBUG CONDICIONAL - Solo mostrar si debug_mode está activado
-    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-        echo '<script>
-        console.log("=== ADC DISPLAY DEBUG START ===");
-        console.log("API configurada:", ' . ($this->api->is_configured() ? 'true' : 'false') . ');
-        console.log("adc_type:", "' . esc_js(get_query_var('adc_type')) . '");
-        console.log("adc_language:", "' . esc_js(get_query_var('adc_language')) . '");
-        console.log("adc_program:", "' . esc_js(get_query_var('adc_program')) . '");
-        console.log("adc_video:", "' . esc_js(get_query_var('adc_video')) . '");
-        console.log("adc_search:", "' . esc_js(get_query_var('adc_search')) . '");
-        console.log("current_url_params:", ' . wp_json_encode($this->current_url_params) . ');
-        console.log("current language:", "' . esc_js($this->language) . '");
-        console.log("Current URL:", window.location.href);
-        console.log("=== ADC DISPLAY DEBUG END ===");
-        </script>';
-    }
-
-    // Check if API is configured
-    if (!$this->api->is_configured()) {
-        return '<div class="adc-error">El plugin ADC Video Display no está configurado. Por favor configura la API en el panel de administración.</div>';
-    }
-
-    // NEW: Check for friendly URL parameters first
-    $adc_type = get_query_var('adc_type');
-    
-    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-        echo '<script>console.log("🎬 DISPLAY: adc_type detected = ", "' . esc_js($adc_type) . '");</script>';
-    }
-    
-    if ($adc_type) {
+    try {
+        // DEBUG CONDICIONAL - Solo mostrar si debug_mode está activado
         if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-            echo '<script>console.log("🎬 DISPLAY: Calling handle_friendly_url_content()");</script>';
+            echo '<script>
+            console.log("=== ADC DISPLAY DEBUG START ===");
+            console.log("API configurada:", ' . ($this->api->is_configured() ? 'true' : 'false') . ');
+            console.log("adc_type:", "' . esc_js(get_query_var('adc_type')) . '");
+            console.log("adc_language:", "' . esc_js(get_query_var('adc_language')) . '");
+            console.log("adc_program:", "' . esc_js(get_query_var('adc_program')) . '");
+            console.log("adc_video:", "' . esc_js(get_query_var('adc_video')) . '");
+            console.log("adc_search:", "' . esc_js(get_query_var('adc_search')) . '");
+            console.log("current_url_params:", ' . wp_json_encode($this->current_url_params) . ');
+            console.log("current language:", "' . esc_js($this->language) . '");
+            console.log("Current URL:", window.location.href);
+            console.log("=== ADC DISPLAY DEBUG END ===");
+            </script>';
         }
-        return $this->handle_friendly_url_content();
-    }
 
-    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-        echo '<script>console.log("🎬 DISPLAY: No adc_type, checking legacy parameters");</script>';
-    }
+        // Check if API is configured
+        if (!$this->api->is_configured()) {
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🎬 DISPLAY: API not configured");</script>';
+            }
+            return '<div class="adc-error">El plugin ADC Video Display no está configurado. Por favor configura la API en el panel de administración.</div>';
+        }
 
-    // Legacy support: Check for search results
-    if (isset($_GET['adc_search'])) {
         if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-            echo '<script>console.log("🎬 DISPLAY: Legacy search detected");</script>';
+            echo '<script>console.log("🎬 DISPLAY: API is configured, continuing...");</script>';
         }
-        return $this->display_search_results();
-    }
 
-    // Legacy support: Determine what to display based on URL parameters
-    $category_slug = isset($_GET['categoria']) ? sanitize_text_field($_GET['categoria']) : '';
-    $video_slug = isset($_GET['video']) ? sanitize_text_field($_GET['video']) : '';
+        // NEW: Check for friendly URL parameters first
+        $adc_type = get_query_var('adc_type');
+        
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🎬 DISPLAY: adc_type detected = ", "' . esc_js($adc_type) . '");</script>';
+        }
+        
+        if ($adc_type) {
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🎬 DISPLAY: adc_type exists, calling handle_friendly_url_content()");</script>';
+            }
+            
+            $result = $this->handle_friendly_url_content();
+            
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🎬 DISPLAY: handle_friendly_url_content() returned, length = ", ' . strlen($result) . ');</script>';
+            }
+            
+            return $result;
+        }
 
-    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-        echo '<script>console.log("🎬 DISPLAY: categoria = ", "' . esc_js($category_slug) . '"); console.log("🎬 DISPLAY: video = ", "' . esc_js($video_slug) . '");</script>';
-    }
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🎬 DISPLAY: No adc_type, checking legacy parameters");</script>';
+        }
 
-    // Display appropriate content
-    if (!empty($video_slug) && !empty($category_slug)) {
-        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-            echo '<script>console.log("🎬 DISPLAY: Showing video");</script>';
+        // Legacy support: Check for search results
+        if (isset($_GET['adc_search'])) {
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🎬 DISPLAY: Legacy search detected");</script>';
+            }
+            return $this->display_search_results();
         }
-        return $this->display_video($category_slug, $video_slug);
-    } elseif (!empty($category_slug)) {
+
+        // Legacy support: Determine what to display based on URL parameters
+        $category_slug = isset($_GET['categoria']) ? sanitize_text_field($_GET['categoria']) : '';
+        $video_slug = isset($_GET['video']) ? sanitize_text_field($_GET['video']) : '';
+
         if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-            echo '<script>console.log("🎬 DISPLAY: Showing category videos");</script>';
+            echo '<script>console.log("🎬 DISPLAY: categoria = ", "' . esc_js($category_slug) . '"); console.log("🎬 DISPLAY: video = ", "' . esc_js($video_slug) . '");</script>';
         }
-        return $this->display_category_videos($category_slug);
-    } else {
+
+        // Display appropriate content
+        if (!empty($video_slug) && !empty($category_slug)) {
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🎬 DISPLAY: Showing video");</script>';
+            }
+            return $this->display_video($category_slug, $video_slug);
+        } elseif (!empty($category_slug)) {
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🎬 DISPLAY: Showing category videos");</script>';
+            }
+            return $this->display_category_videos($category_slug);
+        } else {
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🎬 DISPLAY: Showing categories grid");</script>';
+            }
+            return $this->display_categories_grid();
+        }
+        
+    } catch (Exception $e) {
         if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-            echo '<script>console.log("🎬 DISPLAY: Showing categories grid");</script>';
+            echo '<script>console.error("🎬 DISPLAY ERROR: ", "' . esc_js($e->getMessage()) . '");</script>';
         }
-        return $this->display_categories_grid();
+        return '<div class="adc-error">Error en display_content: ' . esc_html($e->getMessage()) . '</div>';
     }
 }
 
-    /**
+/**
  * NEW: Handle content display for friendly URLs
  */
 private function handle_friendly_url_content()
 {
-    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-        echo '<script>console.log("🎯 HANDLE_FRIENDLY: Starting handle_friendly_url_content()");</script>';
-    }
-
-    if (empty($this->current_url_params)) {
-        // Extract parameters if not already set
-        $this->current_url_params = array(
-            'language' => get_query_var('adc_language') ?: 'es',
-            'type' => get_query_var('adc_type'),
-            'program' => get_query_var('adc_program'),
-            'video' => get_query_var('adc_video'),
-            'search' => get_query_var('adc_search')
-        );
-        
+    try {
         if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-            echo '<script>console.log("🎯 HANDLE_FRIENDLY: Extracted fresh params = ", ' . wp_json_encode($this->current_url_params) . ');</script>';
+            echo '<script>console.log("🎯 HANDLE_FRIENDLY: Starting handle_friendly_url_content()");</script>';
         }
-    }
 
-    // Update API language if needed
-    if ($this->language !== $this->current_url_params['language']) {
-        $this->language = $this->current_url_params['language'];
-        $this->api = new ADC_API($this->language);
-        
-        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-            echo '<script>console.log("🎯 HANDLE_FRIENDLY: Updated language to = ", "' . esc_js($this->language) . '");</script>';
-        }
-    }
-
-    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-        echo '<script>console.log("🎯 HANDLE_FRIENDLY: About to switch on type = ", "' . esc_js($this->current_url_params['type']) . '");</script>';
-    }
-
-    switch ($this->current_url_params['type']) {
-        case 'search':
+        if (empty($this->current_url_params)) {
             if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-                echo '<script>console.log("🎯 HANDLE_FRIENDLY: Calling display_search_results with term = ", "' . esc_js($this->current_url_params['search']) . '");</script>';
+                echo '<script>console.log("🎯 HANDLE_FRIENDLY: current_url_params is empty, extracting...");</script>';
             }
-            $result = $this->display_search_results($this->current_url_params['search']);
             
-            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-                echo '<script>console.log("🎯 HANDLE_FRIENDLY: Search results length = ", ' . strlen($result) . ');</script>';
-            }
-            return $result;
-            
-        case 'video':
-            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-                echo '<script>console.log("🎯 HANDLE_FRIENDLY: Calling display_video");</script>';
-            }
-            return $this->display_video(
-                $this->current_url_params['program'], 
-                $this->current_url_params['video']
+            // Extract parameters if not already set
+            $this->current_url_params = array(
+                'language' => get_query_var('adc_language') ?: 'es',
+                'type' => get_query_var('adc_type'),
+                'program' => get_query_var('adc_program'),
+                'video' => get_query_var('adc_video'),
+                'search' => get_query_var('adc_search')
             );
             
-        case 'program':
             if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-                echo '<script>console.log("🎯 HANDLE_FRIENDLY: Calling display_category_videos");</script>';
+                echo '<script>console.log("🎯 HANDLE_FRIENDLY: Extracted fresh params = ", ' . wp_json_encode($this->current_url_params) . ');</script>';
             }
-            return $this->display_category_videos($this->current_url_params['program']);
+        } else {
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🎯 HANDLE_FRIENDLY: Using existing params = ", ' . wp_json_encode($this->current_url_params) . ');</script>';
+            }
+        }
+
+        // Update API language if needed
+        if ($this->language !== $this->current_url_params['language']) {
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🎯 HANDLE_FRIENDLY: Updating language from ", "' . esc_js($this->language) . '", " to ", "' . esc_js($this->current_url_params['language']) . '");</script>';
+            }
             
-        default:
+            $this->language = $this->current_url_params['language'];
+            $this->api = new ADC_API($this->language);
+            
             if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-                echo '<script>console.log("🎯 HANDLE_FRIENDLY: Default case - showing categories grid");</script>';
+                echo '<script>console.log("🎯 HANDLE_FRIENDLY: Language updated successfully");</script>';
             }
-            return $this->display_categories_grid();
+        }
+
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🎯 HANDLE_FRIENDLY: About to switch on type = ", "' . esc_js($this->current_url_params['type']) . '");</script>';
+        }
+
+        switch ($this->current_url_params['type']) {
+            case 'search':
+                if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                    echo '<script>console.log("🎯 HANDLE_FRIENDLY: SEARCH case - calling display_search_results with term = ", "' . esc_js($this->current_url_params['search']) . '");</script>';
+                }
+                
+                $result = $this->display_search_results($this->current_url_params['search']);
+                
+                if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                    echo '<script>console.log("🎯 HANDLE_FRIENDLY: Search results returned, length = ", ' . strlen($result) . ');</script>';
+                }
+                return $result;
+                
+            case 'video':
+                if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                    echo '<script>console.log("🎯 HANDLE_FRIENDLY: VIDEO case");</script>';
+                }
+                return $this->display_video(
+                    $this->current_url_params['program'], 
+                    $this->current_url_params['video']
+                );
+                
+            case 'program':
+                if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                    echo '<script>console.log("🎯 HANDLE_FRIENDLY: PROGRAM case");</script>';
+                }
+                return $this->display_category_videos($this->current_url_params['program']);
+                
+            default:
+                if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                    echo '<script>console.log("🎯 HANDLE_FRIENDLY: DEFAULT case - showing categories grid");</script>';
+                }
+                return $this->display_categories_grid();
+        }
+        
+    } catch (Exception $e) {
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.error("🎯 HANDLE_FRIENDLY ERROR: ", "' . esc_js($e->getMessage()) . '");</script>';
+        }
+        return '<div class="adc-error">Error en handle_friendly_url_content: ' . esc_html($e->getMessage()) . '</div>';
     }
 }
 
-    /**
-     * Display search results - UPDATED for friendly URLs
-     */
-    private function display_search_results($search_term = null)
-    {
+/**
+ * Display search results - UPDATED for friendly URLs
+ */
+private function display_search_results($search_term = null)
+{
+    try {
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔍 SEARCH: Starting display_search_results");</script>';
+        }
+
         if ($search_term === null) {
             $search_term = ADC_Utils::sanitize_search_term($_GET['adc_search'] ?? '');
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🔍 SEARCH: Got search term from GET: ", "' . esc_js($search_term) . '");</script>';
+            }
         } else {
             $search_term = ADC_Utils::sanitize_search_term($search_term);
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🔍 SEARCH: Got search term from parameter: ", "' . esc_js($search_term) . '");</script>';
+            }
         }
 
         if (empty($search_term)) {
+            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+                echo '<script>console.log("🔍 SEARCH: Empty search term");</script>';
+            }
             return '<div class="adc-error">Por favor ingresa un término de búsqueda.</div>';
         }
 
-        // Try to get actual search results first
-        $results = $this->api->search_materials($search_term);
-
-        $output = '<div class="adc-search-results-container">';
-
-        // If no results, show message + recommendations
-        if (empty($results)) {
-            $output .= $this->render_no_results_message($search_term, $this->language);
-        } else {
-            // Show actual results found
-            $output .= '<h1 class="adc-search-results-title">' . ADC_Utils::get_text('search_results_for', $this->language) . ': "' . esc_html($search_term) . '"</h1>';
-            $output .= '<div class="adc-recommended-videos">';
-
-            foreach ($results as $video) {
-                $category_slug = ADC_Utils::slugify($video['category']);
-                $video_slug = ADC_Utils::slugify($video['title']);
-                
-                // NEW: Use friendly URLs
-                $url = $this->build_friendly_video_url($category_slug, $video_slug);
-                $output .= $this->render_video_card($video, $url);
-            }
-
-            $output .= '</div>';
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔍 SEARCH: About to call API search_materials");</script>';
         }
 
+        // TEMPORALMENTE: Skip API call para ver si eso causa el error
+        // $results = $this->api->search_materials($search_term);
+        $results = array(); // Simular respuesta vacía por ahora
+
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔍 SEARCH: API call completed, results count: ", ' . count($results) . ');</script>';
+        }
+
+        $output = '<div class="adc-search-results-container">';
+        $output .= '<h1>Resultados de búsqueda para: "' . esc_html($search_term) . '"</h1>';
+        $output .= '<p>Se encontraron ' . count($results) . ' resultados.</p>';
+        
+        if (empty($results)) {
+            $output .= '<p>No hay resultados para mostrar (API deshabilitada temporalmente para debug).</p>';
+        }
+        
         $output .= '</div>';
+
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("🔍 SEARCH: Returning output, length: ", ' . strlen($output) . ');</script>';
+        }
+
         return $output;
+
+    } catch (Exception $e) {
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.error("🔍 SEARCH ERROR: ", "' . esc_js($e->getMessage()) . '");</script>';
+        }
+        return '<div class="adc-error">Error en la búsqueda: ' . esc_html($e->getMessage()) . '</div>';
     }
+}
 
     /**
      * NEW: Render no results message with recommended videos
