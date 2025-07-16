@@ -997,22 +997,35 @@ private function display_search_results($search_term = null)
             echo '<script>console.log("🔍 SEARCH: About to call API search_materials");</script>';
         }
 
-        // TEMPORALMENTE: Skip API call para ver si eso causa el error
-         $results = $this->api->search_materials($search_term);
-        //$results = array(); // Simular respuesta vacía por ahora
+        // Try to get actual search results first
+        $results = $this->api->search_materials($search_term);
 
         if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
             echo '<script>console.log("🔍 SEARCH: API call completed, results count: ", ' . count($results) . ');</script>';
         }
 
         $output = '<div class="adc-search-results-container">';
-        $output .= '<h1>Resultados de búsqueda para: "' . esc_html($search_term) . '"</h1>';
-        $output .= '<p>Se encontraron ' . count($results) . ' resultados.</p>';
-        
+
+        // If no results, show message + recommendations
         if (empty($results)) {
-            $output .= '<p>No hay resultados para mostrar (API deshabilitada temporalmente para debug).</p>';
+            $output .= $this->render_no_results_message($search_term, $this->language);
+        } else {
+            // Show actual results found
+            $output .= '<h1 class="adc-search-results-title">' . ADC_Utils::get_text('search_results_for', $this->language) . ': "' . esc_html($search_term) . '"</h1>';
+            $output .= '<div class="adc-recommended-videos">';
+
+            foreach ($results as $video) {
+                $category_slug = ADC_Utils::slugify($video['category']);
+                $video_slug = ADC_Utils::slugify($video['title']);
+                
+                // NEW: Use friendly URLs
+                $url = $this->build_friendly_video_url($category_slug, $video_slug);
+                $output .= $this->render_video_card($video, $url);
+            }
+
+            $output .= '</div>';
         }
-        
+
         $output .= '</div>';
 
         if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
