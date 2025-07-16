@@ -741,13 +741,13 @@ public function display_content($atts)
         echo '<script>
         console.log("=== ADC DISPLAY DEBUG START ===");
         console.log("API configurada:", ' . ($this->api->is_configured() ? 'true' : 'false') . ');
-        console.log("adc_type:", "' . get_query_var('adc_type') . '");
-        console.log("adc_language:", "' . get_query_var('adc_language') . '");
-        console.log("adc_program:", "' . get_query_var('adc_program') . '");
-        console.log("adc_video:", "' . get_query_var('adc_video') . '");
-        console.log("adc_search:", "' . get_query_var('adc_search') . '");
-        console.log("current_url_params:", ' . json_encode($this->current_url_params) . ');
-        console.log("current language:", "' . $this->language . '");
+        console.log("adc_type:", "' . esc_js(get_query_var('adc_type')) . '");
+        console.log("adc_language:", "' . esc_js(get_query_var('adc_language')) . '");
+        console.log("adc_program:", "' . esc_js(get_query_var('adc_program')) . '");
+        console.log("adc_video:", "' . esc_js(get_query_var('adc_video')) . '");
+        console.log("adc_search:", "' . esc_js(get_query_var('adc_search')) . '");
+        console.log("current_url_params:", ' . wp_json_encode($this->current_url_params) . ');
+        console.log("current language:", "' . esc_js($this->language) . '");
         console.log("Current URL:", window.location.href);
         console.log("=== ADC DISPLAY DEBUG END ===");
         </script>';
@@ -789,7 +789,7 @@ public function display_content($atts)
     $video_slug = isset($_GET['video']) ? sanitize_text_field($_GET['video']) : '';
 
     if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-        echo '<script>console.log("🎬 DISPLAY: categoria = ", "' . esc_js($category_slug) . '", video = ", "' . esc_js($video_slug) . '");</script>';
+        echo '<script>console.log("🎬 DISPLAY: categoria = ", "' . esc_js($category_slug) . '"); console.log("🎬 DISPLAY: video = ", "' . esc_js($video_slug) . '");</script>';
     }
 
     // Display appropriate content
