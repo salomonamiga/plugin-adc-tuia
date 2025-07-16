@@ -91,6 +91,9 @@ class ADC_Video_Display
         
         // NEW: Force correct page display for friendly URLs
         add_action('pre_get_posts', array($this, 'modify_main_query'), 1);
+
+        // NEW: Force shortcode execution for friendly URLs
+add_action('wp', array($this, 'force_shortcode_execution'), 10);
     }
 
 /**
