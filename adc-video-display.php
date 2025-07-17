@@ -232,90 +232,96 @@ public function init_url_routing()
      * NEW: Handle friendly URL routing
      */
     private function handle_friendly_url_routing()
-    {
-        $adc_type = get_query_var('adc_type');
-        
-        if (!$adc_type) {
-            return;
-        }
-
-        // Extract parameters from URL
-        $this->current_url_params = array(
-            'language' => get_query_var('adc_language') ?: 'es',
-            'type' => $adc_type,
-            'program' => get_query_var('adc_program'),
-            'video' => get_query_var('adc_video'),
-            'search' => get_query_var('adc_search')
-        );
-
-        // Validate the friendly URL parameters
-        if (!$this->validate_friendly_url_params()) {
-            // Invalid parameters, redirect to home
-            $home_url = $this->current_url_params['language'] === 'en' ? home_url('/en/') : home_url('/');
-            wp_redirect($home_url, 301);
-            exit;
-        }
+{
+    $adc_type = get_query_var('adc_type');
+    
+    if (!$adc_type) {
+        return;
     }
+
+    // Extract parameters from URL
+    $this->current_url_params = array(
+        'language' => get_query_var('adc_language') ?: 'es',
+        'type' => $adc_type,
+        'program' => get_query_var('adc_program'),
+        'video' => get_query_var('adc_video'),
+        'search' => get_query_var('adc_search')
+    );
+
+    // DEBUG: Verifica si el parámetro de búsqueda llega correctamente
+    if ($adc_type === 'search') {
+        error_log('ADC Search Params: ' . print_r($this->current_url_params, true));
+    }
+
+    // Validate the friendly URL parameters
+    if (!$this->validate_friendly_url_params()) {
+        // Invalid parameters, redirect to home
+        $home_url = $this->current_url_params['language'] === 'en' ? home_url('/en/') : home_url('/');
+        wp_redirect($home_url, 301);
+        exit;
+    }
+}
 
     /**
      * NEW: Validate friendly URL parameters against API data
      */
     private function validate_friendly_url_params()
-    {
-        if (empty($this->current_url_params['type'])) {
-            return false;
-        }
+{
+    if (empty($this->current_url_params['type'])) {
+        return false;
+    }
 
-        $api = new ADC_API($this->current_url_params['language']);
-        
-        switch ($this->current_url_params['type']) {
-            case 'program':
-            case 'video':
-                if (empty($this->current_url_params['program'])) {
-                    return false;
+    $api = new ADC_API($this->current_url_params['language']);
+    
+    switch ($this->current_url_params['type']) {
+        case 'program':
+        case 'video':
+            if (empty($this->current_url_params['program'])) {
+                return false;
+            }
+            
+            // Check if program exists
+            $programs = $api->get_programs();
+            $program_found = false;
+            
+            foreach ($programs as $program) {
+                if (ADC_Utils::slugify($program['name']) === $this->current_url_params['program']) {
+                    $program_found = $program;
+                    break;
                 }
+            }
+            
+            if (!$program_found) {
+                return false;
+            }
+            
+            // If it's a video URL, validate the video exists
+            if ($this->current_url_params['type'] === 'video' && !empty($this->current_url_params['video'])) {
+                $materials = $api->get_materials($program_found['id']);
+                $video_found = false;
                 
-                // Check if program exists
-                $programs = $api->get_programs();
-                $program_found = false;
-                
-                foreach ($programs as $program) {
-                    if (ADC_Utils::slugify($program['name']) === $this->current_url_params['program']) {
-                        $program_found = $program;
+                foreach ($materials as $material) {
+                    if (ADC_Utils::slugify($material['title']) === $this->current_url_params['video']) {
+                        $video_found = true;
                         break;
                     }
                 }
                 
-                if (!$program_found) {
+                if (!$video_found) {
                     return false;
                 }
-                
-                // If it's a video URL, validate the video exists
-                if ($this->current_url_params['type'] === 'video' && !empty($this->current_url_params['video'])) {
-                    $materials = $api->get_materials($program_found['id']);
-                    $video_found = false;
-                    
-                    foreach ($materials as $material) {
-                        if (ADC_Utils::slugify($material['title']) === $this->current_url_params['video']) {
-                            $video_found = true;
-                            break;
-                        }
-                    }
-                    
-                    if (!$video_found) {
-                        return false;
-                    }
-                }
-                
-                return true;
-                
-            case 'search':
-                return !empty($this->current_url_params['search']);
-                
-            default:
-                return false;
-        }
+            }
+            
+            return true;
+            
+        case 'search':
+            // CORREGIDO: Permitir términos de búsqueda con espacios y caracteres especiales
+            return isset($this->current_url_params['search']) && strlen(trim($this->current_url_params['search'])) > 0;
+            
+        default:
+            return false;
     }
+}
 
     /**
      * NEW: Handle 404 errors with smart language-based redirects
