@@ -52,7 +52,6 @@ class ADC_Video_Display
     private $options;
     private $language;
     private $current_url_params;
-    private $videojs_loaded = false;
 
     /**
      * Constructor
@@ -621,9 +620,7 @@ class ADC_Video_Display
         $language = isset($_POST['language']) ? ADC_Utils::validate_language($_POST['language']) : 'es';
 
         if (empty($search_term)) {
-            wp_send_json_error(array(
-                'message' => $language === 'en' ? 'No search term provided' : 'No se proporcionó término de búsqueda'
-            ));
+            wp_send_json_error('No search term provided');
         }
 
         // Create API instance for the specific language
@@ -638,8 +635,13 @@ class ADC_Video_Display
      */
     public function handle_ajax_get_programs_menu()
     {
-        // Verificar nonce obligatorio para consistencia de seguridad
-        check_ajax_referer('adc_nonce', 'nonce');
+        // Verificar nonce si existe
+        if (isset($_POST['nonce']) && !empty($_POST['nonce'])) {
+            if (!wp_verify_nonce($_POST['nonce'], 'adc_nonce')) {
+                wp_send_json_error('Invalid nonce');
+                return;
+            }
+        }
 
         $language = isset($_POST['language']) ? ADC_Utils::validate_language($_POST['language']) : 'es';
 
@@ -649,9 +651,7 @@ class ADC_Video_Display
 
             // Verificar que la API esté configurada
             if (!$api->is_configured()) {
-                wp_send_json_error(array(
-                    'message' => $language === 'en' ? 'API not configured' : 'API no configurada'
-                ));
+                wp_send_json_error('API not configured');
                 return;
             }
 
@@ -659,17 +659,13 @@ class ADC_Video_Display
             $programs = $api->get_all_programs_for_menu();
 
             if (empty($programs)) {
-                wp_send_json_error(array(
-                    'message' => ADC_Utils::get_text('no_programs', $language)
-                ));
+                wp_send_json_error('No programs found');
                 return;
             }
 
             wp_send_json_success($programs);
         } catch (Exception $e) {
-            wp_send_json_error(array(
-                'message' => $language === 'en' ? 'Internal server error' : 'Error interno del servidor'
-            ));
+            wp_send_json_error('Internal server error');
         }
     }
 
@@ -1134,27 +1130,15 @@ class ADC_Video_Display
     }
 
     /**
-     * Load Video.js resources once per page
-     */
-    private function load_videojs_once()
-    {
-        if (!$this->videojs_loaded) {
-            $this->videojs_loaded = true;
-            return '<link href="https://unpkg.com/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">' .
-                   '<script src="https://unpkg.com/video.js@8.10.0/dist/video.min.js"></script>';
-        }
-        return '';
-    }
-
-    /**
      * Render promotional clip for category
      */
     private function render_promotional_clip($category)
     {
         $output = '<div class="adc-promotional-clip-section">';
 
-        // Load Video.js once per page
-        $output .= $this->load_videojs_once();
+        // Video.js for promotional clip
+        $output .= '<link href="https://unpkg.com/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">';
+        $output .= '<script src="https://unpkg.com/video.js@8.10.0/dist/video.min.js"></script>';
 
         $clip_id = 'adc-promo-player-' . uniqid();
 
@@ -1248,8 +1232,9 @@ class ADC_Video_Display
             ADC_Utils::get_text('back_to', $this->language) . ' ' . esc_html($category['name']) . '</a>';
         $output .= '</div>';
 
-        // Load Video.js once per page
-        $output .= $this->load_videojs_once();
+        // Video.js
+        $output .= '<link href="https://unpkg.com/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">';
+        $output .= '<script src="https://unpkg.com/video.js@8.10.0/dist/video.min.js"></script>';
 
         // Player with proper aspect ratio
         $output .= '<div class="adc-video-player" style="position:relative; padding-top:56.25%;">';

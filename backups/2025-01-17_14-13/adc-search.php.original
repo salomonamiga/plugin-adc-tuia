@@ -626,9 +626,7 @@ class ADC_Search
      */
     private function get_cached_search_results($search_term, $language)
     {
-        // Normalize search term for consistent caching
-        $normalized_term = strtolower(trim($search_term));
-        $cache_key = ADC_Utils::get_cache_key('search_' . md5($normalized_term), $language);
+        $cache_key = ADC_Utils::get_cache_key('search_' . md5($search_term), $language);
 
         // Check internal cache
         if (isset($this->cache[$cache_key])) {
