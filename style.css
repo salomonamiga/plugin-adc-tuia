@@ -786,7 +786,7 @@
        top: 0;
        left: 0;
        width: 100%;
-       height: 100%;
+       height: 100% !important;
        object-fit: cover;
    }
    
@@ -842,8 +842,8 @@
        -webkit-line-clamp: 2;
        -webkit-box-orient: vertical;
        min-height: 39px; /* SIEMPRE 2 líneas mínimo */
-       max-height: 39px; /* SIEMPRE 2 líneas máximo */
-       height: 39px; /* Forzar exactamente 2 líneas */
+       max-height: 45px !important; /* SIEMPRE 2 líneas máximo */
+       height: 45px; /* Forzar exactamente 2 líneas */
        flex-shrink: 0;
    }
    
