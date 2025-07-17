@@ -1540,7 +1540,7 @@
            font-size: 14px;
            min-height: 36px; /* SIEMPRE 2 líneas mínimo */
            max-height: 36px; /* SIEMPRE 2 líneas máximo */
-           height: 36px; /* Forzar exactamente 2 líneas */
+           height: 45px !important; /* Forzar exactamente 2 líneas */
            line-height: 1.3;
        }
    
