@@ -6,11 +6,11 @@
  * Author:      TuTorah Development Team
  */
 
-// Evita el canonical redirect **antes** de todo
+// Evita el canonical redirect **antes** de todo - CORREGIDO para incluir búsquedas
 add_filter( 'redirect_canonical', function( $redirect_url ) {
     $uri = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
-    // Captura /programa/... y /en/programa/...
-    if ( preg_match( '#^/(en/)?programa/#', $uri ) ) {
+    // Captura /programa/... y /en/program/... y /buscar/... y /en/search/...
+    if ( preg_match( '#^/(en/)?(programa|program|buscar|search)/#', $uri ) ) {
         return false;
     }
     return $redirect_url;
@@ -23,8 +23,6 @@ add_filter( 'wp_resource_hints', function( $hints, $relation_type ) {
     }
     return $hints;
 }, 10, 2 );
-
-
 
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
@@ -93,25 +91,23 @@ class ADC_Video_Display
         add_action('pre_get_posts', array($this, 'modify_main_query'), 1);
     }
 
-/**
- * NEW: Initialize URL routing system
- */
-public function init_url_routing()
-{
-    // Add rewrite rules for friendly URLs
-    $this->add_rewrite_rules();
-    
-    // Add query vars
-    add_filter('query_vars', array($this, 'add_query_vars'));
-    
-    // Check if rewrite rules need to be flushed
-    if ( get_option('adc_rewrite_rules_flushed') !== '3.2' ) {
-        flush_rewrite_rules();
-        update_option('adc_rewrite_rules_flushed', '3.2');
+    /**
+     * NEW: Initialize URL routing system
+     */
+    public function init_url_routing()
+    {
+        // Add rewrite rules for friendly URLs
+        $this->add_rewrite_rules();
+        
+        // Add query vars
+        add_filter('query_vars', array($this, 'add_query_vars'));
+        
+        // Check if rewrite rules need to be flushed
+        if ( get_option('adc_rewrite_rules_flushed') !== '3.2' ) {
+            flush_rewrite_rules();
+            update_option('adc_rewrite_rules_flushed', '3.2');
+        }
     }
-
-}
-
 
     /**
      * NEW: Add rewrite rules for friendly URLs
@@ -187,141 +183,134 @@ public function init_url_routing()
      * NEW: Handle legacy URL redirects (301 redirects to friendly URLs)
      */
     private function handle_legacy_redirects()
-{
-    // Si la REQUEST_URI coincide con /programa/... o /en/program/... o /buscar/...,
-    // es un friendly URL y no debemos redirigir:
-    $uri = $_SERVER['REQUEST_URI'];
-    if ( preg_match('#^/(en/)?(programa|program)/#', $uri) ||
-         preg_match('#^/(en/)?(buscar|search)/#',   $uri) ) {
-        return;
+    {
+        // Si la REQUEST_URI coincide con /programa/... o /en/program/... o /buscar/...,
+        // es un friendly URL y no debemos redirigir:
+        $uri = $_SERVER['REQUEST_URI'];
+        if ( preg_match('#^/(en/)?(programa|program)/#', $uri) ||
+             preg_match('#^/(en/)?(buscar|search)/#',   $uri) ) {
+            return;
+        }
+
+        // A partir de aquí, sólo legacy URLs query-based
+        $categoria  = isset($_GET['categoria'])  ? sanitize_text_field($_GET['categoria'])  : '';
+        $video      = isset($_GET['video'])      ? sanitize_text_field($_GET['video'])      : '';
+        $adc_search = isset($_GET['adc_search']) ? sanitize_text_field($_GET['adc_search']) : '';
+
+        // Si no hay parámetros legacy, no redirijas:
+        if ( ! $categoria && ! $video && ! $adc_search ) {
+            return;
+        }
+
+        // Detectar idioma
+        $lang   = ADC_Utils::detect_language();
+        $prefix = $lang === 'en' ? 'en/' : '';
+
+        // Legacy search → friendly /buscar/ ó /en/search/
+        if ( $adc_search ) {
+            $keyword = $lang === 'en' ? 'search' : 'buscar';
+            wp_redirect( home_url("/{$prefix}{$keyword}/" . urlencode($adc_search) . "/"), 301 );
+            exit;
+        }
+
+        // Legacy program/video → friendly /programa/slug[/video]/ ó /en/program/.../
+        if ( $categoria ) {
+            $keyword = $lang === 'en' ? 'program' : 'programa';
+            $base    = home_url("/{$prefix}{$keyword}/{$categoria}/");
+            $url     = $video ? "{$base}{$video}/" : $base;
+            wp_redirect( $url, 301 );
+            exit;
+        }
     }
-
-    // A partir de aquí, sólo legacy URLs query-based
-    $categoria  = isset($_GET['categoria'])  ? sanitize_text_field($_GET['categoria'])  : '';
-    $video      = isset($_GET['video'])      ? sanitize_text_field($_GET['video'])      : '';
-    $adc_search = isset($_GET['adc_search']) ? sanitize_text_field($_GET['adc_search']) : '';
-
-    // Si no hay parámetros legacy, no redirijas:
-    if ( ! $categoria && ! $video && ! $adc_search ) {
-        return;
-    }
-
-    // Detectar idioma
-    $lang   = ADC_Utils::detect_language();
-    $prefix = $lang === 'en' ? 'en/' : '';
-
-    // Legacy search → friendly /buscar/ ó /en/search/
-    if ( $adc_search ) {
-        $keyword = $lang === 'en' ? 'search' : 'buscar';
-        wp_redirect( home_url("/{$prefix}{$keyword}/" . urlencode($adc_search) . "/"), 301 );
-        exit;
-    }
-
-    // Legacy program/video → friendly /programa/slug[/video]/ ó /en/program/.../
-    if ( $categoria ) {
-        $keyword = $lang === 'en' ? 'program' : 'programa';
-        $base    = home_url("/{$prefix}{$keyword}/{$categoria}/");
-        $url     = $video ? "{$base}{$video}/" : $base;
-        wp_redirect( $url, 301 );
-        exit;
-    }
-}
-
 
     /**
      * NEW: Handle friendly URL routing
      */
     private function handle_friendly_url_routing()
-{
-    $adc_type = get_query_var('adc_type');
-    
-    if (!$adc_type) {
-        return;
-    }
+    {
+        $adc_type = get_query_var('adc_type');
+        
+        if (!$adc_type) {
+            return;
+        }
 
-    // Extract parameters from URL
-    $this->current_url_params = array(
-        'language' => get_query_var('adc_language') ?: 'es',
-        'type' => $adc_type,
-        'program' => get_query_var('adc_program'),
-        'video' => get_query_var('adc_video'),
-        'search' => get_query_var('adc_search')
-    );
+        // Extract parameters from URL
+        $this->current_url_params = array(
+            'language' => get_query_var('adc_language') ?: 'es',
+            'type' => $adc_type,
+            'program' => get_query_var('adc_program'),
+            'video' => get_query_var('adc_video'),
+            'search' => get_query_var('adc_search')
+        );
 
-    // DEBUG: Verifica si el parámetro de búsqueda llega correctamente
-    if ($adc_type === 'search') {
-        error_log('ADC Search Params: ' . print_r($this->current_url_params, true));
+        // Validate the friendly URL parameters
+        if (!$this->validate_friendly_url_params()) {
+            // Invalid parameters, redirect to home
+            $home_url = $this->current_url_params['language'] === 'en' ? home_url('/en/') : home_url('/');
+            wp_redirect($home_url, 301);
+            exit;
+        }
     }
-
-    // Validate the friendly URL parameters
-    if (!$this->validate_friendly_url_params()) {
-        // Invalid parameters, redirect to home
-        $home_url = $this->current_url_params['language'] === 'en' ? home_url('/en/') : home_url('/');
-        wp_redirect($home_url, 301);
-        exit;
-    }
-}
 
     /**
-     * NEW: Validate friendly URL parameters against API data
+     * NEW: Validate friendly URL parameters against API data - RESTAURADO COMPLETO
      */
     private function validate_friendly_url_params()
-{
-    if (empty($this->current_url_params['type'])) {
-        return false;
-    }
+    {
+        if (empty($this->current_url_params['type'])) {
+            return false;
+        }
 
-    $api = new ADC_API($this->current_url_params['language']);
-    
-    switch ($this->current_url_params['type']) {
-        case 'program':
-        case 'video':
-            if (empty($this->current_url_params['program'])) {
-                return false;
-            }
-            
-            // Check if program exists
-            $programs = $api->get_programs();
-            $program_found = false;
-            
-            foreach ($programs as $program) {
-                if (ADC_Utils::slugify($program['name']) === $this->current_url_params['program']) {
-                    $program_found = $program;
-                    break;
+        $api = new ADC_API($this->current_url_params['language']);
+        
+        switch ($this->current_url_params['type']) {
+            case 'program':
+            case 'video':
+                if (empty($this->current_url_params['program'])) {
+                    return false;
                 }
-            }
-            
-            if (!$program_found) {
-                return false;
-            }
-            
-            // If it's a video URL, validate the video exists
-            if ($this->current_url_params['type'] === 'video' && !empty($this->current_url_params['video'])) {
-                $materials = $api->get_materials($program_found['id']);
-                $video_found = false;
                 
-                foreach ($materials as $material) {
-                    if (ADC_Utils::slugify($material['title']) === $this->current_url_params['video']) {
-                        $video_found = true;
+                // Check if program exists
+                $programs = $api->get_programs();
+                $program_found = false;
+                
+                foreach ($programs as $program) {
+                    if (ADC_Utils::slugify($program['name']) === $this->current_url_params['program']) {
+                        $program_found = $program;
                         break;
                     }
                 }
                 
-                if (!$video_found) {
+                if (!$program_found) {
                     return false;
                 }
-            }
-            
-            return true;
-            
-        case 'search':
-            // CORREGIDO: Permitir términos de búsqueda con espacios y caracteres especiales
-            return isset($this->current_url_params['search']) && strlen(trim($this->current_url_params['search'])) > 0;
-            
-        default:
-            return false;
+                
+                // If it's a video URL, validate the video exists
+                if ($this->current_url_params['type'] === 'video' && !empty($this->current_url_params['video'])) {
+                    $materials = $api->get_materials($program_found['id']);
+                    $video_found = false;
+                    
+                    foreach ($materials as $material) {
+                        if (ADC_Utils::slugify($material['title']) === $this->current_url_params['video']) {
+                            $video_found = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!$video_found) {
+                        return false;
+                    }
+                }
+                
+                return true;
+                
+            case 'search':
+                return !empty($this->current_url_params['search']);
+                
+            default:
+                return false;
+        }
     }
-}
 
     /**
      * NEW: Handle 404 errors with smart language-based redirects
@@ -884,7 +873,7 @@ public function init_url_routing()
             $videos = $this->api->get_materials($program['id']);
             if (!empty($videos)) {
                 foreach ($videos as $video) {
-                    $video['program'] = $program['name'];
+                    $video['category'] = $program['name'];
                     $all_videos[] = $video;
                 }
             }
