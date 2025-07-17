@@ -841,7 +841,9 @@
        display: -webkit-box;
        -webkit-line-clamp: 2;
        -webkit-box-orient: vertical;
-       height: 39px; /* 2 líneas × 19.5px */
+       min-height: 39px; /* SIEMPRE 2 líneas mínimo */
+       max-height: 39px; /* SIEMPRE 2 líneas máximo */
+       height: 39px; /* Forzar exactamente 2 líneas */
        flex-shrink: 0;
    }
    
@@ -856,7 +858,9 @@
        display: -webkit-box;
        -webkit-line-clamp: 2;
        -webkit-box-orient: vertical;
-       height: 34px; /* 2 líneas × 17px */
+       min-height: 34px; /* SIEMPRE 2 líneas mínimo */
+       max-height: 34px; /* SIEMPRE 2 líneas máximo */
+       height: 34px; /* Forzar exactamente 2 líneas */
        flex-shrink: 0;
    }
    
@@ -1534,13 +1538,17 @@
        /* Ajustar tamaños de fuente para mejor legibilidad */
        .adc-search-title {
            font-size: 14px;
-           height: 36px; /* Mantener 2 líneas */
+           min-height: 36px; /* SIEMPRE 2 líneas mínimo */
+           max-height: 36px; /* SIEMPRE 2 líneas máximo */
+           height: 36px; /* Forzar exactamente 2 líneas */
            line-height: 1.3;
        }
    
        .adc-search-program {
            font-size: 12px;
-           height: 31px; /* Mantener 2 líneas */
+           min-height: 31px; /* SIEMPRE 2 líneas mínimo */
+           max-height: 31px; /* SIEMPRE 2 líneas máximo */
+           height: 31px; /* Forzar exactamente 2 líneas */
            line-height: 1.3;
        }
        
