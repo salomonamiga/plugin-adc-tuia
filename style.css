@@ -7,1638 +7,1679 @@
 /* ===================================
    General Containers
    =================================== */
-.adc-categories-grid,
-.adc-videos-grid,
-.adc-video-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 20px 0;
-}
-
-/* ===================================
-            Grid Layouts - Optimized
+   .adc-categories-grid,
+   .adc-videos-grid,
+   .adc-video-container {
+       max-width: 1400px;
+       margin: 0 auto;
+       padding: 20px 0;
+   }
+   
+   /* ===================================
+               Grid Layouts - Optimized
+               =================================== */
+   
+   /* Categories Grid (circles) */
+   .adc-categories-row {
+       display: grid;
+       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+       gap: 30px 20px;
+       justify-items: center;
+       padding: 10px 0;
+   }
+   
+   /* Videos Grid */
+   .adc-videos-grid {
+       margin-top: 0;
+       padding-top: 0;
+   }
+   
+   .adc-videos-row {
+       display: grid;
+       grid-template-columns: repeat(4, minmax(240px, 1fr));
+       gap: 20px 20px;
+       padding: 10px 0;
+   }
+   
+   /* Dynamic grid columns based on settings */
+   .adc-videos-row.cols-3 {
+       grid-template-columns: repeat(3, minmax(320px, 1fr));
+   }
+   
+   .adc-videos-row.cols-5 {
+       grid-template-columns: repeat(5, minmax(200px, 1fr));
+   }
+   
+   .adc-videos-row.cols-6 {
+       grid-template-columns: repeat(6, minmax(170px, 1fr));
+   }
+   
+   /* ===================================
+               Category Cards - Enhanced with Coming Soon
+               =================================== */
+   .adc-category-card {
+       display: flex;
+       flex-direction: column;
+       align-items: center;
+       justify-content: center;
+       width: 220px;
+       text-align: center;
+       text-decoration: none;
+       transition: transform 0.3s ease;
+       padding: 10px;
+   }
+   
+   .adc-category-card:hover {
+       transform: translateY(-5px);
+   }
+   
+   /* Coming Soon Card - Non-clickable */
+   .adc-coming-soon-card {
+       cursor: default;
+       opacity: 0.8;
+   }
+   
+   .adc-coming-soon-card:hover {
+       transform: translateY(-5px);
+       opacity: 1;
+   }
+   
+   .adc-coming-soon-card:hover .adc-category-image-circle {
+       box-shadow: 0 6px 20px rgba(110, 193, 228, 0.3);
+   }
+   
+   .adc-coming-soon-card:hover .adc-coming-soon-overlay {
+       background: rgba(0, 0, 0, 0.3);
+   }
+   
+   .adc-coming-soon-card:hover .adc-coming-soon-text {
+       color: #ffffff;
+       transform: rotate(-30deg) scale(1.1);
+   }
+   
+   /* Category Image Circle */
+   .adc-category-image-circle {
+       width: 200px;
+       height: 200px;
+       border-radius: 50%;
+       overflow: hidden;
+       margin: 0 auto 10px;
+       position: relative;
+       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+       transition: box-shadow 0.3s ease;
+   }
+   
+   .adc-category-card:hover .adc-category-image-circle {
+       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+   }
+   
+   .adc-category-image-circle img {
+       width: 100%;
+       height: 100%;
+       object-fit: cover;
+   }
+   
+   /* Coming Soon Overlay */
+   .adc-coming-soon-overlay {
+       position: absolute;
+       top: 0;
+       left: 0;
+       right: 0;
+       bottom: 0;
+       background: rgba(0, 0, 0, 0.60);
+       display: flex;
+       flex-direction: column;
+       align-items: center;
+       justify-content: center;
+       border-radius: 50%;
+   }
+   
+   .adc-coming-soon-text {
+       color: #6EC1E4;
+       font-size: 18px;
+       font-weight: bold;
+       text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+       margin-bottom: 10px;
+       transform: rotate(-30deg);
+       transform-origin: center;
+       white-space: nowrap;
+   }
+   
+   .adc-coming-soon-lock {
+       font-size: 24px;
+       position: absolute;
+       bottom: 15px;
+       right: 35px;
+       background: transparent;
+       width: auto;
+       height: auto;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+   }
+   
+   /* Category Name */
+   .adc-category-name {
+       font-size: 15px;
+       font-weight: bold;
+       color: #ffffff;
+       text-align: center;
+       max-width: 200px;
+       line-height: 1.3;
+       height: 2.6em;
+       overflow: hidden;
+       display: -webkit-box;
+       -webkit-line-clamp: 2;
+       -webkit-box-orient: vertical;
+   }
+   
+   /* ===================================
+               Section Headers - Optimized
+               =================================== */
+   
+   /* Category header */
+   .adc-category-header {
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+       margin-bottom: 15px;
+       padding-bottom: 8px;
+   }
+   
+   .adc-category-title {
+       font-size: 28px;
+       margin: 0;
+       color: #ffffff;
+   }
+   
+   /* Season header - Enhanced design */
+   .adc-season-header {
+       position: relative;
+       text-align: center;
+       margin: 40px 0 30px;
+       font-size: 26px;
+       font-weight: 600;
+       color: #6EC1E4;
+   }
+   
+   .adc-season-header::before {
+       content: '';
+       position: absolute;
+       top: 50%;
+       left: 0;
+       right: 0;
+       height: 2px;
+       background-color: #ffffff;
+       z-index: 0;
+   }
+   
+   .adc-season-header span {
+       background-color: #000000;
+       padding: 0 30px;
+       position: relative;
+       z-index: 1;
+       display: inline-block;
+   }
+   
+   /* ===================================
+               Video Cards - Enhanced
+               =================================== */
+   .adc-video-item {
+       width: 100%;
+       max-width: 240px;
+       background: white;
+       border-radius: 8px;
+       overflow: hidden;
+       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+       transition: transform 0.3s ease, box-shadow 0.3s ease;
+       position: relative;
+   }
+   
+   .adc-related-video-item {
+       position: relative;
+   }
+   
+   .adc-video-item:hover {
+       transform: translateY(-5px);
+       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+   }
+   
+   .adc-video-link {
+       display: block;
+       text-decoration: none;
+       height: 100%;
+   }
+   
+   .adc-video-link:hover {
+       text-decoration: none;
+   }
+   
+   .adc-video-thumbnail {
+       position: relative;
+       padding-bottom: 56.25%;
+       height: 0;
+       overflow: hidden;
+       background: #f0f0f0;
+   }
+   
+   .adc-video-thumbnail img {
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       object-fit: cover;
+   }
+   
+   /* Video Play Icon - Enhanced */
+   .adc-video-play-icon {
+       position: absolute;
+       top: 50%;
+       left: 50%;
+       transform: translate(-50%, -50%);
+       width: 50px;
+       height: 50px;
+       background: rgba(0, 0, 0, 0.7);
+       border-radius: 50%;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       transition: all 0.3s ease;
+   }
+   
+   .adc-video-item:hover .adc-video-play-icon {
+       background: rgba(0, 0, 0, 0.9);
+       transform: translate(-50%, -50%) scale(1.1);
+   }
+   
+   .adc-video-play-icon:before {
+       content: '';
+       width: 0;
+       height: 0;
+       border-style: solid;
+       border-width: 10px 0 10px 20px;
+       border-color: transparent transparent transparent #ffffff;
+       margin-left: 5px;
+   }
+   
+   /* Video Info */
+   .adc-video-info {
+       padding: 12px;
+   }
+   
+   /* Video Title - Enhanced */
+   .adc-video-title {
+       font-size: 16px;
+       margin: 0 0 8px;
+       line-height: 1.3;
+   }
+   
+   .adc-video-title a {
+       text-decoration: none;
+       display: block;
+       overflow: hidden;
+       text-overflow: ellipsis;
+       display: -webkit-box;
+       -webkit-line-clamp: 2;
+       -webkit-box-orient: vertical;
+   }
+   
+   /* Video titles styling - Consistent colors */
+   .adc-video-item .adc-video-link .adc-video-title,
+   .adc-related-video-item .adc-video-link .adc-video-title {
+       color: #000000;
+       transition: color 0.3s ease;
+   }
+   
+   .adc-video-item .adc-video-link:hover .adc-video-title,
+   .adc-related-video-item .adc-video-link:hover .adc-video-title {
+       color: #1E90FF;
+   }
+   
+   .adc-video-duration {
+       font-size: 12px;
+       color: #777;
+       font-weight: 500;
+   }
+   
+   /**
+          * ADC Video Display - Frontend Styles
+          * Version: 3.1 - Sistema de Caché Inteligente
+          * PARTE 2/3: Single Video Page, Botones, Video.js y Autoplay
+          */
+   
+   /* ===================================
+            Single Video Page - Enhanced
             =================================== */
-
-/* Categories Grid (circles) */
-.adc-categories-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 30px 20px;
-    justify-items: center;
-    padding: 10px 0;
-}
-
-/* Videos Grid */
-.adc-videos-grid {
-    margin-top: 0;
-    padding-top: 0;
-}
-
-.adc-videos-row {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(240px, 1fr));
-    gap: 20px 20px;
-    padding: 10px 0;
-}
-
-/* Dynamic grid columns based on settings */
-.adc-videos-row.cols-3 {
-    grid-template-columns: repeat(3, minmax(320px, 1fr));
-}
-
-.adc-videos-row.cols-5 {
-    grid-template-columns: repeat(5, minmax(200px, 1fr));
-}
-
-.adc-videos-row.cols-6 {
-    grid-template-columns: repeat(6, minmax(170px, 1fr));
-}
-
-/* ===================================
-            Category Cards - Enhanced with Coming Soon
-            =================================== */
-.adc-category-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 220px;
-    text-align: center;
-    text-decoration: none;
-    transition: transform 0.3s ease;
-    padding: 10px;
-}
-
-.adc-category-card:hover {
-    transform: translateY(-5px);
-}
-
-/* Coming Soon Card - Non-clickable */
-.adc-coming-soon-card {
-    cursor: default;
-    opacity: 0.8;
-}
-
-.adc-coming-soon-card:hover {
-    transform: translateY(-5px);
-    opacity: 1;
-}
-
-.adc-coming-soon-card:hover .adc-category-image-circle {
-    box-shadow: 0 6px 20px rgba(110, 193, 228, 0.3);
-}
-
-.adc-coming-soon-card:hover .adc-coming-soon-overlay {
-    background: rgba(0, 0, 0, 0.3);
-}
-
-.adc-coming-soon-card:hover .adc-coming-soon-text {
-    color: #ffffff;
-    transform: rotate(-30deg) scale(1.1);
-}
-
-/* Category Image Circle */
-.adc-category-image-circle {
-    width: 200px;
-    height: 200px;
-    border-radius: 50%;
-    overflow: hidden;
-    margin: 0 auto 10px;
-    position: relative;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transition: box-shadow 0.3s ease;
-}
-
-.adc-category-card:hover .adc-category-image-circle {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-}
-
-.adc-category-image-circle img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-/* Coming Soon Overlay */
-.adc-coming-soon-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.60);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-}
-
-.adc-coming-soon-text {
-    color: #6EC1E4;
-    font-size: 18px;
-    font-weight: bold;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-    margin-bottom: 10px;
-    transform: rotate(-30deg);
-    transform-origin: center;
-    white-space: nowrap;
-}
-
-.adc-coming-soon-lock {
-    font-size: 24px;
-    position: absolute;
-    bottom: 15px;
-    right: 35px;
-    background: transparent;
-    width: auto;
-    height: auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-}
-
-/* Category Name */
-.adc-category-name {
-    font-size: 15px;
-    font-weight: bold;
-    color: #ffffff;
-    text-align: center;
-    max-width: 200px;
-    line-height: 1.3;
-    height: 2.6em;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-}
-
-/* ===================================
-            Section Headers - Optimized
-            =================================== */
-
-/* Category header */
-.adc-category-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 8px;
-}
-
-.adc-category-title {
-    font-size: 28px;
-    margin: 0;
-    color: #ffffff;
-}
-
-/* Season header - Enhanced design */
-.adc-season-header {
-    position: relative;
-    text-align: center;
-    margin: 40px 0 30px;
-    font-size: 26px;
-    font-weight: 600;
-    color: #6EC1E4;
-}
-
-.adc-season-header::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background-color: #ffffff;
-    z-index: 0;
-}
-
-.adc-season-header span {
-    background-color: #000000;
-    padding: 0 30px;
-    position: relative;
-    z-index: 1;
-    display: inline-block;
-}
-
-/* ===================================
-            Video Cards - Enhanced
-            =================================== */
-.adc-video-item {
-    width: 100%;
-    max-width: 240px;
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    position: relative;
-}
-
-.adc-related-video-item {
-    position: relative;
-}
-
-.adc-video-item:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-}
-
-.adc-video-link {
-    display: block;
-    text-decoration: none;
-    height: 100%;
-}
-
-.adc-video-link:hover {
-    text-decoration: none;
-}
-
-.adc-video-thumbnail {
-    position: relative;
-    padding-bottom: 56.25%;
-    height: 0;
-    overflow: hidden;
-    background: #f0f0f0;
-}
-
-.adc-video-thumbnail img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-/* Video Play Icon - Enhanced */
-.adc-video-play-icon {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 50px;
-    height: 50px;
-    background: rgba(0, 0, 0, 0.7);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-}
-
-.adc-video-item:hover .adc-video-play-icon {
-    background: rgba(0, 0, 0, 0.9);
-    transform: translate(-50%, -50%) scale(1.1);
-}
-
-.adc-video-play-icon:before {
-    content: '';
-    width: 0;
-    height: 0;
-    border-style: solid;
-    border-width: 10px 0 10px 20px;
-    border-color: transparent transparent transparent #ffffff;
-    margin-left: 5px;
-}
-
-/* Video Info */
-.adc-video-info {
-    padding: 12px;
-}
-
-/* Video Title - Enhanced */
-.adc-video-title {
-    font-size: 16px;
-    margin: 0 0 8px;
-    line-height: 1.3;
-}
-
-.adc-video-title a {
-    text-decoration: none;
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-}
-
-/* Video titles styling - Consistent colors */
-.adc-video-item .adc-video-link .adc-video-title,
-.adc-related-video-item .adc-video-link .adc-video-title {
-    color: #000000;
-    transition: color 0.3s ease;
-}
-
-.adc-video-item .adc-video-link:hover .adc-video-title,
-.adc-related-video-item .adc-video-link:hover .adc-video-title {
-    color: #1E90FF;
-}
-
-.adc-video-duration {
-    font-size: 12px;
-    color: #777;
-    font-weight: 500;
-}
-
-/**
-       * ADC Video Display - Frontend Styles
-       * Version: 3.1 - Sistema de Caché Inteligente
-       * PARTE 2/3: Single Video Page, Botones, Video.js y Autoplay
-       */
-
-/* ===================================
-         Single Video Page - Enhanced
+   
+   /* Video Title and Header Container */
+   .adc-video-header {
+       display: flex;
+       justify-content: space-between;
+       align-items: center;
+       margin-bottom: 20px;
+   }
+   
+   /* Video Title */
+   .adc-video-main-title {
+       font-size: 28px;
+       margin: 0;
+       color: #ffffff;
+   }
+   
+   /* Video Player Container - Enhanced - ACTUALIZADO CON MARCO PARA DESKTOP */
+   .adc-video-player {
+       margin-bottom: 20px;
+       box-shadow: 0 8px 25px rgba(110, 193, 228, 0.3);
+       border-radius: 12px;
+       border: 3px solid #6EC1E4;
+       overflow: hidden;
+   }
+   
+   /* Video Metadata */
+   .adc-video-meta {
+       margin-top: 15px;
+       margin-bottom: 30px;
+       padding: 15px;
+       background: #f8f9fa;
+       border-radius: 8px;
+       border-left: 4px solid #1E90FF;
+   }
+   
+   .adc-video-meta p {
+       margin: 5px 0;
+       color: #555;
+   }
+   
+   .adc-video-meta strong {
+       color: #333;
+   }
+   
+   /* Related Videos Section */
+   .adc-related-videos-title {
+       font-size: 24px;
+       margin: 30px 0 15px;
+       color: #ffffff;
+   }
+   
+   .adc-related-videos-grid {
+       margin-bottom: 30px;
+   }
+   
+   .adc-related-video-item {
+       width: 100%;
+       max-width: 240px;
+   }
+   
+   /* ===================================
+         Buttons - Enhanced Custom Style
          =================================== */
-
-/* Video Title and Header Container */
-.adc-video-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-/* Video Title */
-.adc-video-main-title {
-    font-size: 28px;
-    margin: 0;
-    color: #ffffff;
-}
-
-/* Video Player Container - Enhanced - ACTUALIZADO CON MARCO PARA DESKTOP */
-.adc-video-player {
-    margin-bottom: 20px;
-    box-shadow: 0 8px 25px rgba(110, 193, 228, 0.3);
-    border-radius: 12px;
-    border: 3px solid #6EC1E4;
-    overflow: hidden;
-}
-
-/* Video Metadata */
-.adc-video-meta {
-    margin-top: 15px;
-    margin-bottom: 30px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border-left: 4px solid #1E90FF;
-}
-
-.adc-video-meta p {
-    margin: 5px 0;
-    color: #555;
-}
-
-.adc-video-meta strong {
-    color: #333;
-}
-
-/* Related Videos Section */
-.adc-related-videos-title {
-    font-size: 24px;
-    margin: 30px 0 15px;
-    color: #ffffff;
-}
-
-.adc-related-videos-grid {
-    margin-bottom: 30px;
-}
-
-.adc-related-video-item {
-    width: 100%;
-    max-width: 240px;
-}
-
-/* ===================================
-      Buttons - Enhanced Custom Style
-      =================================== */
-.adc-back-button,
-.adc-view-all-button,
-.adc-view-more-button,
-.adc-back-program-button {
-    display: inline-block;
-    padding: 10px 20px;
-    background-color: #000000;
-    color: #6EC1E4;
-    text-decoration: none;
-    border: 2px solid #6EC1E4;
-    border-radius: 30px;
-    font-size: 16px;
-    transition: all 0.3s ease;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-.adc-back-button:hover,
-.adc-view-all-button:hover,
-.adc-view-more-button:hover,
-.adc-back-program-button:hover {
-    background-color: #6EC1E4;
-    color: #000000;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(110, 193, 228, 0.3);
-}
-
-.adc-view-all-container {
-    text-align: center;
-    margin: 30px 0;
-}
-
-/* Next Button Container */
-.adc-next-button-container {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-/* View More Button Container */
-.adc-view-more-container {
-    text-align: center;
-    margin: 30px 0;
-}
-
-/* Back to Program Container */
-.adc-back-program-container {
-    text-align: right;
-    margin-bottom: 20px;
-}
-
-/* ===================================
-      Video.js Player Styles - Enhanced Theme
-      =================================== */
-
-/* Control bar background and buttons */
-.video-js .vjs-control-bar {
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(5px);
-}
-
-/* Big play button - Enhanced */
-.video-js .vjs-big-play-button {
-    background-color: rgba(0, 0, 0, 0.8) !important;
-    border-color: #6EC1E4 !important;
-    border-width: 3px !important;
-    transition: all 0.3s ease !important;
-}
-
-.video-js .vjs-big-play-button:hover {
-    background-color: #6EC1E4 !important;
-    border-color: #6EC1E4 !important;
-    transform: scale(1.1) !important;
-}
-
-.video-js .vjs-big-play-button:hover .vjs-icon-placeholder:before {
-    color: #000000 !important;
-}
-
-/* Progress bar colors - Consistent theme */
-.video-js .vjs-progress-control .vjs-progress-holder .vjs-play-progress {
-    background-color: #6EC1E4 !important;
-}
-
-.video-js .vjs-progress-holder .vjs-play-progress,
-.video-js .vjs-progress-holder .vjs-play-progress:before,
-.vjs-slider-bar,
-.vjs-slider-bar:before {
-    background: #6EC1E4 !important;
-    background-color: #6EC1E4 !important;
-}
-
-.video-js .vjs-progress-control .vjs-progress-holder .vjs-load-progress {
-    background-color: rgba(110, 193, 228, 0.5) !important;
-}
-
-/* Volume bar color */
-.video-js .vjs-volume-control .vjs-volume-bar .vjs-volume-level {
-    background-color: #6EC1E4 !important;
-}
-
-/* All control bar buttons */
-.video-js .vjs-button>.vjs-icon-placeholder:before,
-.video-js .vjs-time-control,
-.video-js .vjs-current-time,
-.video-js .vjs-duration,
-.video-js .vjs-remaining-time {
-    color: #6EC1E4 !important;
-}
-
-/* Specific control buttons */
-.video-js .vjs-play-control .vjs-icon-placeholder:before,
-.video-js .vjs-mute-control .vjs-icon-placeholder:before,
-.video-js .vjs-fullscreen-control .vjs-icon-placeholder:before {
-    color: #6EC1E4 !important;
-}
-
-/* Custom buttons styling - Enhanced */
-.vjs-forward-button,
-.vjs-rewind-button {
-    font-size: 14px !important;
-    padding: 6px 10px !important;
-    background-color: rgba(110, 193, 228, 0.2) !important;
-    border-radius: 4px !important;
-    color: #6EC1E4 !important;
-    cursor: pointer !important;
-    transition: all 0.3s ease !important;
-}
-
-.vjs-forward-button:hover,
-.vjs-rewind-button:hover {
-    background-color: rgba(110, 193, 228, 0.4) !important;
-    transform: translateY(-1px) !important;
-}
-
-/* Control buttons hover state */
-.video-js .vjs-control:hover {
-    color: rgba(110, 193, 228, 0.8) !important;
-}
-
-/* Loading spinner color */
-.video-js .vjs-loading-spinner {
-    border-top-color: #6EC1E4 !important;
-    border-right-color: #6EC1E4 !important;
-}
-
-/* ===================================
-      Autoplay Overlay - Enhanced
-      =================================== */
-#adc-next-overlay {
-    display: none;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.95);
-    color: white;
-    padding: 30px;
-    border-radius: 12px;
-    z-index: 9999;
-    text-align: center;
-    min-width: 300px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
-    border: 2px solid #6EC1E4;
-    backdrop-filter: blur(10px);
-}
-
-#adc-next-overlay p {
-    margin-bottom: 12px;
-    font-size: 16px;
-    line-height: 1.5;
-}
-
-#adc-next-overlay a {
-    color: #6EC1E4;
-    font-size: 16px;
-    text-decoration: underline;
-    transition: color 0.3s ease;
-}
-
-#adc-next-overlay a:hover {
-    color: #ffffff;
-}
-
-#adc-cancel-autoplay {
-    margin-top: 12px;
-    padding: 8px 16px;
-    background: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.3s ease;
-}
-
-#adc-cancel-autoplay:hover {
-    background: #c82333;
-    transform: translateY(-1px);
-}
-
-/* ===================================
-      Search Results - Enhanced with Fallback Support
-      =================================== */
-.adc-search-results {
-    margin-top: 20px;
-}
-
-.adc-search-program-group {
-    margin-bottom: 40px;
-}
-
-.adc-search-program-title {
-    font-size: 24px;
-    color: #6EC1E4;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #6EC1E4;
-}
-
-/* Search results container - Enhanced */
-.adc-search-results-container {
-    max-width: 1200px;
-    margin: 30px auto;
-    padding: 0 15px;
-}
-
-.adc-search-results-title {
-    color: #6EC1E4 !important;
-    font-size: 28px;
-    text-align: center;
-    margin: 20px 0 30px;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-/* Hide redundant messages in empty results */
-.adc-search-no-results {
-    display: none;
-}
-
-/* Recommendations title */
-.adc-recommended-title {
-    color: #6EC1E4 !important;
-    font-size: 22px;
-    margin: 10px 0 25px 0;
-    text-align: center;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.adc-recommended-videos {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-    margin-bottom: 40px;
-    align-items: stretch; /* Importante para igualar alturas */
-}
-
-/* NEW: Fallback message styling */
-.adc-search-fallback-message {
-    background: #e8f4fd;
-    padding: 15px;
-    border-left: 4px solid #2196f3;
-    margin: 15px 0;
-    border-radius: 4px;
-}
-
-.adc-search-fallback-message p {
-    margin: 0;
-    color: #1976d2;
-    font-size: 16px;
-    line-height: 1.4;
-}
-
-/* NEW: No results section styling - ARREGLADO */
-.adc-no-results-section {
-    text-align: center;
-    padding: 5px 20px 5px 20px;
-    margin: 0;
-}
-
-.adc-no-results-title {
-    color: #ffffff;
-    font-size: 24px;
-    margin: 0 0 5px 0;
-    text-align: center;
-}
-
-.adc-search-tips {
-    background: rgba(110, 193, 228, 0.1);
-    padding: 20px;
-    border-radius: 8px;
-    margin: 20px auto;
-    max-width: 600px;
-    text-align: left;
-}
-
-.adc-search-tips h3 {
-    color: #6EC1E4;
-    margin-top: 0;
-    margin-bottom: 15px;
-}
-
-.adc-search-tips ul {
-    color: #ffffff;
-    list-style-type: disc;
-    padding-left: 20px;
-}
-
-.adc-search-tips li {
-    margin-bottom: 8px;
-    line-height: 1.4;
-}
-
-/* NEW: Grouped results styling */
-.adc-grouped-results {
-    margin-top: 30px;
-}
-
-.adc-category-group {
-    margin-bottom: 40px;
-}
-
-.adc-category-group-title {
-    color: #6EC1E4;
-    font-size: 20px;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid rgba(110, 193, 228, 0.3);
-}
-
-.adc-category-videos {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 20px;
-}
-
-/* Hacer que todas las tarjetas tengan la misma altura */
-.adc-search-video-item {
-    background: #fff;
-    border-radius: 8px;
-    overflow: hidden;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.adc-search-video-item:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-}
-
-/* Hacer que el link ocupe todo el espacio disponible */
-.adc-search-video-link {
-    display: flex;
-    flex-direction: column;
-    text-decoration: none;
-    height: 100%;
-}
-
-.adc-search-thumbnail {
-    position: relative;
-    padding-bottom: 56.25%;
-    background-color: #f5f5f5;
-}
-
-.adc-search-thumbnail img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.adc-search-play-icon {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 50px;
-    height: 50px;
-    background: rgba(0, 0, 0, 0.7);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.8;
-    transition: all 0.3s ease;
-}
-
-.adc-search-video-item:hover .adc-search-play-icon {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1.1);
-}
-
-.adc-search-play-icon:before {
-    content: '';
-    width: 0;
-    height: 0;
-    border-style: solid;
-    border-width: 10px 0 10px 18px;
-    border-color: transparent transparent transparent #ffffff;
-    margin-left: 3px;
-}
-
-/* La info debe crecer para empujar elementos al fondo */
-.adc-search-info {
-    padding: 15px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Título con altura fija y ellipsis */
-.adc-search-title {
-    font-size: 15px;
-    font-weight: 600;
-    margin: 0 0 8px;
-    color: #000000;
-    line-height: 1.2;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    height: 36px; /* 2 líneas × 18px (15px × 1.2) */
-}
-
-/* Programa y duración al fondo */
-.adc-search-program {
-    font-size: 13px;
-    color: #6EC1E4;
-    font-weight: 500;
-    margin-bottom: 4px;
-    margin-top: auto; /* Empuja hacia abajo */
-}
-
-.adc-search-duration {
-    font-size: 12px;
-    color: #777;
-}
-
-/**
-       * ADC Video Display - Frontend Styles
-       * Version: 3.1 - Sistema de Caché Inteligente
-       * PARTE 3A/4: Dropdowns, Search, Loading
-       */
-
-/* ===================================
-         Dropdown Menu Styles - Enhanced
+   .adc-back-button,
+   .adc-view-all-button,
+   .adc-view-more-button,
+   .adc-back-program-button {
+       display: inline-block;
+       padding: 10px 20px;
+       background-color: #000000;
+       color: #6EC1E4;
+       text-decoration: none;
+       border: 2px solid #6EC1E4;
+       border-radius: 30px;
+       font-size: 16px;
+       transition: all 0.3s ease;
+       font-weight: 500;
+       cursor: pointer;
+   }
+   
+   .adc-back-button:hover,
+   .adc-view-all-button:hover,
+   .adc-view-more-button:hover,
+   .adc-back-program-button:hover {
+       background-color: #6EC1E4;
+       color: #000000;
+       transform: translateY(-2px);
+       box-shadow: 0 4px 12px rgba(110, 193, 228, 0.3);
+   }
+   
+   .adc-view-all-container {
+       text-align: center;
+       margin: 30px 0;
+   }
+   
+   /* Next Button Container */
+   .adc-next-button-container {
+       text-align: center;
+       margin-bottom: 20px;
+   }
+   
+   /* View More Button Container */
+   .adc-view-more-container {
+       text-align: center;
+       margin: 30px 0;
+   }
+   
+   /* Back to Program Container */
+   .adc-back-program-container {
+       text-align: right;
+       margin-bottom: 20px;
+   }
+   
+   /* ===================================
+         Video.js Player Styles - Enhanced Theme
          =================================== */
-.adc-dropdown-menu {
-    position: relative;
-    display: inline-block;
-}
-
-.adc-dropdown-content {
-    display: none;
-    position: absolute;
-    background-color: #000000;
-    min-width: 250px;
-    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-    border: 1px solid #6EC1E4;
-    border-radius: 4px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.adc-dropdown-content a {
-    color: #6EC1E4;
-    padding: 12px 16px;
-    text-decoration: none;
-    display: block;
-    transition: all 0.3s ease;
-}
-
-.adc-dropdown-content a:hover {
-    background-color: #6EC1E4;
-    color: #000000;
-}
-
-.adc-dropdown-menu.active .adc-dropdown-content {
-    display: block;
-}
-
-/* ===================================
-              Programs Dropdown Menu Styles - RESTAURADO ORIGINAL
-              =================================== */
-.has-programs-dropdown {
-    position: relative !important;
-}
-
-.programs-active>a {
-    color: #FFFFFF !important;
-}
-
-.programs-active::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background-color: #6EC1E4;
-}
-
-.adc-wp-programs-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 9999;
-    width: 250px;
-    background-color: #000000;
-    border: 0;
-    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.3);
-    display: none;
-    border-top: 2px solid #6EC1E4;
-    backdrop-filter: blur(5px);
-}
-
-.adc-wp-programs-dropdown.active {
-    display: block;
-    animation: fadeInPrograms 0.2s ease-out;
-}
-
-@keyframes fadeInPrograms {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.adc-wp-programs-dropdown a {
-    color: #6EC1E4 !important;
-    padding: 12px 20px !important;
-    text-decoration: none !important;
-    display: block !important;
-    font-size: 14px !important;
-    line-height: 1.5 !important;
-    transition: all 0.2s ease !important;
-    border-bottom: 1px solid rgba(110, 193, 228, 0.1) !important;
-    white-space: normal !important;
-    word-wrap: break-word !important;
-}
-
-.adc-wp-programs-dropdown a:last-child {
-    border-bottom: none !important;
-}
-
-.adc-wp-programs-dropdown a:hover {
-    background-color: rgba(110, 193, 228, 0.1) !important;
-    color: #FFFFFF !important;
-    padding-left: 25px !important;
-}
-
-/* Positioning for Elementor menus */
-.elementor-nav-menu--main .elementor-nav-menu .has-programs-dropdown .adc-wp-programs-dropdown {
-    top: 100% !important;
-    left: 0 !important;
-    transform: none !important;
-    margin: 0 !important;
-}
-
-/* ===================================
-        Search Form Styles - Enhanced
-        =================================== */
-
-/* Menu item containing search form */
-.menu-item-search-inline {
-    display: flex;
-    align-items: center;
-    margin-left: 40px !important;
-}
-
-/* Search container */
-.adc-menu-search-container {
-    display: flex;
-    align-items: center;
-}
-
-/* Desktop spacing for search container */
-@media (min-width: 769px) {
-    .adc-menu-search-container {
-        margin-left: 40px;
-    }
-}
-
-/* Inline search form - Enhanced */
-.adc-inline-search-form {
-    display: flex;
-    align-items: center;
-    background: transparent;
-    border-radius: 6px;
-    overflow: hidden;
-    border: 1px solid #4a4949 !important;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(3px);
-}
-
-.adc-inline-search-form:focus-within {
-    border-color: #6EC1E4 !important;
-    border-width: 1px !important;
-    box-shadow: 0 0 0 2px rgba(110, 193, 228, 0.2);
-    background: rgba(0, 0, 0, 0.4);
-}
-
-/* Search input - Enhanced */
-.adc-inline-search-input {
-    background: transparent;
-    border: none !important;
-    color: #ffffff;
-    height: 36px;
-    padding: 0 15px;
-    width: 100%;
-    flex: 1;
-    font-size: 14px;
-    transition: color 0.3s ease;
-    box-shadow: none !important;
-    outline: none !important;
-}
-
-.adc-inline-search-input:focus {
-    outline: none !important;
-    box-shadow: none !important;
-    border: none !important;
-}
-
-.adc-inline-search-input::placeholder {
-    color: rgba(255, 255, 255, 0.6);
-    transition: color 0.3s ease;
-}
-
-.adc-inline-search-form:focus-within .adc-inline-search-input::placeholder {
-    color: rgba(255, 255, 255, 0.8);
-}
-
-/* Search button - Enhanced */
-.adc-inline-search-button {
-    background: transparent !important;
-    border: none !important;
-    color: #ffffff !important;
-    cursor: pointer;
-    height: 36px;
-    padding: 0 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    box-shadow: none !important;
-    outline: none !important;
-}
-
-.adc-inline-search-button:hover {
-    color: #6EC1E4 !important;
-    background-color: rgba(0, 0, 0, 0.6) !important;
-    border: 1px solid #6EC1E4 !important;
-    border-radius: 4px;
-    transform: scale(1.05) !important;
-}
-
-.adc-inline-search-button:focus {
-    outline: none !important;
-    box-shadow: none !important;
-}
-
-.adc-inline-search-button svg {
-    width: 16px;
-    height: 16px;
-    transition: transform 0.3s ease;
-}
-
-.adc-inline-search-button:hover svg {
-    transform: rotate(90deg);
-}
-
-/* ===================================
-        Loading States - Enhanced
-        =================================== */
-.adc-loading {
-    text-align: center;
-    padding: 30px;
-    color: #777;
-    position: relative;
-}
-
-.adc-loading::after {
-    content: '';
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 2px solid #6EC1E4;
-    border-radius: 50%;
-    border-top-color: transparent;
-    animation: spin 1s linear infinite;
-    margin-left: 10px;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.adc-error {
-    text-align: center;
-    padding: 30px;
-    color: #ffffff !important;
-    font-size: 16px;
-    background: rgba(220, 53, 69, 0.1);
-    border: 1px solid rgba(220, 53, 69, 0.3);
-    border-radius: 8px;
-    margin: 20px 0;
-}
-
-/* ===================================
-        Admin Styles - Enhanced
-        =================================== */
-
-/* Program ordering styles */
-.programs-order-list {
-    margin: 20px 0;
-    padding: 0;
-    width: 100%;
-    max-width: 800px;
-}
-
-.program-item {
-    display: flex;
-    align-items: center;
-    background: #fff;
-    padding: 12px 15px;
-    margin-bottom: 8px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    cursor: move;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.program-item:hover {
-    background: #f9f9f9;
-    border-color: #999;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.program-handle {
-    margin-right: 15px;
-    color: #aaa;
-    cursor: move;
-    transition: color 0.3s ease;
-}
-
-.program-item:hover .program-handle {
-    color: #6EC1E4;
-}
-
-.program-thumbnail {
-    width: 40px;
-    height: 40px;
-    object-fit: cover;
-    border-radius: 4px;
-    margin-right: 15px;
-    border: 1px solid #eee;
-}
-
-.program-thumbnail-placeholder {
-    width: 40px;
-    height: 40px;
-    background: #eee;
-    border-radius: 4px;
-    margin-right: 15px;
-    border: 1px solid #ddd;
-}
-
-.program-name {
-    font-weight: 500;
-    flex-grow: 1;
-    color: #333;
-}
-
-.program-id {
-    color: #999;
-    font-size: 12px;
-    margin-left: 10px;
-}
-
-/* Order save status */
-#order-save-status {
-    display: flex;
-    align-items: center;
-    margin: 20px 0;
-    padding: 10px;
-    border-radius: 4px;
-    transition: all 0.3s ease;
-}
-
-#order-save-status.hidden {
-    display: none;
-}
-
-#order-save-status .message {
-    margin-left: 10px;
-    font-weight: 500;
-}
-
-#order-save-status.success {
-    background: #d4edda;
-    border: 1px solid #c3e6cb;
-    color: #155724;
-}
-
-#order-save-status.error {
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    color: #721c24;
-}
-
-/* ===================================
-   Responsive Design - CONSOLIDADO Y OPTIMIZADO
-   =================================== */
-
-/* Tablet Landscape */
-@media (max-width: 1200px) {
-    .adc-videos-row {
-        grid-template-columns: repeat(3, minmax(240px, 1fr));
-    }
-
-    .adc-recommended-videos {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-/* Tablet Portrait */
-@media (max-width: 900px) {
-    .adc-videos-row {
-        grid-template-columns: repeat(2, minmax(240px, 1fr));
-    }
-
-    .adc-recommended-videos {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-/* Mobile */
-@media (max-width: 768px) {
-
-    /* Single column layouts */
-    .adc-videos-row {
-        grid-template-columns: 1fr;
-    }
-
-    .adc-recommended-videos {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    /* Category circles smaller on mobile */
-    .adc-category-image-circle {
-        width: 150px;
-        height: 150px;
-    }
-
-    .adc-category-name {
-        font-size: 14px;
-        height: auto;
-        -webkit-line-clamp: unset;
-    }
-
-    /* Single column on mobile */
-    .adc-categories-row {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 15px;
-    }
-
-    /* Full width video items on mobile */
-    .adc-video-item,
-    .adc-related-video-item {
-        max-width: 100%;
-    }
-
-    /* Smaller titles on mobile */
-    .adc-video-main-title {
-        font-size: 22px;
-        text-align: left;
-        width: 100%;
-    }
-
-    .adc-category-title {
-        font-size: 24px;
-        text-align: left;
-    }
-
-    /* Mobile: Category header - button below title and centered */
-    .adc-category-header {
-        flex-direction: column;
-        gap: 15px;
-        align-items: flex-start;
-        text-align: left;
-    }
-
-    .adc-category-header .adc-back-button {
-        align-self: center;
-    }
-
-    /* Mobile: Video header - button above title */
-    .adc-video-header {
-        flex-direction: column-reverse;
-        gap: 15px;
-        align-items: flex-start;
-        text-align: left;
-    }
-
-    .adc-video-header .adc-back-program-button {
-        align-self: center;
-    }
-
-    /* Mobile: ACTUALIZADO - Player mantiene el marco en móvil */
-    .adc-video-player {
-        margin-right: -25px;
-        margin-left: -25px;
-        padding-top: 65.25%;
-    }
-
-    .adc-video-player video {
-        object-fit: cover !important;
-        width: 100% !important;
-        height: 100% !important;
-    }
-
-    .adc-video-player .video-js video {
-        object-fit: cover !important;
-    }
-
-    /* Smaller buttons on mobile */
-    .adc-back-button,
-    .adc-view-all-button,
-    .adc-view-more-button,
-    .adc-back-program-button {
-        font-size: 14px;
-        padding: 8px 16px;
-    }
-
-    /* Season header mobile adjustment */
-    .adc-season-header {
-        font-size: 18px;
-        margin: 20px 0;
-    }
-
-    /* Coming soon adjustments for mobile */
-    .adc-coming-soon-text {
-        font-size: 16px;
-    }
-
-    .adc-coming-soon-lock {
-        font-size: 20px;
-        width: 35px;
-        height: 35px;
-        bottom: 10px;
-        right: 10px;
-    }
-
-    /* Programs dropdown mobile adjustments */
-    .adc-wp-programs-dropdown {
-        position: static !important;
-        width: 100% !important;
-        background: rgba(0, 0, 0, 0.95) !important;
-        border: 2px solid #6EC1E4 !important;
-        border-radius: 8px !important;
-        margin: 10px 0 !important;
-        padding: 5px !important;
-    }
-
-    .adc-wp-programs-dropdown a {
-        color: #6EC1E4 !important;
-        padding: 15px 20px !important;
-        font-size: 16px !important;
-        border-bottom: 1px solid rgba(110, 193, 228, 0.2) !important;
-    }
-
-    /* MÓVIL: Buscador optimizado - TODOS LOS IDIOMAS */
-    li.adc-search-menu-trigger,
-    li.adc-search-menu-trigger-en,
-    li.adc-search-menu-trigger-he {
-        display: flex !important;
-        align-items: center !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 16px !important;
-    }
-
-    li.adc-search-menu-trigger .adc-menu-search-container,
-    li.adc-search-menu-trigger-en .adc-menu-search-container,
-    li.adc-search-menu-trigger-he .adc-menu-search-container {
-        display: block !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    .adc-inline-search-form {
-        position: relative !important;
-        box-sizing: border-box !important;
-        width: 100% !important;
-        margin: 8px 0 !important;
-        padding: 0 !important;
-        border: 1px solid #4a4949 !important;
-        border-radius: 6px !important;
-        background: transparent !important;
-        backdrop-filter: blur(3px) !important;
-    }
-
-    .adc-inline-search-input {
-        width: 100% !important;
-        padding: 8px 12px !important;
-        padding-right: 40px !important;
-        border: none !important;
-        outline: none !important;
-        background: transparent !important;
-        color: #ffffff !important;
-    }
-
-    .adc-inline-search-button {
-        position: absolute !important;
-        top: 50% !important;
-        right: 8px !important;
-        transform: translateY(-50%) !important;
-        background: none !important;
-        border: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        cursor: pointer !important;
-        color: #ffffff !important;
-    }
-
-    .adc-inline-search-button svg {
-        width: 16px !important;
-        height: 16px !important;
-    }
-
-    /* NEW: Mobile fallback message adjustments */
-    .adc-search-fallback-message {
-        padding: 12px;
-        margin: 10px 0;
-        font-size: 14px;
-    }
-
-    .adc-no-results-section {
-        padding: 20px 10px;
-    }
-
-    .adc-search-tips {
-        padding: 15px;
-        margin: 15px 0;
-    }
-
-    .adc-category-videos {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Extra Small Mobile */
-@media (max-width: 480px) {
-
-    /* Even smaller on very small screens */
-    .adc-categories-row {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    }
-
-    .adc-category-image-circle {
-        width: 120px;
-        height: 120px;
-    }
-
-    .adc-category-card {
-        width: 100%;
-    }
-
-    /* Single column search results */
-    .adc-recommended-videos {
-        grid-template-columns: 1fr;
-    }
-
-    /* Coming soon adjustments for very small screens */
-    .adc-coming-soon-text {
-        font-size: 14px;
-    }
-
-    .adc-coming-soon-lock {
-        font-size: 18px;
-        width: 30px;
-        height: 30px;
-        bottom: 8px;
-        right: 8px;
-    }
-
-    /* NEW: Extra small mobile fallback adjustments */
-    .adc-search-fallback-message {
-        padding: 10px;
-        font-size: 13px;
-    }
-
-    .adc-search-tips ul {
-        font-size: 14px;
-    }
-}
-
-/* ===================================
-   Utility Classes
-   =================================== */
-.adc-hidden {
-    display: none !important;
-}
-
-.adc-visible {
-    display: block !important;
-}
-
-.adc-text-center {
-    text-align: center !important;
-}
-
-.adc-text-left {
-    text-align: left !important;
-}
-
-.adc-text-right {
-    text-align: right !important;
-}
-
-.adc-mb-0 {
-    margin-bottom: 0 !important;
-}
-
-.adc-mb-1 {
-    margin-bottom: 10px !important;
-}
-
-.adc-mb-2 {
-    margin-bottom: 20px !important;
-}
-
-.adc-mt-0 {
-    margin-top: 0 !important;
-}
-
-.adc-mt-1 {
-    margin-top: 10px !important;
-}
-
-.adc-mt-2 {
-    margin-top: 20px !important;
-}
-
-/* NEW: Utility classes for fallback styling */
-.adc-fallback-highlight {
-    background: rgba(110, 193, 228, 0.1);
-    border-left: 4px solid #6EC1E4;
-    padding: 15px;
-    margin: 15px 0;
-    border-radius: 4px;
-}
-
-.adc-info-box {
-    background: #e8f4fd;
-    border: 1px solid #2196f3;
-    color: #1976d2;
-    padding: 15px;
-    border-radius: 8px;
-    margin: 15px 0;
-}
-
-.adc-success-box {
-    background: #d4edda;
-    border: 1px solid #c3e6cb;
-    color: #155724;
-    padding: 15px;
-    border-radius: 8px;
-    margin: 15px 0;
-}
-
-.adc-warning-box {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
-    color: #856404;
-    padding: 15px;
-    border-radius: 8px;
-    margin: 15px 0;
-}
-
-/* Smooth transitions for all interactive elements */
-* {
-    transition: transform 0.3s ease, opacity 0.3s ease, color 0.3s ease, background-color 0.3s ease;
-}
-
-/* Focus styles for accessibility */
-*:focus {
-    outline: 2px solid #6EC1E4;
-    outline-offset: 2px;
-}
-
-.adc-inline-search-input:focus,
-.adc-inline-search-button:focus {
-    outline: none;
-}
-
-/* Print styles */
-@media print {
-
-    .adc-video-player,
-    .adc-search-form,
-    .adc-dropdown-menu,
-    .adc-back-button,
-    .adc-view-all-button,
-    .adc-search-fallback-message,
-    .adc-no-results-section {
-        display: none !important;
-    }
-}
+   
+   /* Control bar background and buttons */
+   .video-js .vjs-control-bar {
+       background: rgba(0, 0, 0, 0.8);
+       backdrop-filter: blur(5px);
+   }
+   
+   /* Big play button - Enhanced */
+   .video-js .vjs-big-play-button {
+       background-color: rgba(0, 0, 0, 0.8) !important;
+       border-color: #6EC1E4 !important;
+       border-width: 3px !important;
+       transition: all 0.3s ease !important;
+   }
+   
+   .video-js .vjs-big-play-button:hover {
+       background-color: #6EC1E4 !important;
+       border-color: #6EC1E4 !important;
+       transform: scale(1.1) !important;
+   }
+   
+   .video-js .vjs-big-play-button:hover .vjs-icon-placeholder:before {
+       color: #000000 !important;
+   }
+   
+   /* Progress bar colors - Consistent theme */
+   .video-js .vjs-progress-control .vjs-progress-holder .vjs-play-progress {
+       background-color: #6EC1E4 !important;
+   }
+   
+   .video-js .vjs-progress-holder .vjs-play-progress,
+   .video-js .vjs-progress-holder .vjs-play-progress:before,
+   .vjs-slider-bar,
+   .vjs-slider-bar:before {
+       background: #6EC1E4 !important;
+       background-color: #6EC1E4 !important;
+   }
+   
+   .video-js .vjs-progress-control .vjs-progress-holder .vjs-load-progress {
+       background-color: rgba(110, 193, 228, 0.5) !important;
+   }
+   
+   /* Volume bar color */
+   .video-js .vjs-volume-control .vjs-volume-bar .vjs-volume-level {
+       background-color: #6EC1E4 !important;
+   }
+   
+   /* All control bar buttons */
+   .video-js .vjs-button>.vjs-icon-placeholder:before,
+   .video-js .vjs-time-control,
+   .video-js .vjs-current-time,
+   .video-js .vjs-duration,
+   .video-js .vjs-remaining-time {
+       color: #6EC1E4 !important;
+   }
+   
+   /* Specific control buttons */
+   .video-js .vjs-play-control .vjs-icon-placeholder:before,
+   .video-js .vjs-mute-control .vjs-icon-placeholder:before,
+   .video-js .vjs-fullscreen-control .vjs-icon-placeholder:before {
+       color: #6EC1E4 !important;
+   }
+   
+   /* Custom buttons styling - Enhanced */
+   .vjs-forward-button,
+   .vjs-rewind-button {
+       font-size: 14px !important;
+       padding: 6px 10px !important;
+       background-color: rgba(110, 193, 228, 0.2) !important;
+       border-radius: 4px !important;
+       color: #6EC1E4 !important;
+       cursor: pointer !important;
+       transition: all 0.3s ease !important;
+   }
+   
+   .vjs-forward-button:hover,
+   .vjs-rewind-button:hover {
+       background-color: rgba(110, 193, 228, 0.4) !important;
+       transform: translateY(-1px) !important;
+   }
+   
+   /* Control buttons hover state */
+   .video-js .vjs-control:hover {
+       color: rgba(110, 193, 228, 0.8) !important;
+   }
+   
+   /* Loading spinner color */
+   .video-js .vjs-loading-spinner {
+       border-top-color: #6EC1E4 !important;
+       border-right-color: #6EC1E4 !important;
+   }
+   
+   /* ===================================
+         Autoplay Overlay - Enhanced
+         =================================== */
+   #adc-next-overlay {
+       display: none;
+       position: absolute;
+       top: 50%;
+       left: 50%;
+       transform: translate(-50%, -50%);
+       background: rgba(0, 0, 0, 0.95);
+       color: white;
+       padding: 30px;
+       border-radius: 12px;
+       z-index: 9999;
+       text-align: center;
+       min-width: 300px;
+       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+       border: 2px solid #6EC1E4;
+       backdrop-filter: blur(10px);
+   }
+   
+   #adc-next-overlay p {
+       margin-bottom: 12px;
+       font-size: 16px;
+       line-height: 1.5;
+   }
+   
+   #adc-next-overlay a {
+       color: #6EC1E4;
+       font-size: 16px;
+       text-decoration: underline;
+       transition: color 0.3s ease;
+   }
+   
+   #adc-next-overlay a:hover {
+       color: #ffffff;
+   }
+   
+   #adc-cancel-autoplay {
+       margin-top: 12px;
+       padding: 8px 16px;
+       background: #dc3545;
+       color: white;
+       border: none;
+       border-radius: 6px;
+       cursor: pointer;
+       font-size: 14px;
+       transition: all 0.3s ease;
+   }
+   
+   #adc-cancel-autoplay:hover {
+       background: #c82333;
+       transform: translateY(-1px);
+   }
+   
+   /* ===================================
+         Search Results - Enhanced with Fallback Support
+         =================================== */
+   .adc-search-results {
+       margin-top: 20px;
+   }
+   
+   .adc-search-program-group {
+       margin-bottom: 40px;
+   }
+   
+   .adc-search-program-title {
+       font-size: 24px;
+       color: #6EC1E4;
+       margin-bottom: 15px;
+       padding-bottom: 10px;
+       border-bottom: 2px solid #6EC1E4;
+   }
+   
+   /* Search results container - Enhanced */
+   .adc-search-results-container {
+       max-width: 1200px;
+       margin: 30px auto;
+       padding: 0 15px;
+   }
+   
+   .adc-search-results-title {
+       color: #6EC1E4 !important;
+       font-size: 28px;
+       text-align: center;
+       margin: 20px 0 30px;
+       text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+   }
+   
+   /* Hide redundant messages in empty results */
+   .adc-search-no-results {
+       display: none;
+   }
+   
+   /* Recommendations title */
+   .adc-recommended-title {
+       color: #6EC1E4 !important;
+       font-size: 22px;
+       margin: 10px 0 25px 0;
+       text-align: center;
+       text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+   }
+   
+   .adc-recommended-videos {
+       display: grid;
+       grid-template-columns: repeat(4, 1fr);
+       gap: 20px;
+       margin-bottom: 40px;
+       align-items: stretch; /* Importante para igualar alturas */
+   }
+   
+   /* NEW: Fallback message styling */
+   .adc-search-fallback-message {
+       background: #e8f4fd;
+       padding: 15px;
+       border-left: 4px solid #2196f3;
+       margin: 15px 0;
+       border-radius: 4px;
+   }
+   
+   .adc-search-fallback-message p {
+       margin: 0;
+       color: #1976d2;
+       font-size: 16px;
+       line-height: 1.4;
+   }
+   
+   /* NEW: No results section styling - ARREGLADO */
+   .adc-no-results-section {
+       text-align: center;
+       padding: 5px 20px 5px 20px;
+       margin: 0;
+   }
+   
+   .adc-no-results-title {
+       color: #ffffff;
+       font-size: 24px;
+       margin: 0 0 5px 0;
+       text-align: center;
+   }
+   
+   .adc-search-tips {
+       background: rgba(110, 193, 228, 0.1);
+       padding: 20px;
+       border-radius: 8px;
+       margin: 20px auto;
+       max-width: 600px;
+       text-align: left;
+   }
+   
+   .adc-search-tips h3 {
+       color: #6EC1E4;
+       margin-top: 0;
+       margin-bottom: 15px;
+   }
+   
+   .adc-search-tips ul {
+       color: #ffffff;
+       list-style-type: disc;
+       padding-left: 20px;
+   }
+   
+   .adc-search-tips li {
+       margin-bottom: 8px;
+       line-height: 1.4;
+   }
+   
+   /* NEW: Grouped results styling */
+   .adc-grouped-results {
+       margin-top: 30px;
+   }
+   
+   .adc-category-group {
+       margin-bottom: 40px;
+   }
+   
+   .adc-category-group-title {
+       color: #6EC1E4;
+       font-size: 20px;
+       margin-bottom: 20px;
+       padding-bottom: 10px;
+       border-bottom: 1px solid rgba(110, 193, 228, 0.3);
+   }
+   
+   .adc-category-videos {
+       display: grid;
+       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+       gap: 20px;
+   }
+   
+   /* Hacer que todas las tarjetas tengan la misma altura */
+   .adc-search-video-item {
+       background: #fff;
+       border-radius: 8px;
+       overflow: hidden;
+       transition: all 0.3s ease;
+       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+       height: 100%;
+       display: flex;
+       flex-direction: column;
+   }
+   
+   .adc-search-video-item:hover {
+       transform: translateY(-5px);
+       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+   }
+   
+   /* Hacer que el link ocupe todo el espacio disponible */
+   .adc-search-video-link {
+       display: flex;
+       flex-direction: column;
+       text-decoration: none;
+       height: 100%;
+   }
+   
+   .adc-search-thumbnail {
+       position: relative;
+       padding-bottom: 56.25%;
+       background-color: #f5f5f5;
+   }
+   
+   .adc-search-thumbnail img {
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       object-fit: cover;
+   }
+   
+   .adc-search-play-icon {
+       position: absolute;
+       top: 50%;
+       left: 50%;
+       transform: translate(-50%, -50%);
+       width: 50px;
+       height: 50px;
+       background: rgba(0, 0, 0, 0.7);
+       border-radius: 50%;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       opacity: 0.8;
+       transition: all 0.3s ease;
+   }
+   
+   .adc-search-video-item:hover .adc-search-play-icon {
+       opacity: 1;
+       transform: translate(-50%, -50%) scale(1.1);
+   }
+   
+   .adc-search-play-icon:before {
+       content: '';
+       width: 0;
+       height: 0;
+       border-style: solid;
+       border-width: 10px 0 10px 18px;
+       border-color: transparent transparent transparent #ffffff;
+       margin-left: 3px;
+   }
+   
+   /* La info debe tener altura fija para tarjetas uniformes */
+   .adc-search-info {
+       padding: 15px;
+       height: 140px; /* Altura suficiente para contenido */
+       display: flex;
+       flex-direction: column;
+       justify-content: space-between;
+   }
+   
+   /* Título con altura fija para 2 líneas */
+   .adc-search-title {
+       font-size: 15px;
+       font-weight: 600;
+       margin: 0;
+       color: #000000;
+       line-height: 1.3;
+       overflow: hidden;
+       display: -webkit-box;
+       -webkit-line-clamp: 2;
+       -webkit-box-orient: vertical;
+       height: 39px; /* 2 líneas × 19.5px */
+       flex-shrink: 0;
+   }
+   
+   /* Programa con altura fija para 2 líneas */
+   .adc-search-program {
+       font-size: 13px;
+       color: #6EC1E4;
+       font-weight: 500;
+       margin: 0;
+       line-height: 1.3;
+       overflow: hidden;
+       display: -webkit-box;
+       -webkit-line-clamp: 2;
+       -webkit-box-orient: vertical;
+       height: 34px; /* 2 líneas × 17px */
+       flex-shrink: 0;
+   }
+   
+   /* Duración siempre al fondo */
+   .adc-search-duration {
+       font-size: 12px;
+       color: #777;
+       margin: 0;
+       height: 18px; /* 1 línea fija */
+       line-height: 18px;
+       flex-shrink: 0;
+       margin-top: auto;
+   }
+   
+   /**
+          * ADC Video Display - Frontend Styles
+          * Version: 3.1 - Sistema de Caché Inteligente
+          * PARTE 3A/4: Dropdowns, Search, Loading
+          */
+   
+   /* ===================================
+            Dropdown Menu Styles - Enhanced
+            =================================== */
+   .adc-dropdown-menu {
+       position: relative;
+       display: inline-block;
+   }
+   
+   .adc-dropdown-content {
+       display: none;
+       position: absolute;
+       background-color: #000000;
+       min-width: 250px;
+       box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+       z-index: 1000;
+       border: 1px solid #6EC1E4;
+       border-radius: 4px;
+       max-height: 400px;
+       overflow-y: auto;
+   }
+   
+   .adc-dropdown-content a {
+       color: #6EC1E4;
+       padding: 12px 16px;
+       text-decoration: none;
+       display: block;
+       transition: all 0.3s ease;
+   }
+   
+   .adc-dropdown-content a:hover {
+       background-color: #6EC1E4;
+       color: #000000;
+   }
+   
+   .adc-dropdown-menu.active .adc-dropdown-content {
+       display: block;
+   }
+   
+   /* ===================================
+                 Programs Dropdown Menu Styles - RESTAURADO ORIGINAL
+                 =================================== */
+   .has-programs-dropdown {
+       position: relative !important;
+   }
+   
+   .programs-active>a {
+       color: #FFFFFF !important;
+   }
+   
+   .programs-active::after {
+       content: '';
+       position: absolute;
+       bottom: 0;
+       left: 0;
+       width: 100%;
+       height: 2px;
+       background-color: #6EC1E4;
+   }
+   
+   .adc-wp-programs-dropdown {
+       position: absolute;
+       top: 100%;
+       left: 0;
+       z-index: 9999;
+       width: 250px;
+       background-color: #000000;
+       border: 0;
+       box-shadow: 0 15px 25px rgba(0, 0, 0, 0.3);
+       display: none;
+       border-top: 2px solid #6EC1E4;
+       backdrop-filter: blur(5px);
+   }
+   
+   .adc-wp-programs-dropdown.active {
+       display: block;
+       animation: fadeInPrograms 0.2s ease-out;
+   }
+   
+   @keyframes fadeInPrograms {
+       from {
+           opacity: 0;
+           transform: translateY(10px);
+       }
+   
+       to {
+           opacity: 1;
+           transform: translateY(0);
+       }
+   }
+   
+   .adc-wp-programs-dropdown a {
+       color: #6EC1E4 !important;
+       padding: 12px 20px !important;
+       text-decoration: none !important;
+       display: block !important;
+       font-size: 14px !important;
+       line-height: 1.5 !important;
+       transition: all 0.2s ease !important;
+       border-bottom: 1px solid rgba(110, 193, 228, 0.1) !important;
+       white-space: normal !important;
+       word-wrap: break-word !important;
+   }
+   
+   .adc-wp-programs-dropdown a:last-child {
+       border-bottom: none !important;
+   }
+   
+   .adc-wp-programs-dropdown a:hover {
+       background-color: rgba(110, 193, 228, 0.1) !important;
+       color: #FFFFFF !important;
+       padding-left: 25px !important;
+   }
+   
+   /* Positioning for Elementor menus */
+   .elementor-nav-menu--main .elementor-nav-menu .has-programs-dropdown .adc-wp-programs-dropdown {
+       top: 100% !important;
+       left: 0 !important;
+       transform: none !important;
+       margin: 0 !important;
+   }
+   
+   /* ===================================
+           Search Form Styles - Enhanced
+           =================================== */
+   
+   /* Menu item containing search form */
+   .menu-item-search-inline {
+       display: flex;
+       align-items: center;
+       margin-left: 40px !important;
+   }
+   
+   /* Search container */
+   .adc-menu-search-container {
+       display: flex;
+       align-items: center;
+   }
+   
+   /* Desktop spacing for search container */
+   @media (min-width: 769px) {
+       .adc-menu-search-container {
+           margin-left: 40px;
+       }
+   }
+   
+   /* Inline search form - Enhanced */
+   .adc-inline-search-form {
+       display: flex;
+       align-items: center;
+       background: transparent;
+       border-radius: 6px;
+       overflow: hidden;
+       border: 1px solid #4a4949 !important;
+       transition: all 0.3s ease;
+       backdrop-filter: blur(3px);
+   }
+   
+   .adc-inline-search-form:focus-within {
+       border-color: #6EC1E4 !important;
+       border-width: 1px !important;
+       box-shadow: 0 0 0 2px rgba(110, 193, 228, 0.2);
+       background: rgba(0, 0, 0, 0.4);
+   }
+   
+   /* Search input - Enhanced */
+   .adc-inline-search-input {
+       background: transparent;
+       border: none !important;
+       color: #ffffff;
+       height: 36px;
+       padding: 0 15px;
+       width: 100%;
+       flex: 1;
+       font-size: 14px;
+       transition: color 0.3s ease;
+       box-shadow: none !important;
+       outline: none !important;
+   }
+   
+   .adc-inline-search-input:focus {
+       outline: none !important;
+       box-shadow: none !important;
+       border: none !important;
+   }
+   
+   .adc-inline-search-input::placeholder {
+       color: rgba(255, 255, 255, 0.6);
+       transition: color 0.3s ease;
+   }
+   
+   .adc-inline-search-form:focus-within .adc-inline-search-input::placeholder {
+       color: rgba(255, 255, 255, 0.8);
+   }
+   
+   /* Search button - Enhanced */
+   .adc-inline-search-button {
+       background: transparent !important;
+       border: none !important;
+       color: #ffffff !important;
+       cursor: pointer;
+       height: 36px;
+       padding: 0 10px;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       transition: all 0.3s ease;
+       box-shadow: none !important;
+       outline: none !important;
+   }
+   
+   .adc-inline-search-button:hover {
+       color: #6EC1E4 !important;
+       background-color: rgba(0, 0, 0, 0.6) !important;
+       border: 1px solid #6EC1E4 !important;
+       border-radius: 4px;
+       transform: scale(1.05) !important;
+   }
+   
+   .adc-inline-search-button:focus {
+       outline: none !important;
+       box-shadow: none !important;
+   }
+   
+   .adc-inline-search-button svg {
+       width: 16px;
+       height: 16px;
+       transition: transform 0.3s ease;
+   }
+   
+   .adc-inline-search-button:hover svg {
+       transform: rotate(90deg);
+   }
+   
+   /* ===================================
+           Loading States - Enhanced
+           =================================== */
+   .adc-loading {
+       text-align: center;
+       padding: 30px;
+       color: #777;
+       position: relative;
+   }
+   
+   .adc-loading::after {
+       content: '';
+       display: inline-block;
+       width: 20px;
+       height: 20px;
+       border: 2px solid #6EC1E4;
+       border-radius: 50%;
+       border-top-color: transparent;
+       animation: spin 1s linear infinite;
+       margin-left: 10px;
+   }
+   
+   @keyframes spin {
+       to {
+           transform: rotate(360deg);
+       }
+   }
+   
+   .adc-error {
+       text-align: center;
+       padding: 30px;
+       color: #ffffff !important;
+       font-size: 16px;
+       background: rgba(220, 53, 69, 0.1);
+       border: 1px solid rgba(220, 53, 69, 0.3);
+       border-radius: 8px;
+       margin: 20px 0;
+   }
+   
+   /* ===================================
+           Admin Styles - Enhanced
+           =================================== */
+   
+   /* Program ordering styles */
+   .programs-order-list {
+       margin: 20px 0;
+       padding: 0;
+       width: 100%;
+       max-width: 800px;
+   }
+   
+   .program-item {
+       display: flex;
+       align-items: center;
+       background: #fff;
+       padding: 12px 15px;
+       margin-bottom: 8px;
+       border: 1px solid #ddd;
+       border-radius: 6px;
+       cursor: move;
+       transition: all 0.3s ease;
+       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+   }
+   
+   .program-item:hover {
+       background: #f9f9f9;
+       border-color: #999;
+       transform: translateY(-2px);
+       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+   }
+   
+   .program-handle {
+       margin-right: 15px;
+       color: #aaa;
+       cursor: move;
+       transition: color 0.3s ease;
+   }
+   
+   .program-item:hover .program-handle {
+       color: #6EC1E4;
+   }
+   
+   .program-thumbnail {
+       width: 40px;
+       height: 40px;
+       object-fit: cover;
+       border-radius: 4px;
+       margin-right: 15px;
+       border: 1px solid #eee;
+   }
+   
+   .program-thumbnail-placeholder {
+       width: 40px;
+       height: 40px;
+       background: #eee;
+       border-radius: 4px;
+       margin-right: 15px;
+       border: 1px solid #ddd;
+   }
+   
+   .program-name {
+       font-weight: 500;
+       flex-grow: 1;
+       color: #333;
+   }
+   
+   .program-id {
+       color: #999;
+       font-size: 12px;
+       margin-left: 10px;
+   }
+   
+   /* Order save status */
+   #order-save-status {
+       display: flex;
+       align-items: center;
+       margin: 20px 0;
+       padding: 10px;
+       border-radius: 4px;
+       transition: all 0.3s ease;
+   }
+   
+   #order-save-status.hidden {
+       display: none;
+   }
+   
+   #order-save-status .message {
+       margin-left: 10px;
+       font-weight: 500;
+   }
+   
+   #order-save-status.success {
+       background: #d4edda;
+       border: 1px solid #c3e6cb;
+       color: #155724;
+   }
+   
+   #order-save-status.error {
+       background: #f8d7da;
+       border: 1px solid #f5c6cb;
+       color: #721c24;
+   }
+   
+   /* ===================================
+      Responsive Design - CONSOLIDADO Y OPTIMIZADO
+      =================================== */
+   
+   /* Tablet Landscape */
+   @media (max-width: 1200px) {
+       .adc-videos-row {
+           grid-template-columns: repeat(3, minmax(240px, 1fr));
+       }
+   
+       .adc-recommended-videos {
+           grid-template-columns: repeat(3, 1fr);
+       }
+   }
+   
+   /* Tablet Portrait */
+   @media (max-width: 900px) {
+       .adc-videos-row {
+           grid-template-columns: repeat(2, minmax(240px, 1fr));
+       }
+   
+       .adc-recommended-videos {
+           grid-template-columns: repeat(2, 1fr);
+       }
+   }
+   
+   /* Mobile */
+   @media (max-width: 768px) {
+   
+       /* Single column layouts */
+       .adc-videos-row {
+           grid-template-columns: 1fr;
+       }
+   
+       .adc-recommended-videos {
+           grid-template-columns: repeat(2, 1fr);
+       }
+   
+       /* Optimizar altura de tarjetas de búsqueda en mobile */
+       .adc-search-info {
+           height: 95px; /* Ligeramente más alto en móvil para mejor legibilidad */
+       }
+   
+       /* Category circles smaller on mobile */
+       .adc-category-image-circle {
+           width: 150px;
+           height: 150px;
+       }
+   
+       .adc-category-name {
+           font-size: 14px;
+           height: auto;
+           -webkit-line-clamp: unset;
+       }
+   
+       /* Single column on mobile */
+       .adc-categories-row {
+           grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+           gap: 15px;
+       }
+   
+       /* Full width video items on mobile */
+       .adc-video-item,
+       .adc-related-video-item {
+           max-width: 100%;
+       }
+   
+       /* Smaller titles on mobile */
+       .adc-video-main-title {
+           font-size: 22px;
+           text-align: left;
+           width: 100%;
+       }
+   
+       .adc-category-title {
+           font-size: 24px;
+           text-align: left;
+       }
+   
+       /* Mobile: Category header - button below title and centered */
+       .adc-category-header {
+           flex-direction: column;
+           gap: 15px;
+           align-items: flex-start;
+           text-align: left;
+       }
+   
+       .adc-category-header .adc-back-button {
+           align-self: center;
+       }
+   
+       /* Mobile: Video header - button above title */
+       .adc-video-header {
+           flex-direction: column-reverse;
+           gap: 15px;
+           align-items: flex-start;
+           text-align: left;
+       }
+   
+       .adc-video-header .adc-back-program-button {
+           align-self: center;
+       }
+   
+       /* Mobile: ACTUALIZADO - Player mantiene el marco en móvil */
+       .adc-video-player {
+           margin-right: -25px;
+           margin-left: -25px;
+           padding-top: 65.25%;
+       }
+   
+       .adc-video-player video {
+           object-fit: cover !important;
+           width: 100% !important;
+           height: 100% !important;
+       }
+   
+       .adc-video-player .video-js video {
+           object-fit: cover !important;
+       }
+   
+       /* Smaller buttons on mobile */
+       .adc-back-button,
+       .adc-view-all-button,
+       .adc-view-more-button,
+       .adc-back-program-button {
+           font-size: 14px;
+           padding: 8px 16px;
+       }
+   
+       /* Season header mobile adjustment */
+       .adc-season-header {
+           font-size: 18px;
+           margin: 20px 0;
+       }
+   
+       /* Coming soon adjustments for mobile */
+       .adc-coming-soon-text {
+           font-size: 16px;
+       }
+   
+       .adc-coming-soon-lock {
+           font-size: 20px;
+           width: 35px;
+           height: 35px;
+           bottom: 10px;
+           right: 10px;
+       }
+   
+       /* Programs dropdown mobile adjustments */
+       .adc-wp-programs-dropdown {
+           position: static !important;
+           width: 100% !important;
+           background: rgba(0, 0, 0, 0.95) !important;
+           border: 2px solid #6EC1E4 !important;
+           border-radius: 8px !important;
+           margin: 10px 0 !important;
+           padding: 5px !important;
+       }
+   
+       .adc-wp-programs-dropdown a {
+           color: #6EC1E4 !important;
+           padding: 15px 20px !important;
+           font-size: 16px !important;
+           border-bottom: 1px solid rgba(110, 193, 228, 0.2) !important;
+       }
+   
+       /* MÓVIL: Buscador optimizado - TODOS LOS IDIOMAS */
+       li.adc-search-menu-trigger,
+       li.adc-search-menu-trigger-en,
+       li.adc-search-menu-trigger-he {
+           display: flex !important;
+           align-items: center !important;
+           width: 100% !important;
+           margin: 0 !important;
+           padding: 0 16px !important;
+       }
+   
+       li.adc-search-menu-trigger .adc-menu-search-container,
+       li.adc-search-menu-trigger-en .adc-menu-search-container,
+       li.adc-search-menu-trigger-he .adc-menu-search-container {
+           display: block !important;
+           width: 100% !important;
+           margin: 0 !important;
+           padding: 0 !important;
+       }
+   
+       .adc-inline-search-form {
+           position: relative !important;
+           box-sizing: border-box !important;
+           width: 100% !important;
+           margin: 8px 0 !important;
+           padding: 0 !important;
+           border: 1px solid #4a4949 !important;
+           border-radius: 6px !important;
+           background: transparent !important;
+           backdrop-filter: blur(3px) !important;
+       }
+   
+       .adc-inline-search-input {
+           width: 100% !important;
+           padding: 8px 12px !important;
+           padding-right: 40px !important;
+           border: none !important;
+           outline: none !important;
+           background: transparent !important;
+           color: #ffffff !important;
+       }
+   
+       .adc-inline-search-button {
+           position: absolute !important;
+           top: 50% !important;
+           right: 8px !important;
+           transform: translateY(-50%) !important;
+           background: none !important;
+           border: none !important;
+           padding: 0 !important;
+           margin: 0 !important;
+           display: flex !important;
+           align-items: center !important;
+           justify-content: center !important;
+           cursor: pointer !important;
+           color: #ffffff !important;
+       }
+   
+       .adc-inline-search-button svg {
+           width: 16px !important;
+           height: 16px !important;
+       }
+   
+       /* NEW: Mobile fallback message adjustments */
+       .adc-search-fallback-message {
+           padding: 12px;
+           margin: 10px 0;
+           font-size: 14px;
+       }
+   
+       .adc-no-results-section {
+           padding: 20px 10px;
+       }
+   
+       .adc-search-tips {
+           padding: 15px;
+           margin: 15px 0;
+       }
+   
+       .adc-category-videos {
+           grid-template-columns: 1fr;
+       }
+   }
+   
+   /* Extra Small Mobile */
+   @media (max-width: 480px) {
+   
+       /* Even smaller on very small screens */
+       .adc-categories-row {
+           grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+       }
+   
+       .adc-category-image-circle {
+           width: 120px;
+           height: 120px;
+       }
+   
+       .adc-category-card {
+           width: 100%;
+       }
+   
+       /* Single column search results */
+       .adc-recommended-videos {
+           grid-template-columns: 1fr;
+       }
+   
+       /* Ajustar altura de tarjetas para pantallas muy pequeñas */
+       .adc-search-info {
+           height: 90px; /* Más compacto en pantallas muy pequeñas */
+           padding: 12px; /* Menos padding */
+       }
+   
+       /* Ajustar tamaños de fuente para mejor legibilidad */
+       .adc-search-title {
+           font-size: 14px;
+           height: 34px; /* Ajustar altura proporcionalmente */
+       }
+   
+       .adc-search-program {
+           font-size: 12px;
+           height: 32px; /* Ajustar altura proporcionalmente */
+       }
+   
+       .adc-search-duration {
+           font-size: 11px;
+       }
+   
+       /* Coming soon adjustments for very small screens */
+       .adc-coming-soon-text {
+           font-size: 14px;
+       }
+   
+       .adc-coming-soon-lock {
+           font-size: 18px;
+           width: 30px;
+           height: 30px;
+           bottom: 8px;
+           right: 8px;
+       }
+   
+       /* NEW: Extra small mobile fallback adjustments */
+       .adc-search-fallback-message {
+           padding: 10px;
+           font-size: 13px;
+       }
+   
+       .adc-search-tips ul {
+           font-size: 14px;
+       }
+   }
+   
+   /* ===================================
+      Utility Classes
+      =================================== */
+   .adc-hidden {
+       display: none !important;
+   }
+   
+   .adc-visible {
+       display: block !important;
+   }
+   
+   .adc-text-center {
+       text-align: center !important;
+   }
+   
+   .adc-text-left {
+       text-align: left !important;
+   }
+   
+   .adc-text-right {
+       text-align: right !important;
+   }
+   
+   .adc-mb-0 {
+       margin-bottom: 0 !important;
+   }
+   
+   .adc-mb-1 {
+       margin-bottom: 10px !important;
+   }
+   
+   .adc-mb-2 {
+       margin-bottom: 20px !important;
+   }
+   
+   .adc-mt-0 {
+       margin-top: 0 !important;
+   }
+   
+   .adc-mt-1 {
+       margin-top: 10px !important;
+   }
+   
+   .adc-mt-2 {
+       margin-top: 20px !important;
+   }
+   
+   /* NEW: Utility classes for fallback styling */
+   .adc-fallback-highlight {
+       background: rgba(110, 193, 228, 0.1);
+       border-left: 4px solid #6EC1E4;
+       padding: 15px;
+       margin: 15px 0;
+       border-radius: 4px;
+   }
+   
+   .adc-info-box {
+       background: #e8f4fd;
+       border: 1px solid #2196f3;
+       color: #1976d2;
+       padding: 15px;
+       border-radius: 8px;
+       margin: 15px 0;
+   }
+   
+   .adc-success-box {
+       background: #d4edda;
+       border: 1px solid #c3e6cb;
+       color: #155724;
+       padding: 15px;
+       border-radius: 8px;
+       margin: 15px 0;
+   }
+   
+   .adc-warning-box {
+       background: #fff3cd;
+       border: 1px solid #ffeaa7;
+       color: #856404;
+       padding: 15px;
+       border-radius: 8px;
+       margin: 15px 0;
+   }
+   
+   /* Smooth transitions for all interactive elements */
+   * {
+       transition: transform 0.3s ease, opacity 0.3s ease, color 0.3s ease, background-color 0.3s ease;
+   }
+   
+   /* Focus styles for accessibility */
+   *:focus {
+       outline: 2px solid #6EC1E4;
+       outline-offset: 2px;
+   }
+   
+   .adc-inline-search-input:focus,
+   .adc-inline-search-button:focus {
+       outline: none;
+   }
+   
+   /* Print styles */
+   @media print {
+   
+       .adc-video-player,
+       .adc-search-form,
+       .adc-dropdown-menu,
+       .adc-back-button,
+       .adc-view-all-button,
+       .adc-search-fallback-message,
+       .adc-no-results-section {
+           display: none !important;
+       }
+   }
+   
