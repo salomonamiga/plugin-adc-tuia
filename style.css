@@ -1293,7 +1293,7 @@
    
        /* Optimizar altura de tarjetas de búsqueda en mobile */
        .adc-search-info {
-           height: 95px; /* Ligeramente más alto en móvil para mejor legibilidad */
+           height: 130px; /* Altura suficiente en móvil */
        }
    
        /* Category circles smaller on mobile */
@@ -1527,19 +1527,26 @@
    
        /* Ajustar altura de tarjetas para pantallas muy pequeñas */
        .adc-search-info {
-           height: 90px; /* Más compacto en pantallas muy pequeñas */
+           height: 120px; /* Altura suficiente para pantallas pequeñas */
            padding: 12px; /* Menos padding */
        }
    
        /* Ajustar tamaños de fuente para mejor legibilidad */
        .adc-search-title {
            font-size: 14px;
-           height: 34px; /* Ajustar altura proporcionalmente */
+           height: 36px; /* Mantener 2 líneas */
+           line-height: 1.3;
        }
    
        .adc-search-program {
            font-size: 12px;
-           height: 32px; /* Ajustar altura proporcionalmente */
+           height: 31px; /* Mantener 2 líneas */
+           line-height: 1.3;
+       }
+       
+       .adc-search-duration {
+           font-size: 11px;
+           height: 16px;
        }
    
        .adc-search-duration {
