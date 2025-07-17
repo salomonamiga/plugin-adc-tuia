@@ -228,19 +228,19 @@
             init: function () {
                 // Video.js initialization is now handled entirely by PHP
                 // This module only handles getting reference to existing player
-                
+
                 if (ADCVideo.config.debug) {
                     console.log('ADC: Video.js initialization handled by PHP script');
                 }
-                
+
                 // Try to get reference to existing player after delay
-                setTimeout(function() {
+                setTimeout(function () {
                     if (typeof videojs !== 'undefined' && document.getElementById('adc-player')) {
                         try {
                             var existingPlayer = videojs.getPlayer('adc-player');
                             if (existingPlayer) {
                                 ADCVideo.state.player = existingPlayer;
-                                
+
                                 if (ADCVideo.config.debug) {
                                     console.log('ADC: Got reference to existing Video.js player');
                                 }
