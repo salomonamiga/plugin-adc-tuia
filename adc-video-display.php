@@ -6,11 +6,11 @@
  * Author:      TuTorah Development Team
  */
 
-// Evita el canonical redirect **antes** de todo - CORREGIDO para incluir búsquedas
+// Evita el canonical redirect **antes** de todo
 add_filter( 'redirect_canonical', function( $redirect_url ) {
     $uri = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
-    // Captura /programa/... y /en/program/... y /buscar/... y /en/search/...
-    if ( preg_match( '#^/(en/)?(programa|program|buscar|search)/#', $uri ) ) {
+    // Captura /programa/... y /en/programa/...
+    if ( preg_match( '#^/(en/)?programa/#', $uri ) ) {
         return false;
     }
     return $redirect_url;
@@ -23,6 +23,8 @@ add_filter( 'wp_resource_hints', function( $hints, $relation_type ) {
     }
     return $hints;
 }, 10, 2 );
+
+
 
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
@@ -91,23 +93,25 @@ class ADC_Video_Display
         add_action('pre_get_posts', array($this, 'modify_main_query'), 1);
     }
 
-    /**
-     * NEW: Initialize URL routing system
-     */
-    public function init_url_routing()
-    {
-        // Add rewrite rules for friendly URLs
-        $this->add_rewrite_rules();
-        
-        // Add query vars
-        add_filter('query_vars', array($this, 'add_query_vars'));
-        
-        // Check if rewrite rules need to be flushed
-        if ( get_option('adc_rewrite_rules_flushed') !== '3.2' ) {
-            flush_rewrite_rules();
-            update_option('adc_rewrite_rules_flushed', '3.2');
-        }
+/**
+ * NEW: Initialize URL routing system
+ */
+public function init_url_routing()
+{
+    // Add rewrite rules for friendly URLs
+    $this->add_rewrite_rules();
+    
+    // Add query vars
+    add_filter('query_vars', array($this, 'add_query_vars'));
+    
+    // Check if rewrite rules need to be flushed
+    if ( get_option('adc_rewrite_rules_flushed') !== '3.2' ) {
+        flush_rewrite_rules();
+        update_option('adc_rewrite_rules_flushed', '3.2');
     }
+
+}
+
 
     /**
      * NEW: Add rewrite rules for friendly URLs
@@ -183,45 +187,46 @@ class ADC_Video_Display
      * NEW: Handle legacy URL redirects (301 redirects to friendly URLs)
      */
     private function handle_legacy_redirects()
-    {
-        // Si la REQUEST_URI coincide con /programa/... o /en/program/... o /buscar/...,
-        // es un friendly URL y no debemos redirigir:
-        $uri = $_SERVER['REQUEST_URI'];
-        if ( preg_match('#^/(en/)?(programa|program)/#', $uri) ||
-             preg_match('#^/(en/)?(buscar|search)/#',   $uri) ) {
-            return;
-        }
-
-        // A partir de aquí, sólo legacy URLs query-based
-        $categoria  = isset($_GET['categoria'])  ? sanitize_text_field($_GET['categoria'])  : '';
-        $video      = isset($_GET['video'])      ? sanitize_text_field($_GET['video'])      : '';
-        $adc_search = isset($_GET['adc_search']) ? sanitize_text_field($_GET['adc_search']) : '';
-
-        // Si no hay parámetros legacy, no redirijas:
-        if ( ! $categoria && ! $video && ! $adc_search ) {
-            return;
-        }
-
-        // Detectar idioma
-        $lang   = ADC_Utils::detect_language();
-        $prefix = $lang === 'en' ? 'en/' : '';
-
-        // Legacy search → friendly /buscar/ ó /en/search/
-        if ( $adc_search ) {
-            $keyword = $lang === 'en' ? 'search' : 'buscar';
-            wp_redirect( home_url("/{$prefix}{$keyword}/" . urlencode($adc_search) . "/"), 301 );
-            exit;
-        }
-
-        // Legacy program/video → friendly /programa/slug[/video]/ ó /en/program/.../
-        if ( $categoria ) {
-            $keyword = $lang === 'en' ? 'program' : 'programa';
-            $base    = home_url("/{$prefix}{$keyword}/{$categoria}/");
-            $url     = $video ? "{$base}{$video}/" : $base;
-            wp_redirect( $url, 301 );
-            exit;
-        }
+{
+    // Si la REQUEST_URI coincide con /programa/... o /en/program/... o /buscar/...,
+    // es un friendly URL y no debemos redirigir:
+    $uri = $_SERVER['REQUEST_URI'];
+    if ( preg_match('#^/(en/)?(programa|program)/#', $uri) ||
+         preg_match('#^/(en/)?(buscar|search)/#',   $uri) ) {
+        return;
     }
+
+    // A partir de aquí, sólo legacy URLs query-based
+    $categoria  = isset($_GET['categoria'])  ? sanitize_text_field($_GET['categoria'])  : '';
+    $video      = isset($_GET['video'])      ? sanitize_text_field($_GET['video'])      : '';
+    $adc_search = isset($_GET['adc_search']) ? sanitize_text_field($_GET['adc_search']) : '';
+
+    // Si no hay parámetros legacy, no redirijas:
+    if ( ! $categoria && ! $video && ! $adc_search ) {
+        return;
+    }
+
+    // Detectar idioma
+    $lang   = ADC_Utils::detect_language();
+    $prefix = $lang === 'en' ? 'en/' : '';
+
+    // Legacy search → friendly /buscar/ ó /en/search/
+    if ( $adc_search ) {
+        $keyword = $lang === 'en' ? 'search' : 'buscar';
+        wp_redirect( home_url("/{$prefix}{$keyword}/" . urlencode($adc_search) . "/"), 301 );
+        exit;
+    }
+
+    // Legacy program/video → friendly /programa/slug[/video]/ ó /en/program/.../
+    if ( $categoria ) {
+        $keyword = $lang === 'en' ? 'program' : 'programa';
+        $base    = home_url("/{$prefix}{$keyword}/{$categoria}/");
+        $url     = $video ? "{$base}{$video}/" : $base;
+        wp_redirect( $url, 301 );
+        exit;
+    }
+}
+
 
     /**
      * NEW: Handle friendly URL routing
@@ -253,7 +258,7 @@ class ADC_Video_Display
     }
 
     /**
-     * NEW: Validate friendly URL parameters against API data - RESTAURADO COMPLETO
+     * NEW: Validate friendly URL parameters against API data
      */
     private function validate_friendly_url_params()
     {
@@ -873,7 +878,7 @@ class ADC_Video_Display
             $videos = $this->api->get_materials($program['id']);
             if (!empty($videos)) {
                 foreach ($videos as $video) {
-                    $video['category'] = $program['name'];
+                    $video['program'] = $program['name'];
                     $all_videos[] = $video;
                 }
             }
