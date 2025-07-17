@@ -666,9 +666,7 @@
             }
         },
 
-        /**
-         * Search Module - UPDATED with friendly URLs
-         */
+        // Search Module - UPDATED with friendly URLs
         search: {
             initialized: false,
 
@@ -690,7 +688,7 @@
                     var input = form.querySelector('input[name="adc_search_term"], input[name="adc_search"]');
                     if (!input) return;
 
-                    // Handle form submission with friendly URLs - CORREGIDO
+                    // Handle form submission with friendly URLs
                     form.addEventListener('submit', function (e) {
                         var searchTerm = input.value.trim();
                         if (searchTerm === '') {
@@ -699,21 +697,11 @@
                             return false;
                         }
 
-                        // NEW: Instead of preventing default, modify the form to work with WordPress
+                        // NEW: Redirect to friendly search URL instead of form submission
                         e.preventDefault();
-                        
                         var language = form.getAttribute('data-language') || ADCVideo.state.currentLanguage;
-                        
-                        // Create a proper form submission that WordPress can handle
                         var searchUrl = ADCVideo.utils.buildSearchUrl(searchTerm, language);
-                        
-                        if (ADCVideo.config.debug) {
-                            console.log('ADC: Submitting search for term:', searchTerm);
-                            console.log('ADC: Search URL:', searchUrl);
-                        }
-
-                        // Use window.location.href to ensure proper page load and WordPress processing
-                        window.location.href = searchUrl;
+                        ADCVideo.utils.navigateTo(searchUrl);
                         return false;
                     });
                 });
@@ -825,7 +813,7 @@
             },
 
             bindSearchEvents: function () {
-                // UPDATED: Handle form submission with friendly URLs - CORREGIDO
+                // UPDATED: Handle form submission with friendly URLs
                 ADCVideo.cache.$document.on('submit', '.adc-search-form, .adc-inline-search-form', function (e) {
                     e.preventDefault();
 
@@ -838,16 +826,15 @@
                         return false;
                     }
 
-                    // NEW: Navigate to friendly search URL and let WordPress handle it properly
+                    // NEW: Navigate to friendly search URL
                     var language = $form.attr('data-language') || ADCVideo.state.currentLanguage;
                     var searchUrl = ADCVideo.utils.buildSearchUrl(searchTerm, language);
 
                     if (ADCVideo.config.debug) {
-                        console.log('ADC: Form submit - redirecting to search URL:', searchUrl);
+                        console.log('ADC: Redirecting to search URL:', searchUrl);
                     }
 
-                    // Use direct navigation to ensure WordPress processes the URL correctly
-                    window.location.href = searchUrl;
+                    ADCVideo.utils.navigateTo(searchUrl);
                     return false;
                 });
 
