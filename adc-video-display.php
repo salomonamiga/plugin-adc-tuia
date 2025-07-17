@@ -184,88 +184,88 @@ public function init_url_routing()
     }
 
     /**
-     * NEW: Handle legacy URL redirects (301 redirects to friendly URLs) - FIXED for search
-     */
-    private function handle_legacy_redirects()
-    {
-        $uri = $_SERVER['REQUEST_URI'];
-        
-        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-            echo '<script>console.log("ADC Legacy Redirect Debug - URI:", "' . esc_js($uri) . '");</script>';
-        }
-        
-        // IMPORTANT: Check if this is already a friendly URL
-        // But DON'T return early for search URLs - let them be processed
-        if (preg_match('#^/(en/)?(programa|program)/#', $uri)) {
-            // This is a program/video friendly URL - don't redirect
-            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-                echo '<script>console.log("ADC Legacy Redirect Debug - Program/video friendly URL detected, no redirect needed");</script>';
-            }
-            return;
-        }
-        
-        if (preg_match('#^/(en/)?(buscar|search)/#', $uri)) {
-            // This is a search friendly URL - ALLOW WordPress to process it
-            // DON'T return early here - let the rest of the function handle any legacy parameters
-            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-                echo '<script>console.log("ADC Legacy Redirect Debug - Search friendly URL detected, allowing WordPress to process");</script>';
-            }
-            // Continue processing to handle any legacy search parameters that might be present
-        }
-
-        // Check for legacy query parameters
-        $categoria  = isset($_GET['categoria'])  ? sanitize_text_field($_GET['categoria'])  : '';
-        $video      = isset($_GET['video'])      ? sanitize_text_field($_GET['video'])      : '';
-        $adc_search = isset($_GET['adc_search']) ? sanitize_text_field($_GET['adc_search']) : '';
-
-        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-            echo '<script>
-            console.log("ADC Legacy Redirect Debug - Parameters:");
-            console.log("- categoria:", "' . esc_js($categoria) . '");
-            console.log("- video:", "' . esc_js($video) . '");
-            console.log("- adc_search:", "' . esc_js($adc_search) . '");
-            </script>';
-        }
-
-        // If no legacy parameters, don't redirect
-        if (!$categoria && !$video && !$adc_search) {
-            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-                echo '<script>console.log("ADC Legacy Redirect Debug - No legacy parameters found, no redirect needed");</script>';
-            }
-            return;
-        }
-
-        // Detect language
-        $lang = ADC_Utils::detect_language();
-        $prefix = $lang === 'en' ? 'en/' : '';
-
-        // Legacy search → friendly /buscar/ or /en/search/
-        if ($adc_search) {
-            $keyword = $lang === 'en' ? 'search' : 'buscar';
-            $redirect_url = home_url("/{$prefix}{$keyword}/" . urlencode($adc_search) . "/");
-            
-            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-                echo '<script>console.log("ADC Legacy Redirect Debug - Redirecting search to:", "' . esc_js($redirect_url) . '");</script>';
-            }
-            
-            wp_redirect($redirect_url, 301);
-            exit;
-        }
-
-        // Legacy program/video → friendly /programa/slug[/video]/ or /en/program/.../
-        if ($categoria) {
-            $keyword = $lang === 'en' ? 'program' : 'programa';
-            $base = home_url("/{$prefix}{$keyword}/{$categoria}/");
-            $redirect_url = $video ? "{$base}{$video}/" : $base;
-            
-            if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
-                echo '<script>console.log("ADC Legacy Redirect Debug - Redirecting program/video to:", "' . esc_js($redirect_url) . '");</script>';
-            }
-            
-            wp_redirect($redirect_url, 301);
-            exit;
-        }
+ * NEW: Handle legacy URL redirects (301 redirects to friendly URLs) - FIXED for search
+ */
+private function handle_legacy_redirects()
+{
+    $uri = $_SERVER['REQUEST_URI'];
+    
+    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+        echo '<script>console.log("ADC Legacy Redirect Debug - URI:", "' . esc_js($uri) . '");</script>';
     }
+    
+    // IMPORTANT: Check if this is already a friendly URL
+    // But DON'T return early for search URLs - let them be processed
+    if (preg_match('#^/(en/)?(programa|program)/#', $uri)) {
+        // This is a program/video friendly URL - don't redirect
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("ADC Legacy Redirect Debug - Program/video friendly URL detected, no redirect needed");</script>';
+        }
+        return;
+    }
+    
+    if (preg_match('#^/(en/)?(buscar|search)/#', $uri)) {
+        // This is a search friendly URL - ALLOW WordPress to process it
+        // DON'T return early here - let the rest of the function handle any legacy parameters
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("ADC Legacy Redirect Debug - Search friendly URL detected, allowing WordPress to process");</script>';
+        }
+        // Continue processing to handle any legacy search parameters that might be present
+    }
+
+    // Check for legacy query parameters
+    $categoria  = isset($_GET['categoria'])  ? sanitize_text_field($_GET['categoria'])  : '';
+    $video      = isset($_GET['video'])      ? sanitize_text_field($_GET['video'])      : '';
+    $adc_search = isset($_GET['adc_search']) ? sanitize_text_field($_GET['adc_search']) : '';
+
+    if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+        echo '<script>
+        console.log("ADC Legacy Redirect Debug - Parameters:");
+        console.log("- categoria:", "' . esc_js($categoria) . '");
+        console.log("- video:", "' . esc_js($video) . '");
+        console.log("- adc_search:", "' . esc_js($adc_search) . '");
+        </script>';
+    }
+
+    // If no legacy parameters, don't redirect
+    if (!$categoria && !$video && !$adc_search) {
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("ADC Legacy Redirect Debug - No legacy parameters found, no redirect needed");</script>';
+        }
+        return;
+    }
+
+    // Detect language
+    $lang = ADC_Utils::detect_language();
+    $prefix = $lang === 'en' ? 'en/' : '';
+
+    // Legacy search → friendly /buscar/ or /en/search/
+    if ($adc_search) {
+        $keyword = $lang === 'en' ? 'search' : 'buscar';
+        $redirect_url = home_url("/{$prefix}{$keyword}/" . urlencode($adc_search) . "/");
+        
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("ADC Legacy Redirect Debug - Redirecting search to:", "' . esc_js($redirect_url) . '");</script>';
+        }
+        
+        wp_redirect($redirect_url, 301);
+        exit;
+    }
+
+    // Legacy program/video → friendly /programa/slug[/video]/ or /en/program/.../
+    if ($categoria) {
+        $keyword = $lang === 'en' ? 'program' : 'programa';
+        $base = home_url("/{$prefix}{$keyword}/{$categoria}/");
+        $redirect_url = $video ? "{$base}{$video}/" : $base;
+        
+        if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            echo '<script>console.log("ADC Legacy Redirect Debug - Redirecting program/video to:", "' . esc_js($redirect_url) . '");</script>';
+        }
+        
+        wp_redirect($redirect_url, 301);
+        exit;
+    }
+}
 
 
     /**
