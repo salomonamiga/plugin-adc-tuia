@@ -5,6 +5,24 @@
  */
 
 /* ===================================
+   Control de Velocidad estilo YouTube
+   =================================== */
+
+/* Configuración final - Menú desplegable con colores TUIA */
+.video-js .vjs-menu,
+.vjs-menu,
+div.vjs-menu {
+    background-color: #1a1a1a !important;
+    border: 2px solid #6EC1E4 !important;
+}
+
+.vjs-menu-item {
+    color: #ffffff !important;
+    text-decoration: none !important;
+    border: none !important;
+}
+
+/* ===================================
    General Containers
    =================================== */
    .adc-categories-grid,

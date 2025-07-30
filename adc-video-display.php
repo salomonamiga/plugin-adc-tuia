@@ -1159,7 +1159,7 @@ class ADC_Video_Display
         $clip_id = 'adc-promo-player-' . uniqid();
 
         $output .= '<div class="adc-promotional-video-player" style="position:relative; padding-top:56.25%; margin-bottom:30px;">';
-        $output .= '<video id="' . $clip_id . '" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" style="position:absolute; top:0; left:0; width:100%; height:100%;" data-setup="{}">';
+        $output .= '<video id="' . $clip_id . '" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" style="position:absolute; top:0; left:0; width:100%; height:100%;">';
         $output .= '<source src="' . esc_url($category['clip']) . '" type="video/mp4">';
         $output .= '</video>';
         $output .= '</div>';
@@ -1253,7 +1253,7 @@ class ADC_Video_Display
 
         // Player with proper aspect ratio
         $output .= '<div class="adc-video-player" style="position:relative; padding-top:56.25%;">';
-        $output .= '<video id="adc-player" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" style="position:absolute; top:0; left:0; width:100%; height:100%;" data-setup="{}">';
+        $output .= '<video id="adc-player" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" style="position:absolute; top:0; left:0; width:100%; height:100%;">';
         $output .= '<source src="' . esc_url($video['video']) . '" type="video/mp4">';
         $output .= '</video>';
 
@@ -1342,8 +1342,21 @@ class ADC_Video_Display
                     controls: true,
                     fluid: true,
                     responsive: true,
-                    playbackRates: [0.5, 1, 1.25, 1.5, 2],
-                    language: "' . $this->language . '"
+                    playbackRates: [1, 1.25, 1.5, 1.75, 2],
+                    language: "' . $this->language . '",
+                    controlBar: {
+                        children: [
+                            "playToggle", "volumePanel", "currentTimeDisplay", 
+                            "timeDivider", "durationDisplay", "progressControl",
+                            "liveDisplay", "seekToLive", "remainingTimeDisplay",
+                            "customControlSpacer", "playbackRateMenuButton",
+                            "chaptersButton", "descriptionsButton", "subsCapsButton",
+                            "audioTrackButton", "fullscreenToggle"
+                        ],
+                        playbackRateMenuButton: {
+                            clickToToggle: true
+                        }
+                    }
                 });
                 
                 var overlay = document.getElementById("adc-next-overlay");
@@ -1359,6 +1372,16 @@ class ADC_Video_Display
                     
                     ' . $debug_console . '
                 });
+                
+                // Solución JavaScript para eliminar decoraciones de items seleccionados
+                setTimeout(function() {
+                    var items = document.querySelectorAll(".vjs-menu-item, .vjs-menu-item *");
+                    items.forEach(function(item) {
+                        item.style.setProperty("text-decoration", "none", "important");
+                        item.style.setProperty("border-bottom", "none", "important");
+                        item.style.setProperty("text-decoration-line", "none", "important");
+                    });
+                }, 500);
                 
                 // Handle video end for redirect functionality
                 player.on("ended", function() {
