@@ -462,7 +462,6 @@ class ADC_Video_Display
             </script>';
         }, 1);
 
-
         // También intentar output directo para casos donde wp_head no se ejecuta
         echo '<script>
         console.group("🚨 ' . esc_js($title) . ' (direct)");
@@ -526,7 +525,7 @@ class ADC_Video_Display
             'adc-style',
             ADC_PLUGIN_URL . 'style.css',
             array(),
-            '3.2.3'
+            '3.2'
         );
 
         // Enqueue JavaScript
@@ -1160,7 +1159,7 @@ class ADC_Video_Display
         $clip_id = 'adc-promo-player-' . uniqid();
 
         $output .= '<div class="adc-promotional-video-player" style="position:relative; padding-top:56.25%; margin-bottom:30px;">';
-        $output .= '<video id="' . $clip_id . '" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" style="position:absolute; top:0; left:0; width:100%; height:100%;">';
+        $output .= '<video id="' . $clip_id . '" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" style="position:absolute; top:0; left:0; width:100%; height:100%;" data-setup="{}">';
         $output .= '<source src="' . esc_url($category['clip']) . '" type="video/mp4">';
         $output .= '</video>';
         $output .= '</div>';
@@ -1254,7 +1253,7 @@ class ADC_Video_Display
 
         // Player with proper aspect ratio
         $output .= '<div class="adc-video-player" style="position:relative; padding-top:56.25%;">';
-        $output .= '<video id="adc-player" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" style="position:absolute; top:0; left:0; width:100%; height:100%;">';
+        $output .= '<video id="adc-player" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" style="position:absolute; top:0; left:0; width:100%; height:100%;" data-setup="{}">';
         $output .= '<source src="' . esc_url($video['video']) . '" type="video/mp4">';
         $output .= '</video>';
 
@@ -1343,21 +1342,8 @@ class ADC_Video_Display
                     controls: true,
                     fluid: true,
                     responsive: true,
-                    playbackRates: [1, 1.25, 1.5, 1.75, 2],
-                    language: "' . $this->language . '",
-                    controlBar: {
-                        children: [
-                            "playToggle", "volumePanel", "currentTimeDisplay", 
-                            "timeDivider", "durationDisplay", "progressControl",
-                            "liveDisplay", "seekToLive", "remainingTimeDisplay",
-                            "customControlSpacer", "playbackRateMenuButton",
-                            "chaptersButton", "descriptionsButton", "subsCapsButton",
-                            "audioTrackButton", "fullscreenToggle"
-                        ],
-                        playbackRateMenuButton: {
-                            clickToToggle: false
-                        }
-                    }
+                    playbackRates: [0.5, 1, 1.25, 1.5, 2],
+                    language: "' . $this->language . '"
                 });
                 
                 var overlay = document.getElementById("adc-next-overlay");
@@ -1373,59 +1359,6 @@ class ADC_Video_Display
                     
                     ' . $debug_console . '
                 });
-                
-                // Función para limpiar estilos de menú Y centrar el botón
-                setTimeout(function() {
-                    // ELIMINAR BOTÓN ROSA Y LÍNEA AZUL - MUY AGRESIVO
-                    var menuItems = document.querySelectorAll(".vjs-menu-item, .vjs-menu-item *, .vjs-menu-item:hover, .vjs-menu-item:focus");
-                    menuItems.forEach(function(item) {
-                        item.style.setProperty("text-decoration", "none", "important");
-                        item.style.setProperty("border", "none", "important");
-                        item.style.setProperty("outline", "none", "important");
-                        item.style.setProperty("box-shadow", "none", "important");
-                        item.style.setProperty("background-image", "none", "important");
-                        item.style.setProperty("border-top", "none", "important");
-                        item.style.setProperty("border-bottom", "none", "important");
-                        item.style.setProperty("border-left", "none", "important");
-                        item.style.setProperty("border-right", "none", "important");
-                        item.style.setProperty("background-color", "transparent", "important");
-                    });
-                    
-                    // ELIMINAR EVENTOS HOVER PROBLEMÁTICOS
-                    var menuItemsHover = document.querySelectorAll(".vjs-menu-item");
-                    menuItemsHover.forEach(function(item) {
-                        item.addEventListener("mouseenter", function() {
-                            this.style.setProperty("background-color", "rgba(110, 193, 228, 0.2)", "important");
-                            this.style.setProperty("color", "#6EC1E4", "important");
-                            this.style.setProperty("border", "none", "important");
-                            this.style.setProperty("outline", "none", "important");
-                            this.style.setProperty("box-shadow", "none", "important");
-                        });
-                        item.addEventListener("mouseleave", function() {
-                            if (!this.classList.contains("vjs-selected")) {
-                                this.style.setProperty("background-color", "transparent", "important");
-                                this.style.setProperty("color", "#ffffff", "important");
-                            }
-                            this.style.setProperty("border", "none", "important");
-                            this.style.setProperty("outline", "none", "important");
-                            this.style.setProperty("box-shadow", "none", "important");
-                        });
-                    });
-                    
-                    // FORZAR centrado del botón 1x
-                    var playbackValue = document.querySelector(".vjs-playback-rate-value");
-                    if (playbackValue) {
-                        playbackValue.style.setProperty("position", "relative", "important");
-                        playbackValue.style.setProperty("top", "-8%", "important");
-                        playbackValue.style.setProperty("font-size", "13px", "important");
-                        playbackValue.style.setProperty("font-weight", "600", "important");
-                        playbackValue.style.setProperty("color", "#6EC1E4", "important");
-                        playbackValue.style.setProperty("height", "40px", "important");
-                        playbackValue.style.setProperty("line-height", "40px", "important");
-                        playbackValue.style.setProperty("text-align", "center", "important");
-                        playbackValue.style.setProperty("display", "inline-block", "important");
-                    }
-                }, 1000);
                 
                 // Handle video end for redirect functionality
                 player.on("ended", function() {
