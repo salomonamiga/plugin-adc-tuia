@@ -922,7 +922,7 @@ div.vjs-menu button.vjs-menu-item:hover {
        text-align: center;
        min-width: 300px;
        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
-       border: 2px solid #6EC1E4;
+       border: none;
        backdrop-filter: blur(10px);
    }
    
