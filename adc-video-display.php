@@ -521,12 +521,12 @@ class ADC_Video_Display
      */
     public function enqueue_scripts()
     {
-        // Enqueue CSS
+        // Enqueue CSS con timestamp para forzar refresh
         wp_enqueue_style(
             'adc-style',
             ADC_PLUGIN_URL . 'style.css',
             array(),
-            '3.2.3'
+            '3.2.8-' . time()
         );
 
         // Enqueue JavaScript
@@ -534,7 +534,7 @@ class ADC_Video_Display
             'adc-script',
             ADC_PLUGIN_URL . 'script.js',
             array('jquery'),
-            '3.2',
+            '3.2.8',
             true
         );
 
@@ -1343,20 +1343,18 @@ class ADC_Video_Display
                     controls: true,
                     fluid: true,
                     responsive: true,
-                    playbackRates: [1, 1.25, 1.5, 1.75, 2],
+                    playbackRates: [],  // DESHABILITAR control nativo
                     language: "' . $this->language . '",
                     controlBar: {
                         children: [
                             "playToggle", "volumePanel", "currentTimeDisplay", 
                             "timeDivider", "durationDisplay", "progressControl",
                             "liveDisplay", "seekToLive", "remainingTimeDisplay",
-                            "customControlSpacer", "playbackRateMenuButton",
+                            "customControlSpacer", 
+                            // "playbackRateMenuButton",  // ELIMINAR control nativo
                             "chaptersButton", "descriptionsButton", "subsCapsButton",
                             "audioTrackButton", "fullscreenToggle"
-                        ],
-                        playbackRateMenuButton: {
-                            clickToToggle: false
-                        }
+                        ]
                     }
                 });
                 
@@ -1371,61 +1369,163 @@ class ADC_Video_Display
                     // Set volume
                     player.volume(0.5);
                     
+                    // CREAR CONTROL DE VELOCIDAD PERSONALIZADO
+                    createCustomSpeedControl(player);
+                    
                     ' . $debug_console . '
                 });
                 
-                // Función para limpiar estilos de menú Y centrar el botón
-                setTimeout(function() {
-                    // ELIMINAR BOTÓN ROSA Y LÍNEA AZUL - MUY AGRESIVO
-                    var menuItems = document.querySelectorAll(".vjs-menu-item, .vjs-menu-item *, .vjs-menu-item:hover, .vjs-menu-item:focus");
-                    menuItems.forEach(function(item) {
-                        item.style.setProperty("text-decoration", "none", "important");
-                        item.style.setProperty("border", "none", "important");
-                        item.style.setProperty("outline", "none", "important");
-                        item.style.setProperty("box-shadow", "none", "important");
-                        item.style.setProperty("background-image", "none", "important");
-                        item.style.setProperty("border-top", "none", "important");
-                        item.style.setProperty("border-bottom", "none", "important");
-                        item.style.setProperty("border-left", "none", "important");
-                        item.style.setProperty("border-right", "none", "important");
-                        item.style.setProperty("background-color", "transparent", "important");
-                    });
+                // CREAR CONTROL DE VELOCIDAD PERSONALIZADO 100% NUESTRO
+                function createCustomSpeedControl(player) {
+                    var controlBar = player.controlBar.el();
+                    var spacer = controlBar.querySelector(".vjs-custom-control-spacer");
                     
-                    // ELIMINAR EVENTOS HOVER PROBLEMÁTICOS
-                    var menuItemsHover = document.querySelectorAll(".vjs-menu-item");
-                    menuItemsHover.forEach(function(item) {
-                        item.addEventListener("mouseenter", function() {
-                            this.style.setProperty("background-color", "rgba(110, 193, 228, 0.2)", "important");
-                            this.style.setProperty("color", "#6EC1E4", "important");
-                            this.style.setProperty("border", "none", "important");
-                            this.style.setProperty("outline", "none", "important");
-                            this.style.setProperty("box-shadow", "none", "important");
-                        });
-                        item.addEventListener("mouseleave", function() {
-                            if (!this.classList.contains("vjs-selected")) {
-                                this.style.setProperty("background-color", "transparent", "important");
-                                this.style.setProperty("color", "#ffffff", "important");
+                    // Crear nuestro control personalizado
+                    var customSpeedControl = document.createElement("div");
+                    customSpeedControl.className = "tuia-speed-control";
+                    customSpeedControl.style.cssText = `
+                        position: relative;
+                        display: inline-block;
+                        margin: 0 8px;
+                        cursor: pointer;
+                    `;
+                    
+                    // Botón principal que muestra la velocidad actual
+                    var speedButton = document.createElement("button");
+                    speedButton.className = "tuia-speed-button";
+                    speedButton.textContent = "1x";
+                    speedButton.style.cssText = `
+                        background: transparent;
+                        border: none;
+                        color: #6EC1E4;
+                        font-size: 13px;
+                        font-weight: 600;
+                        padding: 8px 12px;
+                        cursor: pointer;
+                        border-radius: 4px;
+                        transition: background 0.2s ease;
+                        outline: none;
+                    `;
+                    
+                    // Menú desplegable
+                    var speedMenu = document.createElement("div");
+                    speedMenu.className = "tuia-speed-menu";
+                    speedMenu.style.cssText = `
+                        position: absolute;
+                        bottom: 100%;
+                        right: -15px;
+                        background: #1a1a1a;
+                        border: 2px solid #6EC1E4;
+                        border-radius: 6px;
+                        min-width: 80px;
+                        display: none;
+                        z-index: 9999;
+                        margin-bottom: 8px;
+                    `;
+                    
+                    // Opciones de velocidad
+                    var speeds = [2, 1.75, 1.5, 1.25, 1];
+                    var currentSpeed = 1;
+                    
+                    speeds.forEach(function(speed) {
+                        var option = document.createElement("div");
+                        option.className = "tuia-speed-option";
+                        option.textContent = speed + "x";
+                        option.style.cssText = `
+                            padding: 8px 16px;
+                            color: ${speed === currentSpeed ? "#6EC1E4" : "#ffffff"};
+                            background: ${speed === currentSpeed ? "rgba(110, 193, 228, 0.3)" : "transparent"};
+                            font-size: 14px;
+                            cursor: pointer;
+                            font-weight: ${speed === currentSpeed ? "600" : "normal"};
+                            border: none;
+                            outline: none;
+                            text-decoration: none;
+                            box-shadow: none;
+                        `;
+                        
+                        // Hover effects
+                        option.addEventListener("mouseenter", function() {
+                            if (speed !== currentSpeed) {
+                                this.style.background = "rgba(110, 193, 228, 0.2)";
+                                this.style.color = "#6EC1E4";
                             }
-                            this.style.setProperty("border", "none", "important");
-                            this.style.setProperty("outline", "none", "important");
-                            this.style.setProperty("box-shadow", "none", "important");
                         });
+                        
+                        option.addEventListener("mouseleave", function() {
+                            if (speed !== currentSpeed) {
+                                this.style.background = "transparent";
+                                this.style.color = "#ffffff";
+                            }
+                        });
+                        
+                        // Click handler
+                        option.addEventListener("click", function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            // Cambiar velocidad del player
+                            player.playbackRate(speed);
+                            
+                            // Actualizar UI
+                            currentSpeed = speed;
+                            speedButton.textContent = speed + "x";
+                            
+                            // Actualizar estilos de todas las opciones
+                            speedMenu.querySelectorAll(".tuia-speed-option").forEach(function(opt) {
+                                var optSpeed = parseFloat(opt.textContent);
+                                if (optSpeed === speed) {
+                                    opt.style.background = "rgba(110, 193, 228, 0.3)";
+                                    opt.style.color = "#6EC1E4";
+                                    opt.style.fontWeight = "600";
+                                } else {
+                                    opt.style.background = "transparent";
+                                    opt.style.color = "#ffffff";
+                                    opt.style.fontWeight = "normal";
+                                }
+                            });
+                            
+                            // Cerrar menú
+                            speedMenu.style.display = "none";
+                        });
+                        
+                        speedMenu.appendChild(option);
                     });
                     
-                    // FORZAR centrado del botón 1x
-                    var playbackValue = document.querySelector(".vjs-playback-rate-value");
-                    if (playbackValue) {
-                        playbackValue.style.setProperty("position", "relative", "important");
-                        playbackValue.style.setProperty("top", "-8%", "important");
-                        playbackValue.style.setProperty("font-size", "13px", "important");
-                        playbackValue.style.setProperty("font-weight", "600", "important");
-                        playbackValue.style.setProperty("color", "#6EC1E4", "important");
-                        playbackValue.style.setProperty("height", "40px", "important");
-                        playbackValue.style.setProperty("line-height", "40px", "important");
-                        playbackValue.style.setProperty("text-align", "center", "important");
-                        playbackValue.style.setProperty("display", "inline-block", "important");
+                    // Toggle menú
+                    speedButton.addEventListener("click", function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        speedMenu.style.display = speedMenu.style.display === "none" ? "block" : "none";
+                    });
+                    
+                    // Hover effect en botón principal
+                    speedButton.addEventListener("mouseenter", function() {
+                        this.style.background = "rgba(110, 193, 228, 0.2)";
+                    });
+                    
+                    speedButton.addEventListener("mouseleave", function() {
+                        this.style.background = "transparent";
+                    });
+                    
+                    // Cerrar menú al hacer click fuera
+                    document.addEventListener("click", function(e) {
+                        if (!customSpeedControl.contains(e.target)) {
+                            speedMenu.style.display = "none";
+                        }
+                    });
+                    
+                    // Ensamblar control
+                    customSpeedControl.appendChild(speedButton);
+                    customSpeedControl.appendChild(speedMenu);
+                    
+                    // Insertar en la barra de controles
+                    if (spacer) {
+                        spacer.parentNode.insertBefore(customSpeedControl, spacer.nextSibling);
+                    } else {
+                        controlBar.appendChild(customSpeedControl);
                     }
-                }, 1000);
+                }
                 
                 // Handle video end for redirect functionality
                 player.on("ended", function() {
