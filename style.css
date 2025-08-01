@@ -794,12 +794,31 @@ div.vjs-menu button.vjs-menu-item:hover {
        backdrop-filter: blur(5px);
    }
    
-   /* Big play button - Enhanced */
+   /* Big play button - Enhanced - CENTRADO PERFECTAMENTE */
    .video-js .vjs-big-play-button {
        background-color: rgba(0, 0, 0, 0.8) !important;
        border-color: #6EC1E4 !important;
        border-width: 3px !important;
        transition: all 0.3s ease !important;
+       position: absolute !important;
+       top: 50% !important;
+       left: 50% !important;
+       transform: translate(-50%, -50%) !important;
+       margin: 0 !important;
+       margin-top: 0 !important;
+       margin-left: 0 !important;
+       margin-right: 0 !important;
+       margin-bottom: 0 !important;
+   }
+
+   /* Móvil: Centrar botón un poco más arriba */
+   @media screen and (max-width: 768px) {
+       .video-js .vjs-big-play-button {
+           top: 47% !important;
+           left: 50% !important;
+           transform: translate(-50%, -50%) !important;
+           margin: 0 !important;
+       }
    }
    
    .video-js .vjs-big-play-button:hover {

@@ -49,12 +49,12 @@ class ADC_Admin
         // Enqueue jQuery UI for sortable
         wp_enqueue_script('jquery-ui-sortable');
 
-        // Enqueue our consolidated CSS for admin styles
+        // Enqueue admin-specific CSS
         wp_enqueue_style(
             'adc-admin-style',
-            ADC_PLUGIN_URL . 'style.css',
+            ADC_PLUGIN_URL . 'admin-style.css',
             array(),
-            '3.3'
+            '4.0'
         );
 
         // Localize for inline scripts
