@@ -526,7 +526,7 @@ class ADC_Video_Display
             'adc-style',
             ADC_PLUGIN_URL . 'style.css',
             array(),
-'5.0'
+            '4.0'
         );
 
         // Enqueue JavaScript
@@ -534,7 +534,7 @@ class ADC_Video_Display
             'adc-script',
             ADC_PLUGIN_URL . 'script.js',
             array('jquery'),
-            '4.0',
+            '3.2.8',
             true
         );
 
