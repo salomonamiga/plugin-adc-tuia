@@ -3,7 +3,7 @@
 /**
  * Plugin Name: ADC Video Display
  * Description: Muestra videos desde el sistema ADC en WordPress – Multiidioma (ES/EN) con URLs Amigables
- * Version:     3.2
+ * Version:     4.0
  * Author:      TuTorah Development Team
  */
 
@@ -52,6 +52,7 @@ class ADC_Video_Display
     private $options;
     private $language;
     private $current_url_params;
+    private $videojs_loaded = false;
 
     /**
      * Constructor
@@ -106,9 +107,9 @@ class ADC_Video_Display
         add_filter('query_vars', array($this, 'add_query_vars'));
 
         // Check if rewrite rules need to be flushed
-        if (get_option('adc_rewrite_rules_flushed') !== '3.2') {
+        if (get_option('adc_rewrite_rules_flushed') !== '4.0') {
             flush_rewrite_rules();
-            update_option('adc_rewrite_rules_flushed', '3.2');
+            update_option('adc_rewrite_rules_flushed', '4.0');
         }
     }
 
@@ -461,6 +462,7 @@ class ADC_Video_Display
             </script>';
         }, 1);
 
+
         // También intentar output directo para casos donde wp_head no se ejecuta
         echo '<script>
         console.group("🚨 ' . esc_js($title) . ' (direct)");
@@ -519,12 +521,12 @@ class ADC_Video_Display
      */
     public function enqueue_scripts()
     {
-        // Enqueue CSS
+        // Enqueue CSS con timestamp para forzar refresh
         wp_enqueue_style(
             'adc-style',
             ADC_PLUGIN_URL . 'style.css',
             array(),
-            '3.2'
+            '4.0'
         );
 
         // Enqueue JavaScript
@@ -532,7 +534,7 @@ class ADC_Video_Display
             'adc-script',
             ADC_PLUGIN_URL . 'script.js',
             array('jquery'),
-            '3.2',
+            '4.0',
             true
         );
 
@@ -597,7 +599,7 @@ class ADC_Video_Display
                 'languages_cleared' => $cleared_languages,
                 'total_languages' => $total_cleared,
                 'timestamp' => current_time('mysql'),
-                'version' => '3.2'
+                'version' => '4.0'
             ));
         } catch (Exception $e) {
             // Error response
@@ -620,7 +622,9 @@ class ADC_Video_Display
         $language = isset($_POST['language']) ? ADC_Utils::validate_language($_POST['language']) : 'es';
 
         if (empty($search_term)) {
-            wp_send_json_error('No search term provided');
+            wp_send_json_error(array(
+                'message' => $language === 'en' ? 'No search term provided' : 'No se proporcionó término de búsqueda'
+            ));
         }
 
         // Create API instance for the specific language
@@ -635,13 +639,8 @@ class ADC_Video_Display
      */
     public function handle_ajax_get_programs_menu()
     {
-        // Verificar nonce si existe
-        if (isset($_POST['nonce']) && !empty($_POST['nonce'])) {
-            if (!wp_verify_nonce($_POST['nonce'], 'adc_nonce')) {
-                wp_send_json_error('Invalid nonce');
-                return;
-            }
-        }
+        // Verificar nonce obligatorio para consistencia de seguridad
+        check_ajax_referer('adc_nonce', 'nonce');
 
         $language = isset($_POST['language']) ? ADC_Utils::validate_language($_POST['language']) : 'es';
 
@@ -651,7 +650,9 @@ class ADC_Video_Display
 
             // Verificar que la API esté configurada
             if (!$api->is_configured()) {
-                wp_send_json_error('API not configured');
+                wp_send_json_error(array(
+                    'message' => $language === 'en' ? 'API not configured' : 'API no configurada'
+                ));
                 return;
             }
 
@@ -659,13 +660,17 @@ class ADC_Video_Display
             $programs = $api->get_all_programs_for_menu();
 
             if (empty($programs)) {
-                wp_send_json_error('No programs found');
+                wp_send_json_error(array(
+                    'message' => ADC_Utils::get_text('no_programs', $language)
+                ));
                 return;
             }
 
             wp_send_json_success($programs);
         } catch (Exception $e) {
-            wp_send_json_error('Internal server error');
+            wp_send_json_error(array(
+                'message' => $language === 'en' ? 'Internal server error' : 'Error interno del servidor'
+            ));
         }
     }
 
@@ -1130,20 +1135,32 @@ class ADC_Video_Display
     }
 
     /**
+     * Load Video.js resources once per page
+     */
+    private function load_videojs_once()
+    {
+        if (!$this->videojs_loaded) {
+            $this->videojs_loaded = true;
+            return '<link href="https://unpkg.com/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">' .
+                   '<script src="https://unpkg.com/video.js@8.10.0/dist/video.min.js"></script>';
+        }
+        return '';
+    }
+
+    /**
      * Render promotional clip for category
      */
     private function render_promotional_clip($category)
     {
         $output = '<div class="adc-promotional-clip-section">';
 
-        // Video.js for promotional clip
-        $output .= '<link href="https://unpkg.com/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">';
-        $output .= '<script src="https://unpkg.com/video.js@8.10.0/dist/video.min.js"></script>';
+        // Load Video.js once per page
+        $output .= $this->load_videojs_once();
 
         $clip_id = 'adc-promo-player-' . uniqid();
 
         $output .= '<div class="adc-promotional-video-player" style="position:relative; padding-top:56.25%; margin-bottom:30px;">';
-        $output .= '<video id="' . $clip_id . '" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" style="position:absolute; top:0; left:0; width:100%; height:100%;" data-setup="{}">';
+        $output .= '<video id="' . $clip_id . '" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="none" style="position:absolute; top:0; left:0; width:100%; height:100%;">';
         $output .= '<source src="' . esc_url($category['clip']) . '" type="video/mp4">';
         $output .= '</video>';
         $output .= '</div>';
@@ -1232,13 +1249,12 @@ class ADC_Video_Display
             ADC_Utils::get_text('back_to', $this->language) . ' ' . esc_html($category['name']) . '</a>';
         $output .= '</div>';
 
-        // Video.js
-        $output .= '<link href="https://unpkg.com/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">';
-        $output .= '<script src="https://unpkg.com/video.js@8.10.0/dist/video.min.js"></script>';
+        // Load Video.js once per page
+        $output .= $this->load_videojs_once();
 
         // Player with proper aspect ratio
         $output .= '<div class="adc-video-player" style="position:relative; padding-top:56.25%;">';
-        $output .= '<video id="adc-player" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" style="position:absolute; top:0; left:0; width:100%; height:100%;" data-setup="{}">';
+        $output .= '<video id="adc-player" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="none" style="position:absolute; top:0; left:0; width:100%; height:100%;">';
         $output .= '<source src="' . esc_url($video['video']) . '" type="video/mp4">';
         $output .= '</video>';
 
@@ -1327,8 +1343,17 @@ class ADC_Video_Display
                     controls: true,
                     fluid: true,
                     responsive: true,
-                    playbackRates: [0.5, 1, 1.25, 1.5, 2],
-                    language: "' . $this->language . '"
+                    language: "' . $this->language . '",
+                    controlBar: {
+                        children: [
+                            "playToggle", "volumePanel", "currentTimeDisplay", 
+                            "timeDivider", "durationDisplay", "progressControl",
+                            "liveDisplay", "seekToLive", "remainingTimeDisplay",
+                            "customControlSpacer",
+                            "chaptersButton", "descriptionsButton", "subsCapsButton",
+                            "audioTrackButton", "fullscreenToggle"
+                        ]
+                    }
                 });
                 
                 var overlay = document.getElementById("adc-next-overlay");
@@ -1342,8 +1367,163 @@ class ADC_Video_Display
                     // Set volume
                     player.volume(0.5);
                     
+                    // CREAR CONTROL DE VELOCIDAD PERSONALIZADO
+                    createCustomSpeedControl(player);
+                    
                     ' . $debug_console . '
                 });
+                
+                // CREAR CONTROL DE VELOCIDAD PERSONALIZADO 100% NUESTRO
+                function createCustomSpeedControl(player) {
+                    var controlBar = player.controlBar.el();
+                    var spacer = controlBar.querySelector(".vjs-custom-control-spacer");
+                    
+                    // Crear nuestro control personalizado
+                    var customSpeedControl = document.createElement("div");
+                    customSpeedControl.className = "tuia-speed-control";
+                    customSpeedControl.style.cssText = `
+                        position: relative;
+                        display: inline-block;
+                        margin: 0 8px;
+                        cursor: pointer;
+                    `;
+                    
+                    // Botón principal que muestra la velocidad actual
+                    var speedButton = document.createElement("button");
+                    speedButton.className = "tuia-speed-button";
+                    speedButton.textContent = "1x";
+                    speedButton.style.cssText = `
+                        background: transparent;
+                        border: none;
+                        color: #6EC1E4;
+                        font-size: 13px;
+                        font-weight: 600;
+                        padding: 8px 12px;
+                        cursor: pointer;
+                        border-radius: 4px;
+                        transition: background 0.2s ease;
+                        outline: none;
+                    `;
+                    
+                    // Menú desplegable
+                    var speedMenu = document.createElement("div");
+                    speedMenu.className = "tuia-speed-menu";
+                    speedMenu.style.cssText = `
+                        position: absolute;
+                        bottom: 100%;
+                        right: -15px;
+                        background: #1a1a1a;
+                        border: 2px solid #6EC1E4;
+                        border-radius: 6px;
+                        min-width: 80px;
+                        display: none;
+                        z-index: 9999;
+                        margin-bottom: 8px;
+                    `;
+                    
+                    // Opciones de velocidad
+                    var speeds = [2, 1.75, 1.5, 1.25, 1];
+                    var currentSpeed = 1;
+                    
+                    speeds.forEach(function(speed) {
+                        var option = document.createElement("div");
+                        option.className = "tuia-speed-option";
+                        option.textContent = speed + "x";
+                        option.style.cssText = `
+                            padding: 8px 16px;
+                            color: ${speed === currentSpeed ? "#6EC1E4" : "#ffffff"};
+                            background: ${speed === currentSpeed ? "rgba(110, 193, 228, 0.3)" : "transparent"};
+                            font-size: 14px;
+                            cursor: pointer;
+                            font-weight: ${speed === currentSpeed ? "600" : "normal"};
+                            border: none;
+                            outline: none;
+                            text-decoration: none;
+                            box-shadow: none;
+                        `;
+                        
+                        // Hover effects
+                        option.addEventListener("mouseenter", function() {
+                            if (speed !== currentSpeed) {
+                                this.style.background = "rgba(110, 193, 228, 0.2)";
+                                this.style.color = "#6EC1E4";
+                            }
+                        });
+                        
+                        option.addEventListener("mouseleave", function() {
+                            if (speed !== currentSpeed) {
+                                this.style.background = "transparent";
+                                this.style.color = "#ffffff";
+                            }
+                        });
+                        
+                        // Click handler
+                        option.addEventListener("click", function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            // Cambiar velocidad del player
+                            player.playbackRate(speed);
+                            
+                            // Actualizar UI
+                            currentSpeed = speed;
+                            speedButton.textContent = speed + "x";
+                            
+                            // Actualizar estilos de todas las opciones
+                            speedMenu.querySelectorAll(".tuia-speed-option").forEach(function(opt) {
+                                var optSpeed = parseFloat(opt.textContent);
+                                if (optSpeed === speed) {
+                                    opt.style.background = "rgba(110, 193, 228, 0.3)";
+                                    opt.style.color = "#6EC1E4";
+                                    opt.style.fontWeight = "600";
+                                } else {
+                                    opt.style.background = "transparent";
+                                    opt.style.color = "#ffffff";
+                                    opt.style.fontWeight = "normal";
+                                }
+                            });
+                            
+                            // Cerrar menú
+                            speedMenu.style.display = "none";
+                        });
+                        
+                        speedMenu.appendChild(option);
+                    });
+                    
+                    // Toggle menú
+                    speedButton.addEventListener("click", function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        speedMenu.style.display = speedMenu.style.display === "none" ? "block" : "none";
+                    });
+                    
+                    // Hover effect en botón principal
+                    speedButton.addEventListener("mouseenter", function() {
+                        this.style.background = "rgba(110, 193, 228, 0.2)";
+                    });
+                    
+                    speedButton.addEventListener("mouseleave", function() {
+                        this.style.background = "transparent";
+                    });
+                    
+                    // Cerrar menú al hacer click fuera
+                    document.addEventListener("click", function(e) {
+                        if (!customSpeedControl.contains(e.target)) {
+                            speedMenu.style.display = "none";
+                        }
+                    });
+                    
+                    // Ensamblar control
+                    customSpeedControl.appendChild(speedButton);
+                    customSpeedControl.appendChild(speedMenu);
+                    
+                    // Insertar en la barra de controles
+                    if (spacer) {
+                        spacer.parentNode.insertBefore(customSpeedControl, spacer.nextSibling);
+                    } else {
+                        controlBar.appendChild(customSpeedControl);
+                    }
+                }
                 
                 // Handle video end for redirect functionality
                 player.on("ended", function() {

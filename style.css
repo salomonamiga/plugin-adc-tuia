@@ -5,6 +5,325 @@
  */
 
 /* ===================================
+   Control de Velocidad estilo YouTube
+   =================================== */
+
+/* Configuración final - Menú desplegable con colores TUIA */
+.video-js .vjs-menu,
+.vjs-menu,
+div.vjs-menu {
+    background-color: #1a1a1a !important;
+    border: 2px solid #6EC1E4 !important;
+}
+
+/* BOTÓN DE VELOCIDAD - ÁREA DE HOVER EXPANDIDA */
+.video-js .vjs-playback-rate {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 2px !important;
+    margin: -2px !important;
+    border-radius: 4px !important;
+}
+
+/* VALOR MOSTRADO - CENTRADO PERFECTO CON TRANSFORM */
+.video-js .vjs-playback-rate .vjs-playback-rate-value,
+.video-js .vjs-menu-button .vjs-playback-rate-value,
+.video-js div.vjs-playback-rate-value,
+.vjs-playback-rate .vjs-playback-rate-value,
+body .video-js .vjs-playback-rate-value {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #6EC1E4 !important;
+    padding: 0 8px !important;
+    height: 40px !important;
+    line-height: 40px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    min-width: 32px !important;
+    pointer-events: auto !important;
+    position: relative !important;
+    transform: translateY(-2px) !important;
+    box-sizing: border-box !important;
+    vertical-align: middle !important;
+}
+
+/* HOVER DEL BOTÓN - SUAVE COMO YOUTUBE */
+.video-js .vjs-playback-rate:hover .vjs-playback-rate-value {
+    background: rgba(110, 193, 228, 0.2) !important;
+    border-radius: 4px !important;
+    color: #ffffff !important;
+}
+
+/* HOVER DELAY - Como YouTube + ÁREA EXPANDIDA */
+.video-js .vjs-playback-rate .vjs-menu {
+    transition: opacity 0.2s ease, visibility 0.2s ease !important;
+}
+
+.video-js .vjs-playback-rate:not(:hover) .vjs-menu {
+    transition-delay: 0.3s !important;
+}
+
+/* EXPANDIR ÁREA SENSIBLE AL HOVER */
+.video-js .vjs-playback-rate,
+.video-js .vjs-playback-rate .vjs-playback-rate-value,
+.video-js .vjs-playback-rate .vjs-playback-rate-button {
+    cursor: pointer !important;
+}
+
+/* ASEGURAR HOVER EN TODA EL ÁREA */
+.video-js .vjs-playback-rate .vjs-playback-rate-button {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* MENÚ DESPLEGABLE */
+.video-js .vjs-playback-rate .vjs-menu {
+    background-color: #1a1a1a !important;
+    border: 2px solid #6EC1E4 !important;
+    border-radius: 6px !important;
+    min-width: 60px !important;
+}
+
+/* ITEMS DEL MENÚ - CSS DEFINITIVO CONTRA VIDEO.JS */
+/* Sobrescribir CUALQUIER estilo de Video.js - EXACTO COMO EN INSPECTOR */
+.video-js .vjs-menu,
+.vjs-menu,
+div.vjs-menu,
+body .video-js .vjs-menu,
+html body .video-js .vjs-menu,
+html body div.video-js .vjs-menu {
+    background: #1a1a1a !important;
+    background-color: #1a1a1a !important;
+    border: 2px solid #6EC1E4 !important;
+    border-radius: 6px !important;
+    /* ELIMINAR LÍNEA FEA */
+    border-top: 2px solid #6EC1E4 !important;
+    border-bottom: 2px solid #6EC1E4 !important;
+    border-left: 2px solid #6EC1E4 !important;
+    border-right: 2px solid #6EC1E4 !important;
+}
+
+/* ITEMS DEL MENÚ - NUCLEAR CSS PARA ELIMINAR BOTÓN ROSA */
+.video-js .vjs-menu-item,
+.vjs-menu .vjs-menu-item,
+body .video-js .vjs-menu-item,
+.video-js .vjs-playback-rate .vjs-menu .vjs-menu-item,
+html body .video-js .vjs-menu-item,
+html body .vjs-menu .vjs-menu-item,
+div.video-js .vjs-menu-item,
+div.video-js div.vjs-menu div.vjs-menu-item {
+    color: #ffffff !important;
+    padding: 8px 16px !important;
+    font-size: 14px !important;
+    text-decoration: none !important;
+    text-decoration-line: none !important; 
+    text-decoration-color: transparent !important;
+    text-decoration-style: none !important;
+    border: 0px solid transparent !important;
+    border-top: 0px solid transparent !important;
+    border-bottom: 0px solid transparent !important;
+    border-left: 0px solid transparent !important;
+    border-right: 0px solid transparent !important;
+    background: transparent !important;
+    background-color: rgba(0,0,0,0) !important;
+    background-image: none !important;
+    outline: 0px solid transparent !important;
+    box-shadow: 0 0 0 0 transparent !important;
+    cursor: pointer !important;
+    border-style: none !important;
+    border-width: 0 !important;
+}
+
+.video-js .vjs-menu-item:hover,
+.vjs-menu .vjs-menu-item:hover,
+body .video-js .vjs-menu-item:hover,
+.video-js .vjs-playback-rate .vjs-menu .vjs-menu-item:hover,
+html body .video-js .vjs-menu-item:hover,
+html body .vjs-menu .vjs-menu-item:hover,
+div.video-js .vjs-menu-item:hover,
+div.video-js div.vjs-menu div.vjs-menu-item:hover {
+    background: rgba(110, 193, 228, 0.2) !important;
+    background-color: rgba(110, 193, 228, 0.2) !important;
+    color: #6EC1E4 !important;
+    outline: 0px solid transparent !important;
+    box-shadow: 0 0 0 0 transparent !important;
+    border: 0px solid transparent !important;
+    border-top: 0px solid transparent !important;
+    border-bottom: 0px solid transparent !important;
+    border-left: 0px solid transparent !important;
+    border-right: 0px solid transparent !important;
+    text-decoration: none !important;
+    text-decoration-line: none !important;
+    text-decoration-color: transparent !important;
+    text-decoration-style: none !important;
+    background-image: none !important;
+    border-style: none !important;
+    border-width: 0 !important;
+}
+
+.video-js .vjs-menu-item:focus,
+.vjs-menu .vjs-menu-item:focus,
+body .video-js .vjs-menu-item:focus,
+.video-js .vjs-playback-rate .vjs-menu .vjs-menu-item:focus {
+    background: rgba(110, 193, 228, 0.2) !important;
+    background-color: rgba(110, 193, 228, 0.2) !important;
+    color: #6EC1E4 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    text-decoration: none !important;
+    background-image: none !important;
+}
+
+.video-js .vjs-menu-item.vjs-selected,
+.vjs-menu .vjs-menu-item.vjs-selected,
+body .video-js .vjs-menu-item.vjs-selected,
+.video-js .vjs-playback-rate .vjs-menu .vjs-menu-item.vjs-selected {
+    background: rgba(110, 193, 228, 0.3) !important;
+    background-color: rgba(110, 193, 228, 0.3) !important;
+    color: #6EC1E4 !important;
+    font-weight: 600 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    text-decoration: none !important;
+    background-image: none !important;
+}
+
+/* NUCLEAR CSS - ELIMINAR CUALQUIER LÍNEA O BORDE POSIBLE */
+.video-js .vjs-menu-item,
+.video-js .vjs-menu-item *,
+.video-js .vjs-menu-item:before,
+.video-js .vjs-menu-item:after,
+.vjs-menu .vjs-menu-item,
+.vjs-menu .vjs-menu-item *,
+.vjs-menu .vjs-menu-item:before,
+.vjs-menu .vjs-menu-item:after,
+body .video-js .vjs-menu-item,
+body .video-js .vjs-menu-item *,
+body .video-js .vjs-menu-item:before,
+body .video-js .vjs-menu-item:after,
+html body .video-js .vjs-menu-item,
+html body .video-js .vjs-menu-item *,
+html body .video-js .vjs-menu-item:before,
+html body .video-js .vjs-menu-item:after,
+div.video-js .vjs-menu-item,
+div.video-js .vjs-menu-item *,
+div.video-js .vjs-menu-item:before,
+div.video-js .vjs-menu-item:after {
+    border: 0px solid transparent !important;
+    border-top: 0px solid transparent !important;
+    border-bottom: 0px solid transparent !important;
+    border-left: 0px solid transparent !important;
+    border-right: 0px solid transparent !important;
+    border-color: transparent !important;
+    border-style: none !important;
+    border-width: 0 !important;
+    outline: 0px solid transparent !important;
+    outline-color: transparent !important;
+    outline-style: none !important;
+    outline-width: 0 !important;
+    box-shadow: 0 0 0 0 transparent !important;
+    text-decoration: none !important;
+    text-decoration-line: none !important;
+    text-decoration-color: transparent !important;
+    text-decoration-style: none !important;
+    background-image: none !important;
+    text-underline: none !important;
+    -webkit-text-decoration-line: none !important;
+    -moz-text-decoration-line: none !important;
+    content: none !important;
+}
+
+/* FORZAR ESTILOS NUCLEAR PARA PSEUDO-ELEMENTOS */
+.video-js .vjs-menu-item:before,
+.video-js .vjs-menu-item:after,
+.vjs-menu .vjs-menu-item:before,
+.vjs-menu .vjs-menu-item:after {
+    display: none !important;
+    content: "" !important;
+    border: none !important;
+    background: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* CSS EXTREMO - FORZAR COLORES ESPECÍFICOS */
+.video-js .vjs-menu-item,
+.vjs-menu .vjs-menu-item,
+body .video-js .vjs-menu-item,
+html body .video-js .vjs-menu-item,
+div.video-js .vjs-menu-item,
+div.video-js div.vjs-menu div.vjs-menu-item {
+    background-color: transparent !important;
+    color: #ffffff !important;
+}
+
+.video-js .vjs-menu-item:hover,
+.vjs-menu .vjs-menu-item:hover,
+body .video-js .vjs-menu-item:hover,
+html body .video-js .vjs-menu-item:hover,
+div.video-js .vjs-menu-item:hover,
+div.video-js div.vjs-menu div.vjs-menu-item:hover {
+    background-color: rgba(110, 193, 228, 0.2) !important;
+    color: #6EC1E4 !important;
+}
+
+.video-js .vjs-menu-item.vjs-selected,
+.vjs-menu .vjs-menu-item.vjs-selected,
+body .video-js .vjs-menu-item.vjs-selected,
+html body .video-js .vjs-menu-item.vjs-selected,
+div.video-js .vjs-menu-item.vjs-selected,
+div.video-js div.vjs-menu div.vjs-menu-item.vjs-selected {
+    background-color: rgba(110, 193, 228, 0.3) !important;
+    color: #6EC1E4 !important;
+    font-weight: 600 !important;
+}
+
+/* ANULAR COMPLETAMENTE EL COLOR ROSA #c36 QUE VES EN INSPECTOR */
+.vjs-menu-item,
+.video-js .vjs-menu-item,
+div.vjs-menu .vjs-menu-item,
+button.vjs-menu-item,
+.video-js button.vjs-menu-item,
+div.vjs-menu button.vjs-menu-item {
+    background: transparent !important;
+    background-color: transparent !important;
+    /* ANULAR ESPECÍFICAMENTE EL #c36 */
+    background-color: rgba(0,0,0,0) !important;
+}
+
+.vjs-menu-item:hover,
+.video-js .vjs-menu-item:hover,
+div.vjs-menu .vjs-menu-item:hover,
+button.vjs-menu-item:hover,
+.video-js button.vjs-menu-item:hover,
+div.vjs-menu button.vjs-menu-item:hover {
+    background: rgba(110, 193, 228, 0.2) !important;
+    background-color: rgba(110, 193, 228, 0.2) !important;
+    /* FORZAR SOLO NUESTRO COLOR AZUL TUIA */
+    color: #6EC1E4 !important;
+}
+
+/* ELIMINAR CUALQUIER COLOR #c36 O ROSA QUE APAREZCA */
+*[style*="#c36"],
+*[style*="rgb(204, 51, 102)"],
+*[style*="rgba(204, 51, 102"],
+.vjs-menu-item[style*="#c36"],
+.video-js .vjs-menu-item[style*="#c36"] {
+    background-color: transparent !important;
+    background: transparent !important;
+}
+
+/* ===================================
    General Containers
    =================================== */
    .adc-categories-grid,
@@ -475,18 +794,44 @@
        backdrop-filter: blur(5px);
    }
    
-   /* Big play button - Enhanced */
+   /* Big play button - Enhanced - CENTRADO PERFECTAMENTE */
    .video-js .vjs-big-play-button {
        background-color: rgba(0, 0, 0, 0.8) !important;
        border-color: #6EC1E4 !important;
        border-width: 3px !important;
        transition: all 0.3s ease !important;
+       position: absolute !important;
+       top: 50% !important;
+       left: 50% !important;
+       transform: translate(-50%, -50%) !important;
+       margin: 0 !important;
+       margin-top: 0 !important;
+       margin-left: 0 !important;
+       margin-right: 0 !important;
+       margin-bottom: 0 !important;
+   }
+
+   /* Móvil: Centrar botón un poco más arriba */
+   @media screen and (max-width: 768px) {
+       .video-js .vjs-big-play-button {
+           top: 47% !important;
+           left: 50% !important;
+           transform: translate(-50%, -50%) !important;
+           margin: 0 !important;
+       }
+       
+       .video-js .vjs-big-play-button:hover {
+           transform: translate(-50%, -50%) !important; /* Mantener centrado en mobile */
+       }
    }
    
-   .video-js .vjs-big-play-button:hover {
-       background-color: #6EC1E4 !important;
-       border-color: #6EC1E4 !important;
-       transform: scale(1.1) !important;
+   /* Desktop: Sin transform para evitar movimiento */
+   @media screen and (min-width: 769px) {
+       .video-js .vjs-big-play-button:hover {
+           background-color: #6EC1E4 !important;
+           border-color: #6EC1E4 !important;
+           /* SIN transform para evitar movimiento */
+       }
    }
    
    .video-js .vjs-big-play-button:hover .vjs-icon-placeholder:before {
@@ -577,7 +922,7 @@
        text-align: center;
        min-width: 300px;
        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
-       border: 2px solid #6EC1E4;
+       border: none;
        backdrop-filter: blur(10px);
    }
    
@@ -1285,6 +1630,32 @@
    
    /* Mobile */
    @media (max-width: 768px) {
+   
+       /* MÓVIL - Botón de velocidad */
+       .video-js .vjs-playback-rate {
+           display: inline-block !important;
+           visibility: visible !important;
+           opacity: 1 !important;
+       }
+
+       .video-js .vjs-playback-rate-value {
+           font-size: 14px !important;
+           font-weight: 700 !important;
+           color: #6EC1E4 !important;
+           padding: 0 10px !important;
+           height: 44px !important;
+           line-height: 44px !important;
+           display: inline-block !important;
+           text-align: center !important;
+           min-width: 36px !important;
+           touch-action: manipulation !important;
+       }
+
+       .video-js .vjs-playback-rate:hover .vjs-playback-rate-value {
+           background: rgba(110, 193, 228, 0.2) !important;
+           border-radius: 4px !important;
+           color: #ffffff !important;
+       }
    
        /* Single column layouts */
        .adc-videos-row {

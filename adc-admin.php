@@ -54,7 +54,7 @@ class ADC_Admin
             'adc-admin-style',
             ADC_PLUGIN_URL . 'style.css',
             array(),
-            '3.3'
+            '4.0'
         );
 
         // Localize for inline scripts
@@ -585,7 +585,7 @@ class ADC_Admin
         // Header moderno
         echo '<div class="adc-admin-header">';
         echo '<h1>🎬 ADC Video Display</h1>';
-        echo '<p>Sistema de gestión de videos multiidioma con URLs amigables v3.3</p>';
+        echo '<p>Sistema de gestión de videos multiidioma con URLs amigables v4.0</p>';
         echo '</div>';
 
         echo '<div class="adc-admin-content">';

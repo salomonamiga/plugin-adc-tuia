@@ -408,7 +408,15 @@ class ADC_API
      */
     public function search_materials($search_text)
     {
-        $cache_key = ADC_Utils::get_cache_key('search_' . md5($search_text), $this->language);
+        // Normalize search text for consistent caching
+        $normalized_text = strtolower(trim($search_text));
+        $cache_key = ADC_Utils::get_cache_key('search_' . md5($normalized_text), $this->language);
+        
+        // Debug logging para entender el caché
+        $options = get_option('adc-video-display');
+        if (isset($options['debug_mode']) && $options['debug_mode'] === '1') {
+            error_log("ADC Search Debug: Original='$search_text', Normalized='$normalized_text', Cache Key='$cache_key'");
+        }
         $endpoint = '/advanced-search/materials';
         $params = array(
             'section' => $this->section,

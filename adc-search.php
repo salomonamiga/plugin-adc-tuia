@@ -626,7 +626,15 @@ class ADC_Search
      */
     private function get_cached_search_results($search_term, $language)
     {
-        $cache_key = ADC_Utils::get_cache_key('search_' . md5($search_term), $language);
+        // Normalize search term for consistent caching
+        $normalized_term = strtolower(trim($search_term));
+        $cache_key = ADC_Utils::get_cache_key('search_' . md5($normalized_term), $language);
+        
+        // Debug logging para entender el caché
+        $options = get_option('adc-video-display');
+        if (isset($options['debug_mode']) && $options['debug_mode'] === '1') {
+            error_log("ADC Search Cache Debug: Original='$search_term', Normalized='$normalized_term', Cache Key='$cache_key'");
+        }
 
         // Check internal cache
         if (isset($this->cache[$cache_key])) {
@@ -643,8 +651,8 @@ class ADC_Search
         // Create API instance for the language - this handles retry automatically
         $api = new ADC_API($language);
 
-        // Perform search with automatic retry (handled by ADC_API)
-        $results = $api->search_materials($search_term);
+        // Perform search with automatic retry (handled by ADC_API) using normalized term
+        $results = $api->search_materials($normalized_term);
 
         // Cache successful results with unified duration
         if (is_array($results)) {
