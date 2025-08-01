@@ -819,12 +819,19 @@ div.vjs-menu button.vjs-menu-item:hover {
            transform: translate(-50%, -50%) !important;
            margin: 0 !important;
        }
+       
+       .video-js .vjs-big-play-button:hover {
+           transform: translate(-50%, -50%) !important; /* Mantener centrado en mobile */
+       }
    }
    
-   .video-js .vjs-big-play-button:hover {
-       background-color: #6EC1E4 !important;
-       border-color: #6EC1E4 !important;
-       transform: scale(1.1) !important;
+   /* Desktop: Sin transform para evitar movimiento */
+   @media screen and (min-width: 769px) {
+       .video-js .vjs-big-play-button:hover {
+           background-color: #6EC1E4 !important;
+           border-color: #6EC1E4 !important;
+           /* SIN transform para evitar movimiento */
+       }
    }
    
    .video-js .vjs-big-play-button:hover .vjs-icon-placeholder:before {

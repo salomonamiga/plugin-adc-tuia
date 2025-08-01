@@ -3,7 +3,7 @@
 /**
  * Plugin Name: ADC Video Display
  * Description: Muestra videos desde el sistema ADC en WordPress – Multiidioma (ES/EN) con URLs Amigables
- * Version:     3.2
+ * Version:     4.0
  * Author:      TuTorah Development Team
  */
 
@@ -107,9 +107,9 @@ class ADC_Video_Display
         add_filter('query_vars', array($this, 'add_query_vars'));
 
         // Check if rewrite rules need to be flushed
-        if (get_option('adc_rewrite_rules_flushed') !== '3.2') {
+        if (get_option('adc_rewrite_rules_flushed') !== '4.0') {
             flush_rewrite_rules();
-            update_option('adc_rewrite_rules_flushed', '3.2');
+            update_option('adc_rewrite_rules_flushed', '4.0');
         }
     }
 
@@ -534,7 +534,7 @@ class ADC_Video_Display
             'adc-script',
             ADC_PLUGIN_URL . 'script.js',
             array('jquery'),
-            '3.2.8',
+            '4.0',
             true
         );
 
@@ -599,7 +599,7 @@ class ADC_Video_Display
                 'languages_cleared' => $cleared_languages,
                 'total_languages' => $total_cleared,
                 'timestamp' => current_time('mysql'),
-                'version' => '3.2'
+                'version' => '4.0'
             ));
         } catch (Exception $e) {
             // Error response
