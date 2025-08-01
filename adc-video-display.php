@@ -1343,15 +1343,13 @@ class ADC_Video_Display
                     controls: true,
                     fluid: true,
                     responsive: true,
-                    playbackRates: [],  // DESHABILITAR control nativo
                     language: "' . $this->language . '",
                     controlBar: {
                         children: [
                             "playToggle", "volumePanel", "currentTimeDisplay", 
                             "timeDivider", "durationDisplay", "progressControl",
                             "liveDisplay", "seekToLive", "remainingTimeDisplay",
-                            "customControlSpacer", 
-                            // "playbackRateMenuButton",  // ELIMINAR control nativo
+                            "customControlSpacer",
                             "chaptersButton", "descriptionsButton", "subsCapsButton",
                             "audioTrackButton", "fullscreenToggle"
                         ]
