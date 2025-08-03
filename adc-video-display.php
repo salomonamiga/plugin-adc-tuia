@@ -716,7 +716,7 @@ class ADC_Video_Display
                             enableLowInitialPlaylist: true,
                             limitRenditionByPlayerDimensions: true,
                             bandwidth: 1500000,
-                            useBandwidthFromLocalStorage: true,
+                            useBandwidthFromLocalStorage: false,
                             overrideNative: true
                         }
                     },
@@ -729,7 +729,7 @@ class ADC_Video_Display
                             enableLowInitialPlaylist: true,
                             limitRenditionByPlayerDimensions: true,
                             bandwidth: 1500000,
-                            useBandwidthFromLocalStorage: true,
+                            useBandwidthFromLocalStorage: false,
                             overrideNative: true
                         }
                     },
@@ -1369,7 +1369,7 @@ class ADC_Video_Display
                             enableLowInitialPlaylist: true,
                             limitRenditionByPlayerDimensions: true,
                             bandwidth: 1500000,
-                            useBandwidthFromLocalStorage: true,
+                            useBandwidthFromLocalStorage: false,
                             overrideNative: true
                         }
                     },
