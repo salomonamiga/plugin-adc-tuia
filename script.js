@@ -218,9 +218,7 @@
 
             this.state.isInitialized = true;
 
-            if (this.config.debug) {
-                console.log('ADC Video initialized with friendly URLs for language:', this.state.currentLanguage);
-            }
+            // Debug moved to main initialization section
         },
 
         // Video Player Module - SIMPLIFICADO SIN INICIALIZACION
@@ -229,9 +227,7 @@
                 // Video.js initialization is now handled entirely by PHP
                 // This module only handles getting reference to existing player
 
-                if (ADCVideo.config.debug) {
-                    console.log('ADC: Video.js initialization handled by PHP script');
-                }
+                // Debug consolidated in main initialization
 
                 // Try to get reference to existing player after delay
                 setTimeout(function () {
@@ -1126,9 +1122,8 @@
             window.ADCVideoInitialized = true;
 
             if (config.debug) {
-                console.log('ADC Video Display initialized with friendly URLs support');
-                console.log('Current language detected:', ADCVideo.state.currentLanguage);
-                console.log('Current URL structure:', ADCVideo.utils.parseCurrentUrl());
+                console.log('⚡ ADC Video.js: Initialized ✅');
+                console.log('└── 🎯 Friendly URLs: Active for', ADCVideo.state.currentLanguage);
             }
         } catch (error) {
             if (config.debug) {

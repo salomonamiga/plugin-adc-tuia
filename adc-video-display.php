@@ -706,17 +706,15 @@ class ADC_Video_Display
     {
         // DEBUG CONDICIONAL - Solo mostrar si debug_mode está activado
         if (isset($this->options['debug_mode']) && $this->options['debug_mode'] === '1') {
+            $api_status = $this->api->is_configured() ? '✅' : '❌';
+            $content_path = get_query_var('adc_program') . '/' . get_query_var('adc_video');
             echo '<script>
-            console.log("=== ADC DEBUG START ===");
-            console.log("API configurada:", ' . ($this->api->is_configured() ? 'true' : 'false') . ');
-            console.log("adc_type:", "' . get_query_var('adc_type') . '");
-            console.log("adc_language:", "' . get_query_var('adc_language') . '");
-            console.log("adc_program:", "' . get_query_var('adc_program') . '");
-            console.log("adc_video:", "' . get_query_var('adc_video') . '");
-            console.log("current_url_params:", ' . json_encode($this->current_url_params) . ');
-            console.log("current language:", "' . $this->language . '");
-            console.log("Current URL:", window.location.href);
-            console.log("=== ADC DEBUG END ===");
+            console.log("🚀 ADC SYSTEM STATUS");
+            console.log("├── 🔌 API: Configured ' . $api_status . '");
+            console.log("├── 🌐 Language: ' . $this->language . '");
+            console.log("├── 📺 Content: ' . $content_path . '");
+            console.log("├── 📊 URL Params:", ' . json_encode($this->current_url_params) . ');
+            console.log("└── 🎯 Current URL:", window.location.href);
             </script>';
         }
 
