@@ -711,28 +711,10 @@ class ADC_Video_Display
             console.log("API configurada:", ' . ($this->api->is_configured() ? 'true' : 'false') . ');
             console.log("adc_type:", "' . get_query_var('adc_type') . '");
             console.log("adc_language:", "' . get_query_var('adc_language') . '");
-                    html5: {
-                        vhs: {
-                            enableLowInitialPlaylist: true,
-                            limitRenditionByPlayerDimensions: true,
-                            bandwidth: 1500000,
-                            useBandwidthFromLocalStorage: false,
-                            overrideNative: true
-                        }
-                    },
             console.log("adc_program:", "' . get_query_var('adc_program') . '");
             console.log("adc_video:", "' . get_query_var('adc_video') . '");
             console.log("current_url_params:", ' . json_encode($this->current_url_params) . ');
             console.log("current language:", "' . $this->language . '");
-                    html5: {
-                        vhs: {
-                            enableLowInitialPlaylist: true,
-                            limitRenditionByPlayerDimensions: true,
-                            bandwidth: 1500000,
-                            useBandwidthFromLocalStorage: false,
-                            overrideNative: true
-                        }
-                    },
             console.log("Current URL:", window.location.href);
             console.log("=== ADC DEBUG END ===");
             </script>';
