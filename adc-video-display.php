@@ -1379,7 +1379,7 @@ class ADC_Video_Display
                             "timeDivider", "durationDisplay", "progressControl",
                             "liveDisplay", "seekToLive", "remainingTimeDisplay",
                             "customControlSpacer",
-                            "chaptersButton", "descriptionsButton", "subsCapsButton",
+                            "chaptersButton", "descriptionsButton", "pictureInPictureToggle",
                             "audioTrackButton", "fullscreenToggle"
                         ]
                     }
