@@ -1137,7 +1137,9 @@ class ADC_Video_Display
      */
     private function load_videojs_once()
     {
-        if (!$this->videojs_loaded) {
+        // Use global static variable to prevent loading Video.js multiple times across instances
+        if (!isset($GLOBALS['adc_videojs_loaded'])) {
+            $GLOBALS['adc_videojs_loaded'] = true;
             $this->videojs_loaded = true;
             return '<link href="https://unpkg.com/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">' .
                    '<script src="https://unpkg.com/video.js@8.10.0/dist/video.min.js"></script>';
@@ -1315,9 +1317,10 @@ class ADC_Video_Display
         $autoplay = isset($this->options['enable_autoplay']) ? $this->options['enable_autoplay'] : '1';
         $countdown = isset($this->options['autoplay_countdown']) ? $this->options['autoplay_countdown'] : '5';
 
-        if ($next_url && $autoplay == '1') {
-            $output .= $this->generate_video_player_script($next_url, $countdown);
-        }
+        // Always generate Video.js initialization script
+        $output .= $this->generate_video_player_script($next_url, $countdown);
+        
+        // Note: generate_video_player_script handles autoplay logic internally
 
         $output .= '</div>';
 
