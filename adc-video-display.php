@@ -1346,12 +1346,14 @@ class ADC_Video_Display
                     fluid: true,
                     responsive: true,
                     language: "' . $this->language . '",
+                    preload: "metadata",
                     html5: {
                         vhs: {
                             enableLowInitialPlaylist: true,
                             limitRenditionByPlayerDimensions: true,
                             bandwidth: 1500000,
                             useBandwidthFromLocalStorage: false,
+                            preloadHls: true,
                             overrideNative: true
                         }
                     },
