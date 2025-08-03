@@ -1346,7 +1346,7 @@ class ADC_Video_Display
                     fluid: true,
                     responsive: true,
                     language: "' . $this->language . '",
-                    preload: "metadata",
+                    preload: "auto",
                     html5: {
                         vhs: {
                             enableLowInitialPlaylist: true,
