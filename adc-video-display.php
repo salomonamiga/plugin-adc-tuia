@@ -1160,7 +1160,7 @@ class ADC_Video_Display
         $clip_id = 'adc-promo-player-' . uniqid();
 
         $output .= '<div class="adc-promotional-video-player" style="position:relative; padding-top:56.25%; margin-bottom:30px;">';
-        $output .= '<video id="' . $clip_id . '" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" style="position:absolute; top:0; left:0; width:100%; height:100%;">';
+        $output .= '<video id="' . $clip_id . '" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" poster="' . esc_url() . '" style="position:absolute; top:0; left:0; width:100%; height:100%;">';
         $output .= '<source src="' . esc_url($category['clip']) . '" type="video/mp4">';
         $output .= '</video>';
         $output .= '</div>';
@@ -1253,8 +1253,10 @@ class ADC_Video_Display
         $output .= $this->load_videojs_once();
 
         // Player with proper aspect ratio
+        // Generate poster URL for video thumbnail
+        $poster_url = ADC_Utils::get_thumbnail_url($video["thumbnail"]);
         $output .= '<div class="adc-video-player" style="position:relative; padding-top:56.25%;">';
-        $output .= '<video id="adc-player" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" style="position:absolute; top:0; left:0; width:100%; height:100%;">';
+        $output .= '<video id="adc-player" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="auto" poster="' . esc_url($poster_url) . '" style="position:absolute; top:0; left:0; width:100%; height:100%;">';
         $hls_url = preg_replace('#/\d+/(\d+)\.mp4$#', '/$1.smil/playlist.m3u8', $video['video']);
         $output .= '<source src="' . esc_url($hls_url) . '" type="application/x-mpegURL">';
         $output .= '<source src="' . esc_url($video['video']) . '" type="video/mp4">';
