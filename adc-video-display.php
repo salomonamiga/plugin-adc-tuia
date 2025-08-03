@@ -386,7 +386,7 @@ class ADC_Video_Display
         // VALIDACIONES ADICIONALES
 
         // No redirigir si es un archivo físico (imágenes, CSS, JS, etc.)
-        if (preg_match('#\.(jpg|jpeg|png|gif|css|js|ico|pdf|zip|txt|xml)$#i', $clean_uri)) {
+        if (preg_match('#\.(jpg|jpeg|png|gif|webp|css|js|ico|pdf|zip|txt|xml)$#i', $clean_uri)) {
             $debug_info['reason'] = 'File extension detected - not redirecting';
             $this->output_404_debug('ADC 404 Handler', $debug_info);
             return;
