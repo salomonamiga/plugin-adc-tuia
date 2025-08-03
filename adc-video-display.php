@@ -1255,6 +1255,8 @@ class ADC_Video_Display
         // Player with proper aspect ratio
         $output .= '<div class="adc-video-player" style="position:relative; padding-top:56.25%;">';
         $output .= '<video id="adc-player" class="video-js vjs-default-skin vjs-big-play-centered" controls playsinline preload="none" style="position:absolute; top:0; left:0; width:100%; height:100%;">';
+        $hls_url = preg_replace('#/\d+/(\d+)\.mp4$#', '/$1.smil/playlist.m3u8', $video['video']);
+        $output .= '<source src="' . esc_url($hls_url) . '" type="application/x-mpegURL">';
         $output .= '<source src="' . esc_url($video['video']) . '" type="video/mp4">';
         $output .= '</video>';
 
