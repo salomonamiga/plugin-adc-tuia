@@ -508,9 +508,8 @@ class ADC_API
         $order_option = 'adc_programs_order_' . $this->language;
         $order = get_option($order_option, array());
 
-        if (!empty($order)) {
-            $programs = $this->apply_custom_order($programs, $order);
-        }
+        // SIEMPRE aplicar separación videos/Coming Soon, incluso sin orden personalizado
+        $programs = $this->apply_custom_order($programs, $order);
 
         return $programs;
     }
