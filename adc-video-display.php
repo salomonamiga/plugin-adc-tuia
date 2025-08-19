@@ -92,7 +92,7 @@ class ADC_Video_Display
         add_filter('request', array($this, 'handle_custom_urls'));
 
         // NEW: Force correct page display for friendly URLs
-        add_action('pre_get_posts', array($this, 'modify_main_query'), 1);
+        add_action('parse_query', array($this, 'modify_main_query'), 1);
     }
 
     /**
@@ -480,21 +480,25 @@ class ADC_Video_Display
             return;
         }
 
-        $adc_type = get_query_var('adc_type');
+        // Con parse_query, las query vars ya están procesadas
+        $adc_type = isset($query->query_vars['adc_type']) ? $query->query_vars['adc_type'] : '';
+        $adc_language = isset($query->query_vars['adc_language']) ? $query->query_vars['adc_language'] : 'es';
 
         if (!$adc_type) {
             return;
         }
 
+
         // Determine which page to show based on language - CORREGIDO
-        $target_page_slug = $this->current_url_params['language'] === 'en' ? 'home-en' : 'home';
+        $target_page_slug = $adc_language === 'en' ? 'en' : 'home';
 
         // Find the page with the appropriate shortcode
         $target_page = get_page_by_path($target_page_slug);
 
+
         if (!$target_page) {
             // Fallback: find page by title
-            $page_title = $this->current_url_params['language'] === 'en' ? 'Home Inglés' : 'Home';
+            $page_title = $adc_language === 'en' ? 'Home Ingles' : 'Home';
             $pages = get_pages(array(
                 'title' => $page_title,
                 'post_status' => 'publish'
