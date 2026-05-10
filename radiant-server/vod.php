@@ -386,7 +386,7 @@ if (empty($poster_url)) {
         <?php if (!empty($next_thumb)): ?>
           <img class="rmp-next-thumb" src="<?= htmlspecialchars($next_thumb, ENT_QUOTES, 'UTF-8') ?>" alt="" loading="lazy" onerror="this.style.display='none'">
         <?php endif; ?>
-        <div class="rmp-next-countdown-circle" aria-live="polite"><span id="rmpNextSeconds">5</span></div>
+        <div class="rmp-next-countdown-circle" aria-live="polite"><span id="rmpNextSeconds">10</span></div>
       </div>
       <div class="rmp-next-title"><?= htmlspecialchars($next_title, ENT_QUOTES, 'UTF-8') ?></div>
       <div class="rmp-next-actions">
@@ -479,11 +479,14 @@ if (empty($poster_url)) {
   (function() {
     var nextUrl = <?= json_encode($next_url) ?>;
     var PARENT_ORIGIN = 'https://tuia.tv';
-    // Countdown lineal: 5 a 5s del final, decrementa cada 1000ms,
-    // 0 dispara redirect. Si el video termina mientras corre, sigue
-    // corriendo (frame congelado). NO se reinicia al ended. El countdown
-    // se pausa/reanuda junto con el video.
-    var COUNTDOWN_FROM = 5;
+    // Timing: overlay aparece cuando faltan 5s del final, countdown
+    // empieza en 10 y decrementa cada 1000ms. A los 5s el video termina
+    // naturalmente y el frame queda congelado; el countdown sigue de
+    // 5 → 0 sin reiniciar. Cuando llega a 0, redirect.
+    // El countdown se pausa/reanuda junto con el video durante la
+    // reproduccion normal (no afecta el tramo post-ended).
+    var COUNTDOWN_FROM = 10;
+    var TRIGGER_REMAINING = 5;
     var overlay = document.getElementById('rmpNextOverlay');
     var secondsEl = document.getElementById('rmpNextSeconds');
     var btnCancel = document.getElementById('rmpNextCancel');
@@ -573,10 +576,11 @@ if (empty($poster_url)) {
       // Tiempos en milisegundos en RMP v8
       var remainingMs = dur - cur;
       var remainingSec = Math.ceil(remainingMs / 1000);
-      if (remainingSec <= COUNTDOWN_FROM && remainingSec > 0) {
-        // Edge case video corto: empezar en min(COUNTDOWN_FROM, floor(duration))
+      if (remainingSec <= TRIGGER_REMAINING && remainingSec > 0) {
+        // Mostrar overlay con countdown desde COUNTDOWN_FROM (10).
+        // Edge case video muy corto: limitar al floor(duration).
         var durSec = Math.floor(dur / 1000);
-        var initial = Math.min(COUNTDOWN_FROM, remainingSec, durSec > 0 ? durSec : COUNTDOWN_FROM);
+        var initial = Math.min(COUNTDOWN_FROM, durSec > 0 ? durSec : COUNTDOWN_FROM);
         showOverlay(initial);
       }
     }
