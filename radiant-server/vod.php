@@ -472,6 +472,10 @@ if (empty($poster_url)) {
     }
     window.rmpAsyncPlayers.push(settings);
   </script>
+  <!-- hls.js v1.6.15 cargado ANTES de RMP — RMP detecta window.Hls global y usa el nuestro
+       en vez del v1.3.1 (enero 2023) que trae empaquetado RMP 8.4.10. Resuelve bugs conocidos
+       de Safari (bfcache, MediaSource recovery, EME, end-of-stream stalls) presentes en v1.3.1. -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.15/dist/hls.min.js"></script>
   <script async src="https://cdn.radiantmediatechs.com/rmp/8.4.10/js/rmp.min.js"></script>
 
   <?php if (!empty($next_url)): ?>
