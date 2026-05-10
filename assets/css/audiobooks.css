@@ -1,0 +1,518 @@
+/**
+ * ADC Audiobooks Styles - TUIA.tv Dark Theme
+ * Version: 1.1
+ */
+
+/* === Container === */
+.adc-audiobooks-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.adc-audiobooks-header {
+    text-align: left;
+    margin-bottom: 40px;
+}
+
+.adc-audiobooks-title {
+    font-size: 2rem;
+    font-weight: 400;
+    color: #ffffff !important;
+    margin-bottom: 10px;
+}
+
+.adc-audiobooks-subtitle {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* === Grid === */
+.adc-audiobooks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 30px;
+}
+
+/* === Card === */
+.adc-audiobook-card {
+    background: rgba(20, 30, 48, 0.8);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.adc-audiobook-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 212, 255, 0.2);
+    border-color: rgba(0, 212, 255, 0.4);
+}
+
+.adc-audiobook-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.adc-audiobook-cover {
+    position: relative;
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1a2a3a 0%, #0d1520 100%);
+}
+
+.adc-audiobook-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.adc-audiobook-card:hover .adc-audiobook-cover img {
+    transform: scale(1.05);
+}
+
+.adc-audiobook-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 20, 40, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.adc-audiobook-card:hover .adc-audiobook-overlay {
+    opacity: 1;
+}
+
+.adc-audiobook-play-icon {
+    font-size: 3rem;
+    color: #00d4ff;
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+}
+
+.adc-audiobook-info {
+    padding: 15px;
+    background: rgba(10, 20, 30, 0.9);
+}
+
+.adc-audiobook-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 0 5px 0;
+    line-height: 1.3;
+}
+
+.adc-audiobook-author {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 8px 0;
+}
+
+.adc-audiobook-chapters {
+    display: inline-block;
+    background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+    color: #fff;
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+/* === Detail Page === */
+.adc-audiobook-detail {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 30px 20px;
+}
+
+.adc-audiobook-header {
+    margin-bottom: 20px;
+}
+
+.adc-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #00d4ff;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.adc-back-link:hover {
+    color: #4de0ff;
+}
+
+.adc-back-arrow {
+    font-size: 1.2rem;
+}
+
+/* === Continue Listening Banner === */
+.adc-continue-listening {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(0, 100, 150, 0.3) 100%);
+    color: #fff;
+    padding: 15px 20px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    animation: slideIn 0.3s ease;
+    border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.adc-continue-icon {
+    background: #00d4ff;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.adc-continue-icon svg {
+    margin-left: 3px;
+    color: #0a1520;
+}
+
+.adc-continue-info {
+    flex: 1;
+}
+
+.adc-continue-info p {
+    margin: 0;
+}
+
+.adc-continue-chapter {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+.adc-continue-title {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.adc-continue-btn {
+    background: #00d4ff;
+    color: #0a1520;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+    white-space: nowrap;
+}
+
+.adc-continue-btn:hover {
+    background: #4de0ff;
+    transform: scale(1.05);
+}
+
+/* === Content Grid === */
+.adc-audiobook-content {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 40px;
+}
+
+@media (max-width: 768px) {
+    .adc-audiobook-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+.adc-audiobook-cover-container {
+    position: sticky;
+    top: 100px;
+    align-self: start;
+}
+
+.adc-audiobook-cover-large {
+    width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(0, 212, 255, 0.3);
+}
+
+.adc-audiobook-details {
+    min-width: 0;
+}
+
+.adc-audiobook-main-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 10px 0;
+}
+
+.adc-audiobook-author-large {
+    font-size: 1.1rem;
+    color: #00d4ff;
+    margin: 0 0 20px 0;
+}
+
+.adc-audiobook-description {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.7;
+    margin: 0 0 30px 0;
+}
+
+/* === Chapters Section === */
+.adc-audiobook-chapters-section {
+    background: rgba(20, 30, 48, 0.8);
+    border-radius: 12px;
+    padding: 25px;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.adc-chapters-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 0 20px 0;
+}
+
+.adc-chapters-title svg {
+    color: #00d4ff;
+}
+
+.adc-chapters-count {
+    font-weight: 400;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.adc-chapters-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* === Chapter Item === */
+.adc-chapter-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 10px;
+    padding: 15px;
+    transition: all 0.2s ease;
+}
+
+.adc-chapter-item:hover {
+    border-color: rgba(0, 212, 255, 0.4);
+    background: rgba(0, 212, 255, 0.05);
+}
+
+.adc-chapter-item.playing {
+    border-color: #00d4ff;
+    background: rgba(0, 212, 255, 0.1);
+}
+
+.adc-chapter-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.adc-chapter-number {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #00d4ff;
+    min-width: 25px;
+}
+
+.adc-chapter-title {
+    flex: 1;
+    font-size: 0.95rem;
+    color: #ffffff;
+    font-weight: 500;
+}
+
+/* === Audio Player Inline === */
+.adc-chapter-audio {
+    width: 100%;
+    height: 40px;
+    border-radius: 20px;
+    outline: none;
+}
+
+/* Estilizar controles de audio */
+.adc-chapter-audio::-webkit-media-controls-panel {
+    background: rgba(20, 30, 48, 0.8);
+}
+
+.adc-chapter-audio::-webkit-media-controls-play-button,
+.adc-chapter-audio::-webkit-media-controls-mute-button {
+    filter: invert(1);
+}
+
+.adc-chapter-audio::-webkit-media-controls-current-time-display,
+.adc-chapter-audio::-webkit-media-controls-time-remaining-display {
+    color: #ffffff;
+}
+
+/* === Chapter Badges === */
+.adc-chapter-badge {
+    margin-left: auto;
+}
+
+.adc-chapter-badge:empty {
+    display: none;
+}
+
+.badge-listened {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: rgba(0, 200, 100, 0.2);
+    color: #00c864;
+}
+
+.badge-progress {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: rgba(255, 180, 0, 0.2);
+    color: #ffb400;
+}
+
+
+/* === Error State === */
+.adc-audiobook-error,
+.adc-audiobooks-empty {
+    text-align: center;
+    padding: 60px 20px;
+    background: rgba(20, 30, 48, 0.8);
+    border-radius: 12px;
+    margin: 40px auto;
+    max-width: 500px;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.adc-audiobook-error h2 {
+    font-size: 1.5rem;
+    color: #ffffff;
+    margin: 0 0 10px 0;
+}
+
+.adc-audiobook-error p,
+.adc-audiobooks-empty p {
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0 0 20px 0;
+}
+
+.adc-back-button {
+    display: inline-block;
+    background: #00d4ff;
+    color: #0a1520;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.adc-back-button:hover {
+    background: #4de0ff;
+    color: #0a1520;
+    transform: scale(1.05);
+}
+
+/* === Image Fallback === */
+.adc-audiobook-cover img[src=""],
+.adc-audiobook-cover img:not([src]) {
+    display: none;
+}
+
+.adc-audiobook-cover {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(0, 212, 255, 0.5);
+    font-size: 3rem;
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+    .adc-audiobooks-title {
+        font-size: 1.8rem;
+    }
+
+    .adc-audiobooks-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+
+    .adc-audiobook-cover-container {
+        position: static;
+        max-width: 200px;
+        margin: 0 auto 20px;
+    }
+
+    .adc-audiobook-main-title {
+        font-size: 1.5rem;
+    }
+
+    .adc-continue-listening {
+        flex-wrap: wrap;
+    }
+
+    .adc-continue-btn {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .adc-audio-player-container {
+        flex-wrap: wrap;
+        padding: 12px 15px;
+    }
+
+    .adc-player-info {
+        min-width: calc(100% - 55px);
+    }
+
+    #adc-audio-player {
+        width: 100%;
+        order: 3;
+        margin-top: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .adc-audiobooks-grid {
+        grid-template-columns: 1fr;
+        max-width: 280px;
+        margin: 0 auto;
+    }
+}

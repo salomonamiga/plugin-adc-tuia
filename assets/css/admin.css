@@ -1,0 +1,325 @@
+.adc-admin-wrap {
+    background: #f1f1f1;
+    margin: 20px 0 0 -20px;
+    padding: 0;
+}
+
+.adc-admin-header {
+    background: linear-gradient(135deg, #6EC1E4, #4A90E2);
+    color: white;
+    padding: 30px;
+    text-align: center;
+    margin: 0;
+}
+
+.adc-admin-header h1 {
+    margin: 0 0 10px 0;
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.adc-admin-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 16px;
+}
+
+.adc-admin-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.adc-save-container {
+    text-align: center;
+    padding: 25px 30px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+}
+
+.adc-save-button {
+    font-size: 16px !important;
+    padding: 15px 40px !important;
+    height: auto !important;
+}
+
+.adc-section {
+    border-bottom: 1px solid #eee;
+}
+
+.adc-section:last-child {
+    border-bottom: none;
+}
+
+.adc-section-header {
+    background: #f8f9fa;
+    padding: 20px 30px;
+    margin: 0;
+}
+
+.adc-section-header h2 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.adc-icon {
+    font-size: 22px;
+}
+
+.adc-grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 30px;
+}
+
+.adc-status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    padding: 30px;
+}
+
+.adc-card {
+    background: #f9f9f9;
+    border-radius: 8px;
+    padding: 20px;
+    border-left: 4px solid #6EC1E4;
+}
+
+.adc-card-wide {
+    grid-column: span 2;
+}
+
+.adc-card h3 {
+    margin: 0 0 15px 0;
+    color: #2c3e50;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.adc-form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.adc-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.adc-quick-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.adc-stats-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.adc-stat-item {
+    text-align: center;
+    padding: 15px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #eee;
+}
+
+.adc-stat-number {
+    font-size: 24px;
+    font-weight: bold;
+    color: #6EC1E4;
+    display: block;
+}
+
+.adc-stat-label {
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.adc-api-status-item {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #eee;
+}
+
+.adc-status-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.adc-status-indicator {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.adc-status-healthy {
+    color: #27ae60;
+}
+
+.adc-status-unhealthy {
+    color: #e74c3c;
+}
+
+.adc-status-language {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.adc-status-details {
+    display: flex;
+    gap: 15px;
+    font-size: 14px;
+    color: #666;
+    margin-left: 26px;
+}
+
+.adc-status-error {
+    font-size: 14px;
+    color: #e74c3c;
+    margin-left: 26px;
+}
+
+.adc-status-message {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 4px;
+    display: none;
+}
+
+.adc-status-message.success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.adc-status-message.error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.adc-status-message.loading {
+    background: #cce7ff;
+    border: 1px solid #99d6ff;
+    color: #0066cc;
+}
+
+.adc-webhook-container,
+.adc-usage-container {
+    padding: 30px;
+}
+
+.adc-usage-highlight {
+    background: #e8f5e8;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 25px;
+}
+
+.adc-usage-highlight h4 {
+    margin: 0 0 10px 0;
+    color: #155724;
+}
+
+.adc-usage-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 25px;
+}
+
+.adc-usage-item h4 {
+    margin: 0 0 15px 0;
+    color: #2c3e50;
+}
+
+.adc-code-block {
+    background: #2c3e50;
+    color: #ecf0f1;
+    padding: 15px;
+    border-radius: 6px;
+    font-family: "Courier New", monospace;
+    font-size: 13px;
+    overflow-x: auto;
+    line-height: 1.5;
+}
+
+.adc-comment {
+    color: #95a5a6;
+}
+
+.adc-webhook-info {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 6px;
+    padding: 20px;
+}
+
+.adc-webhook-info h4 {
+    margin: 0 0 15px 0;
+    color: #155724;
+}
+
+.adc-webhook-info ul {
+    margin: 0;
+    padding-left: 20px;
+    color: #155724;
+}
+
+.adc-webhook-info li {
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .adc-admin-wrap {
+        margin: 20px 0 0 0;
+    }
+
+    .adc-grid-container,
+    .adc-status-grid,
+    .adc-usage-grid,
+    .adc-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .adc-card-wide {
+        grid-column: span 1;
+    }
+
+    .adc-stats-container {
+        grid-template-columns: 1fr;
+    }
+
+    .adc-quick-actions {
+        flex-direction: column;
+    }
+
+    .adc-status-details {
+        flex-direction: column;
+        gap: 5px;
+    }
+}

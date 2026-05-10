@@ -1,0 +1,14 @@
+# Ignorar archivos temporales y de sistema
+.DS_Store
+*.log
+*.bak
+*.tmp
+*.swp
+
+# Ignorar la carpeta específica "x"
+x/
+
+# Ignorar otros editores si usas alguno
+.vscode/
+.idea/
+node_modules/
