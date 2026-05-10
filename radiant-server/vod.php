@@ -386,7 +386,7 @@ if (empty($poster_url)) {
         <?php if (!empty($next_thumb)): ?>
           <img class="rmp-next-thumb" src="<?= htmlspecialchars($next_thumb, ENT_QUOTES, 'UTF-8') ?>" alt="" loading="lazy" onerror="this.style.display='none'">
         <?php endif; ?>
-        <div class="rmp-next-countdown-circle" aria-live="polite"><span id="rmpNextSeconds">10</span></div>
+        <div class="rmp-next-countdown-circle" aria-live="polite"><span id="rmpNextSeconds">5</span></div>
       </div>
       <div class="rmp-next-title"><?= htmlspecialchars($next_title, ENT_QUOTES, 'UTF-8') ?></div>
       <div class="rmp-next-actions">
@@ -479,10 +479,11 @@ if (empty($poster_url)) {
   (function() {
     var nextUrl = <?= json_encode($next_url) ?>;
     var PARENT_ORIGIN = 'https://tuia.tv';
-    // Countdown lineal: 10 a 10s del final, decrementa cada 1000ms,
+    // Countdown lineal: 5 a 5s del final, decrementa cada 1000ms,
     // 0 dispara redirect. Si el video termina mientras corre, sigue
-    // corriendo (frame congelado). NO se reinicia al ended.
-    var COUNTDOWN_FROM = 10;
+    // corriendo (frame congelado). NO se reinicia al ended. El countdown
+    // se pausa/reanuda junto con el video.
+    var COUNTDOWN_FROM = 5;
     var overlay = document.getElementById('rmpNextOverlay');
     var secondsEl = document.getElementById('rmpNextSeconds');
     var btnCancel = document.getElementById('rmpNextCancel');
@@ -520,21 +521,28 @@ if (empty($poster_url)) {
       }
     }
 
+    function tickCountdown() {
+      secondsLeft--;
+      if (secondsLeft <= 0) {
+        secondsEl.textContent = 0;
+        gotoNext();
+        return;
+      }
+      secondsEl.textContent = secondsLeft;
+    }
+
+    function startCountdownTicker() {
+      if (countdownInterval || cancelled || redirecting) return;
+      countdownInterval = setInterval(tickCountdown, 1000);
+    }
+
     function showOverlay(initialSeconds) {
       if (cancelled || redirecting || shown) return;
       shown = true;
       secondsLeft = initialSeconds;
       secondsEl.textContent = secondsLeft;
       overlay.classList.add('show');
-      countdownInterval = setInterval(function() {
-        secondsLeft--;
-        if (secondsLeft <= 0) {
-          secondsEl.textContent = 0;
-          gotoNext();
-          return;
-        }
-        secondsEl.textContent = secondsLeft;
-      }, 1000);
+      startCountdownTicker();
     }
 
     function hideOverlay() {
@@ -573,13 +581,34 @@ if (empty($poster_url)) {
       }
     }
 
+    function onPause() {
+      // Pausar countdown junto con el video. NO incluye el 'pause' que
+      // dispara RMP al llegar al ended natural — para ese caso el video
+      // ya termino y queremos que el countdown llegue a 0 igual. RMP v8
+      // dispara 'pause' justo antes de 'ended', asi que solo pausamos
+      // si el video no esta cerca del final (durante reproduccion normal).
+      if (!inst) return;
+      var dur = inst.getDuration ? inst.getDuration() : 0;
+      var cur = inst.getCurrentTime ? inst.getCurrentTime() : 0;
+      if (dur > 0 && (dur - cur) < 250) return; // 250ms = ended inminente
+      stopCountdown();
+    }
+
+    function onPlay() {
+      if (!shown || cancelled || redirecting) return;
+      startCountdownTicker();
+    }
+
     function attachPlayerEvents() {
       var rmpEl = document.getElementById('rmpPlayer');
       if (!rmpEl) return;
       rmpEl.addEventListener('timeupdate', onTimeUpdate);
+      rmpEl.addEventListener('pause', onPause);
+      rmpEl.addEventListener('play', onPlay);
+      rmpEl.addEventListener('playing', onPlay);
       // NO listener de 'ended': el countdown sigue corriendo independiente
-      // del estado del video. Si llega a 0 antes/despues del fin natural,
-      // gotoNext() se dispara igual.
+      // del estado del video al terminar. Si llega a 0 antes/despues del
+      // fin natural, gotoNext() se dispara igual.
     }
 
     tryAttach();
