@@ -447,7 +447,7 @@ if (empty($poster_url)) {
       hlsJSMaxBufferBehind: 30,
       hlsJSCustomConfig: {
         startLevel: -1,
-        abrEwmaDefaultEstimate: 1000000,
+        abrEwmaDefaultEstimate: 500000,
         abrEwmaFastVoD: 3.0,
         abrEwmaSlowVoD: 9.0,
         manifestLoadingTimeOut: 15000,
