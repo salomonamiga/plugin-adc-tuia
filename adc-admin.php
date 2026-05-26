@@ -230,7 +230,7 @@ class ADC_Admin
             30
         );
 
-        // Add submenu for program ordering - one for each language (only ES and EN)
+        // Add submenu for program ordering - one for each language (ES / EN / PT)
         add_submenu_page(
             $this->plugin_name,
             'Ordenar Programas (Español)',
@@ -247,6 +247,15 @@ class ADC_Admin
             'manage_options',
             $this->plugin_name . '-order-en',
             array($this, 'display_program_order_page_en')
+        );
+
+        add_submenu_page(
+            $this->plugin_name,
+            'Ordenar Programas (Português)',
+            'Ordenar (PT)',
+            'manage_options',
+            $this->plugin_name . '-order-pt',
+            array($this, 'display_program_order_page_pt')
         );
     }
 
@@ -843,7 +852,8 @@ class ADC_Admin
     {
         $language_names = array(
             'es' => 'Español',
-            'en' => 'English'
+            'en' => 'English',
+            'pt' => 'Português'
         );
 
         $status_class = $api_status['connection'] ? 'adc-status-healthy' : 'adc-status-unhealthy';
@@ -877,7 +887,7 @@ class ADC_Admin
 
 
     /**
-     * Display program order pages for each language (only ES and EN)
+     * Display program order pages for each language (ES / EN / PT)
      */
     public function display_program_order_page_es()
     {
@@ -887,6 +897,11 @@ class ADC_Admin
     public function display_program_order_page_en()
     {
         $this->display_program_order_page('en');
+    }
+
+    public function display_program_order_page_pt()
+    {
+        $this->display_program_order_page('pt');
     }
 
     /**
@@ -905,7 +920,8 @@ class ADC_Admin
 
         $language_names = array(
             'es' => 'Español',
-            'en' => 'English'
+            'en' => 'English',
+            'pt' => 'Português'
         );
 
         echo '<div class="wrap">';

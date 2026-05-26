@@ -26,9 +26,10 @@ class ADC_Search
     {
         $this->options = get_option('adc-video-display');
 
-        // Register shortcodes for each language (only ES and EN)
+        // Register shortcodes for each language (ES / EN / PT)
         add_shortcode('adc_search_form', array($this, 'render_search_form'));
         add_shortcode('adc_search_form_en', array($this, 'render_search_form_en'));
+        add_shortcode('adc_search_form_pt', array($this, 'render_search_form_pt'));
 
         // AJAX handlers
         add_action('wp_ajax_adc_search_videos', array($this, 'ajax_search_videos'));
@@ -98,6 +99,14 @@ class ADC_Search
     public function render_search_form_en($atts)
     {
         return $this->render_search_form_generic('en', $atts);
+    }
+
+    /**
+     * Render search form for Portuguese
+     */
+    public function render_search_form_pt($atts)
+    {
+        return $this->render_search_form_generic('pt', $atts);
     }
 
     /**
@@ -182,7 +191,7 @@ class ADC_Search
                 'total' => count($results['data']),
                 'search_term' => $search_term,
                 'language' => $language,
-                'grouped_results' => $this->group_results_by_category($results['data']),
+                'grouped_results' => $this->group_results_by_category($results['data'], $language),
                 'cache_time' => current_time('timestamp'),
                 'is_fallback' => $results['is_fallback'],
                 'fallback_reason' => $results['fallback_reason'],
@@ -395,10 +404,14 @@ class ADC_Search
             'en' => array(
                 'title' => 'No results found for',
                 'recommended_title' => 'You might be interested in these videos:'
+            ),
+            'pt' => array(
+                'title' => 'Não encontramos resultados para',
+                'recommended_title' => 'Talvez você se interesse por estes vídeos:'
             )
         );
 
-        $texts = $no_results_texts[$language];
+        $texts = isset($no_results_texts[$language]) ? $no_results_texts[$language] : $no_results_texts['es'];
 
         $output = '<div class="adc-no-results-section">';
         $output .= '<h2 class="adc-no-results-title">' . $texts['title'] . ' "' . esc_html($search_term) . '"</h2>';
@@ -435,17 +448,22 @@ class ADC_Search
                 'results_for' => 'Results for',
                 'found' => 'Found',
                 'results' => 'result(s)'
+            ),
+            'pt' => array(
+                'results_for' => 'Resultados para',
+                'found' => 'Encontrado(s)',
+                'results' => 'resultado(s)'
             )
         );
 
-        $texts = $results_texts[$language];
+        $texts = isset($results_texts[$language]) ? $results_texts[$language] : $results_texts['es'];
 
         $output = '<h1 class="adc-search-results-title">' . $texts['results_for'] . ': "' . esc_html($search_term) . '"</h1>';
         $output .= '<div class="adc-search-results-meta">' . $texts['found'] . ' ' . count($results) . ' ' . $texts['results'] . '</div>';
 
         // Group results by category if there are many results
         if (count($results) > 6) {
-            $grouped_results = $this->group_results_by_category($results);
+            $grouped_results = $this->group_results_by_category($results, $language);
             $output .= $this->render_grouped_results($grouped_results, $language);
         } else {
             $output .= $this->render_simple_results($results, $language);
@@ -649,12 +667,18 @@ class ADC_Search
     /**
      * Group search results by category
      */
-    private function group_results_by_category($results)
+    private function group_results_by_category($results, $language = 'es')
     {
         $grouped = array();
+        $uncategorized = array(
+            'es' => 'Sin categoría',
+            'en' => 'Uncategorized',
+            'pt' => 'Sem categoria'
+        );
+        $default_cat = isset($uncategorized[$language]) ? $uncategorized[$language] : $uncategorized['es'];
 
         foreach ($results as $result) {
-            $category = isset($result['category']) ? $result['category'] : 'Sin categoría';
+            $category = isset($result['category']) && $result['category'] !== '' ? $result['category'] : $default_cat;
 
             if (!isset($grouped[$category])) {
                 $grouped[$category] = array();

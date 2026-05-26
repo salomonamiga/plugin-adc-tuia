@@ -52,7 +52,8 @@ class ADC_API
     {
         $sections = array(
             'es' => '5', // Español - IA
-            'en' => '6'  // Inglés
+            'en' => '6', // Inglés
+            'pt' => '7'  // Portugués
         );
 
         return isset($sections[$language]) ? $sections[$language] : '5';
@@ -63,7 +64,9 @@ class ADC_API
      */
     private function get_endpoint_prefix()
     {
-        return $this->language === 'en' ? '/ia_en' : '/ia';
+        if ($this->language === 'en') return '/ia_en';
+        if ($this->language === 'pt') return '/ia_pt';
+        return '/ia';
     }
 
     /**
@@ -281,7 +284,8 @@ class ADC_API
     {
         $suffixes = array(
             '5' => '_ia.png',        // Español
-            '6' => '_ia_en.png'      // Inglés - CORREGIDO
+            '6' => '_ia_en.png',     // Inglés
+            '7' => '_ia_pt.png'      // Portugués
         );
 
         return isset($suffixes[$this->section]) ? $suffixes[$this->section] : '_ia.png';
@@ -753,7 +757,8 @@ class ADC_API
 
         $default = array(
             'es' => 'Temporada ',
-            'en' => 'Season '
+            'en' => 'Season ',
+            'pt' => 'Temporada '
         );
 
         $prefix = isset($default[$language]) ? $default[$language] : 'Temporada ';
@@ -801,8 +806,15 @@ class ADC_API
     {
         $grouped = array();
 
+        $uncategorized = array(
+            'es' => 'Sin categoría',
+            'en' => 'Uncategorized',
+            'pt' => 'Sem categoria'
+        );
+        $default_cat = isset($uncategorized[$this->language]) ? $uncategorized[$this->language] : $uncategorized['es'];
+
         foreach ($results as $result) {
-            $category = isset($result['category']) ? $result['category'] : 'Sin categoría';
+            $category = isset($result['category']) && $result['category'] !== '' ? $result['category'] : $default_cat;
 
             if (!isset($grouped[$category])) {
                 $grouped[$category] = array();
@@ -1159,11 +1171,23 @@ class ADC_API
                 'not_configured' => 'API not configured',
                 'cache_disabled' => 'Cache disabled - performance may be slower',
                 'retry_failed' => 'Error after multiple attempts'
+            ),
+            'pt' => array(
+                'no_connection' => 'Não foi possível conectar à API',
+                'no_programs' => 'Nenhum programa encontrado',
+                'no_materials' => 'Nenhum vídeo encontrado',
+                'invalid_response' => 'Resposta inválida da API',
+                'not_configured' => 'API não configurada',
+                'cache_disabled' => 'Cache desativado - o desempenho pode ser mais lento',
+                'retry_failed' => 'Erro após várias tentativas'
             )
         );
 
+        $unknown = array('es' => 'Error desconocido', 'en' => 'Unknown error', 'pt' => 'Erro desconhecido');
         $lang_messages = isset($messages[$this->language]) ? $messages[$this->language] : $messages['es'];
-        return isset($lang_messages[$error_type]) ? $lang_messages[$error_type] : 'Error desconocido';
+        return isset($lang_messages[$error_type])
+            ? $lang_messages[$error_type]
+            : (isset($unknown[$this->language]) ? $unknown[$this->language] : $unknown['es']);
     }
 
     /**
@@ -1233,7 +1257,8 @@ class ADC_API
             'tags'       => array('Purim'),
             'slug'       => 'purim',
             'texto_es'   => 'Contenido de Purim',
-            'texto_en'   => 'Purim Content'
+            'texto_en'   => 'Purim Content',
+            'texto_pt'   => 'Conteúdo de Purim'
         ),
         // Pesaj: 1-23 Nisan
         array(
@@ -1244,7 +1269,8 @@ class ADC_API
             'tags'       => array('Pesaj'),
             'slug'       => 'pesaj',
             'texto_es'   => 'Contenido de Pesaj',
-            'texto_en'   => 'Pesaj Content'
+            'texto_en'   => 'Pesaj Content',
+            'texto_pt'   => 'Conteúdo de Pessach'
         ),
         // Shavuot: 1-8 Sivan
         array(
@@ -1255,7 +1281,8 @@ class ADC_API
             'tags'       => array('Shabuot'),
             'slug'       => 'shavuot',
             'texto_es'   => 'Contenido de Shabuot',
-            'texto_en'   => 'Shavuot Content'
+            'texto_en'   => 'Shavuot Content',
+            'texto_pt'   => 'Conteúdo de Shavuot'
         ),
         // 17 Tamuz: 1-18 Tamuz
         array(
@@ -1266,7 +1293,8 @@ class ADC_API
             'tags'       => array('17 Tamuz', '17 de Tamuz'),
             'slug'       => '17-tamuz',
             'texto_es'   => 'Contenido de 17 de Tamuz',
-            'texto_en'   => '17 Tamuz Content'
+            'texto_en'   => '17 Tamuz Content',
+            'texto_pt'   => 'Conteúdo de 17 de Tamuz'
         ),
         // 9 Av: 1-11 Av
         array(
@@ -1277,7 +1305,8 @@ class ADC_API
             'tags'       => array('Tisha Beav', '9 de Av'),
             'slug'       => 'tisha-beav',
             'texto_es'   => 'Contenido de Tishá BeAv',
-            'texto_en'   => 'Tisha BeAv Content'
+            'texto_en'   => 'Tisha BeAv Content',
+            'texto_pt'   => 'Conteúdo de Tishá BeAv'
         ),
         // Elul y Rosh Hashana: 1-30 Elul
         array(
@@ -1288,7 +1317,8 @@ class ADC_API
             'tags'       => array('Elul', 'Rosh Hashana'),
             'slug'       => 'elul-rosh-hashana',
             'texto_es'   => 'Contenido de Elul y Rosh Hashaná',
-            'texto_en'   => 'Elul & Rosh Hashana Content'
+            'texto_en'   => 'Elul & Rosh Hashana Content',
+            'texto_pt'   => 'Conteúdo de Elul e Rosh Hashaná'
         ),
         // Kipur: 1-10 Tishrei
         array(
@@ -1299,7 +1329,8 @@ class ADC_API
             'tags'       => array('Yom Kipur', 'Kipur'),
             'slug'       => 'kipur',
             'texto_es'   => 'Contenido de Kipur',
-            'texto_en'   => 'Yom Kippur Content'
+            'texto_en'   => 'Yom Kippur Content',
+            'texto_pt'   => 'Conteúdo de Yom Kipur'
         ),
         // Sucot: 11-25 Tishrei
         array(
@@ -1310,7 +1341,8 @@ class ADC_API
             'tags'       => array('Sucot'),
             'slug'       => 'sucot',
             'texto_es'   => 'Contenido de Sucot',
-            'texto_en'   => 'Sukkot Content'
+            'texto_en'   => 'Sukkot Content',
+            'texto_pt'   => 'Conteúdo de Sucot'
         ),
         // Januca: 15 Kislev - 3 Tevet (2 entradas por cruzar meses)
         array(
@@ -1321,7 +1353,8 @@ class ADC_API
             'tags'       => array('Januca'),
             'slug'       => 'januca',
             'texto_es'   => 'Contenido de Janucá',
-            'texto_en'   => 'Hanukkah Content'
+            'texto_en'   => 'Hanukkah Content',
+            'texto_pt'   => 'Conteúdo de Chanucá'
         ),
         array(
             'nombre'     => 'Januca',
@@ -1331,7 +1364,8 @@ class ADC_API
             'tags'       => array('Januca'),
             'slug'       => 'januca',
             'texto_es'   => 'Contenido de Janucá',
-            'texto_en'   => 'Hanukkah Content'
+            'texto_en'   => 'Hanukkah Content',
+            'texto_pt'   => 'Conteúdo de Chanucá'
         ),
         // Tu Bishbat: 10-16 Sh'vat
         array(
@@ -1342,7 +1376,8 @@ class ADC_API
             'tags'       => array('Tu Bishbat', 'Tubishbat', '15 de Shebat'),
             'slug'       => 'tu-bishbat',
             'texto_es'   => 'Contenido de Tu Bishbat',
-            'texto_en'   => 'Tu Bishvat Content'
+            'texto_en'   => 'Tu Bishvat Content',
+            'texto_pt'   => 'Conteúdo de Tu Bishvat'
         ),
     );
 
@@ -1385,6 +1420,7 @@ class ADC_API
                     'slug'     => $fest['slug'],
                     'texto_es' => $fest['texto_es'],
                     'texto_en' => $fest['texto_en'],
+                    'texto_pt' => isset($fest['texto_pt']) ? $fest['texto_pt'] : $fest['texto_es'],
                 );
                 set_transient($cache_key, $result, self::FALLBACK_CACHE_TTL);
                 return $result;

@@ -2,9 +2,9 @@
 
 /**
  * ADC Video Display - Menu Handler
- * Version: 3.0 - Multiidioma (ES/EN únicamente)
- * 
- * Maneja la funcionalidad del menú desplegable para los 2 idiomas
+ * Version: 3.1 - Multiidioma (ES/EN/PT)
+ *
+ * Maneja la funcionalidad del menú desplegable para los 3 idiomas
  * Cache unificado con duración configurada en admin
  */
 
@@ -26,9 +26,10 @@ class ADC_Menu
     {
         $this->options = get_option('adc-video-display');
 
-        // Register shortcodes for menus in different languages (only ES and EN)
+        // Register shortcodes for menus in different languages (ES / EN / PT)
         add_shortcode('adc_programs_menu', array($this, 'render_programs_menu'));
         add_shortcode('adc_programs_menu_en', array($this, 'render_programs_menu_en'));
+        add_shortcode('adc_programs_menu_pt', array($this, 'render_programs_menu_pt'));
 
         // AJAX handlers for each language
         add_action('wp_ajax_adc_get_programs_menu', array($this, 'ajax_get_programs'));
@@ -69,6 +70,14 @@ class ADC_Menu
     }
 
     /**
+     * Render programs dropdown menu for Portuguese
+     */
+    public function render_programs_menu_pt($atts)
+    {
+        return $this->render_programs_menu_generic('pt', $atts);
+    }
+
+    /**
      * Generic render programs dropdown menu
      */
     private function render_programs_menu_generic($language, $atts)
@@ -84,7 +93,13 @@ class ADC_Menu
 
         // Check if API is configured
         if (!$api->is_configured()) {
-            return '<div class="adc-error">API no configurada</div>';
+            $api_msgs = array(
+                'es' => 'API no configurada',
+                'en' => 'API not configured',
+                'pt' => 'API não configurada'
+            );
+            $msg = isset($api_msgs[$language]) ? $api_msgs[$language] : $api_msgs['es'];
+            return '<div class="adc-error">' . $msg . '</div>';
         }
 
         // Start output
@@ -151,8 +166,13 @@ class ADC_Menu
 
             // Check if API is configured
             if (!$api->is_configured()) {
+                $api_msgs = array(
+                    'es' => 'API no configurada',
+                    'en' => 'API not configured',
+                    'pt' => 'API não configurada'
+                );
                 wp_send_json_error(array(
-                    'message' => 'API not configured',
+                    'message' => isset($api_msgs[$language]) ? $api_msgs[$language] : $api_msgs['es'],
                     'code' => 'API_NOT_CONFIGURED'
                 ));
                 return;
@@ -163,7 +183,7 @@ class ADC_Menu
 
             if (empty($programs)) {
                 wp_send_json_error(array(
-                    'message' => 'No programs found',
+                    'message' => ADC_Utils::get_text('no_programs', $language),
                     'code' => 'NO_PROGRAMS',
                     'programs' => []
                 ));
@@ -182,8 +202,13 @@ class ADC_Menu
 
             wp_send_json_success($response_data);
         } catch (Exception $e) {
+            $err_msgs = array(
+                'es' => 'Error interno del servidor',
+                'en' => 'Internal server error',
+                'pt' => 'Erro interno do servidor'
+            );
             wp_send_json_error(array(
-                'message' => 'Internal server error',
+                'message' => isset($err_msgs[$language]) ? $err_msgs[$language] : $err_msgs['es'],
                 'code' => 'SERVER_ERROR',
                 'debug' => WP_DEBUG ? $e->getMessage() : null
             ));
@@ -323,6 +348,8 @@ class ADC_Programs_Menu_Widget extends WP_Widget
         $shortcode_name = 'adc_programs_menu';
         if ($language === 'en') {
             $shortcode_name = 'adc_programs_menu_en';
+        } elseif ($language === 'pt') {
+            $shortcode_name = 'adc_programs_menu_pt';
         }
 
         $shortcode = '[' . $shortcode_name;
@@ -362,6 +389,7 @@ class ADC_Programs_Menu_Widget extends WP_Widget
                 name="<?php echo esc_attr($this->get_field_name('language')); ?>">
                 <option value="es" <?php selected($language, 'es'); ?>>Español</option>
                 <option value="en" <?php selected($language, 'en'); ?>>English</option>
+                <option value="pt" <?php selected($language, 'pt'); ?>>Português</option>
             </select>
         </p>
         <p>

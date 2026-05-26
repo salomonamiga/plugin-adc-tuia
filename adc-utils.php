@@ -1,10 +1,9 @@
 <?php
 /**
  * ADC Video Display - Utilities Class
- * Version: 3.0 - Funciones compartidas para eliminar duplicación
- * 
+ * Version: 3.1 - Soporte multiidioma ES / EN / PT
+ *
  * Contiene todas las funciones utilitarias compartidas entre los módulos del plugin
- * Soporte para Español e Inglés únicamente
  */
 
 // Prevent direct access
@@ -37,46 +36,46 @@ class ADC_Utils
     }
 
     /**
-     * Detect language from URL
-     * Esta función estaba duplicada en múltiples archivos
-     * Solo soporta ES e EN
+     * Detect language from URL (ES / EN / PT)
      */
     public static function detect_language()
     {
         $uri = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
 
-        if (strpos($uri, '/en/') !== false) {
+        if (strpos($uri, '/en/') !== false || preg_match('#/en$#', $uri)) {
             return 'en';
         }
-        
+
+        if (strpos($uri, '/pt/') !== false || preg_match('#/pt$#', $uri)) {
+            return 'pt';
+        }
+
         return 'es';
     }
 
     /**
-     * Validate language parameter
-     * Esta validación se repetía en varios lugares
-     * Solo soporta ES e EN
+     * Validate language parameter (ES / EN / PT)
      */
     public static function validate_language($language)
     {
-        $valid_languages = array('es', 'en');
-        
+        $valid_languages = array('es', 'en', 'pt');
+
         if (!in_array($language, $valid_languages)) {
-            return 'es'; // Default fallback
+            return 'es';
         }
-        
+
         return $language;
     }
 
     /**
      * Get language name by code
-     * Para mostrar nombres legibles de idiomas
      */
     public static function get_language_name($language)
     {
         $names = array(
             'es' => 'Español',
-            'en' => 'English'
+            'en' => 'English',
+            'pt' => 'Português'
         );
 
         return isset($names[$language]) ? $names[$language] : 'Español';
@@ -137,153 +136,186 @@ class ADC_Utils
     }
 
     /**
-     * Get localized text by key and language
-     * Para centralizar todas las traducciones
-     * Solo ES e EN
+     * Get localized text by key and language (ES / EN / PT)
      */
     public static function get_text($key, $language = 'es')
     {
         $texts = array(
             'programs' => array(
                 'es' => 'Programas',
-                'en' => 'Programs'
+                'en' => 'Programs',
+                'pt' => 'Programas'
             ),
             'search' => array(
                 'es' => 'Buscar',
-                'en' => 'Search'
+                'en' => 'Search',
+                'pt' => 'Buscar'
             ),
             'search_placeholder' => array(
                 'es' => 'Buscar videos...',
-                'en' => 'Search videos...'
+                'en' => 'Search videos...',
+                'pt' => 'Pesquisar vídeos...'
             ),
             'back_to' => array(
                 'es' => 'Volver a',
-                'en' => 'Back to'
+                'en' => 'Back to',
+                'pt' => 'Voltar para'
             ),
             'back_to_programs' => array(
                 'es' => 'Volver a Programas',
-                'en' => 'Back to Programs'
+                'en' => 'Back to Programs',
+                'pt' => 'Voltar aos Programas'
             ),
             'duration' => array(
                 'es' => 'Duración',
-                'en' => 'Duration'
+                'en' => 'Duration',
+                'pt' => 'Duração'
             ),
             'program' => array(
                 'es' => 'Programa',
-                'en' => 'Program'
+                'en' => 'Program',
+                'pt' => 'Programa'
             ),
             'no_programs' => array(
                 'es' => 'No hay programas disponibles',
-                'en' => 'No programs available'
+                'en' => 'No programs available',
+                'pt' => 'Não há programas disponíveis'
             ),
             'no_videos' => array(
                 'es' => 'No se encontraron videos',
-                'en' => 'No videos found'
+                'en' => 'No videos found',
+                'pt' => 'Nenhum vídeo encontrado'
             ),
             'category_not_found' => array(
                 'es' => 'Categoría no encontrada',
-                'en' => 'Category not found'
+                'en' => 'Category not found',
+                'pt' => 'Categoria não encontrada'
             ),
             'video_not_found' => array(
                 'es' => 'Video no encontrado',
-                'en' => 'Video not found'
+                'en' => 'Video not found',
+                'pt' => 'Vídeo não encontrado'
             ),
             'search_results_for' => array(
                 'es' => 'Resultados de búsqueda para',
-                'en' => 'Search results for'
+                'en' => 'Search results for',
+                'pt' => 'Resultados da busca para'
             ),
             'no_results_found' => array(
                 'es' => 'No encontramos resultados para',
-                'en' => 'No results found for'
+                'en' => 'No results found for',
+                'pt' => 'Não encontramos resultados para'
             ),
             'recommended_videos' => array(
                 'es' => 'Quizás te interesen estos videos:',
-                'en' => 'You might be interested in these videos:'
+                'en' => 'You might be interested in these videos:',
+                'pt' => 'Talvez você se interesse por estes vídeos:'
             ),
             'more_videos_from' => array(
                 'es' => 'Más videos de',
-                'en' => 'More videos from'
+                'en' => 'More videos from',
+                'pt' => 'Mais vídeos de'
             ),
             'watch_next_video' => array(
                 'es' => 'Ver siguiente video',
-                'en' => 'Watch next video'
+                'en' => 'Watch next video',
+                'pt' => 'Ver próximo vídeo'
             ),
             'next_video_in' => array(
                 'es' => 'Siguiente video en',
-                'en' => 'Next video in'
+                'en' => 'Next video in',
+                'pt' => 'Próximo vídeo em'
             ),
             'seconds' => array(
                 'es' => 'segundos',
-                'en' => 'seconds'
+                'en' => 'seconds',
+                'pt' => 'segundos'
             ),
             'watch_now' => array(
                 'es' => 'Ver ahora',
-                'en' => 'Watch now'
+                'en' => 'Watch now',
+                'pt' => 'Assistir agora'
             ),
             'cancel' => array(
                 'es' => 'Cancelar',
-                'en' => 'Cancel'
+                'en' => 'Cancel',
+                'pt' => 'Cancelar'
             ),
             'coming_soon' => array(
                 'es' => 'Próximamente',
-                'en' => 'Coming Soon'
+                'en' => 'Coming Soon',
+                'pt' => 'Em breve'
             ),
-            // Audiobooks texts
+            // Audiobooks texts (PT no usa audiolibros pero se dejan por consistencia)
             'audiobooks' => array(
                 'es' => 'Audio Libros',
-                'en' => 'Audiobooks'
+                'en' => 'Audiobooks',
+                'pt' => 'Audiolivros'
             ),
             'audiobooks_subtitle' => array(
                 'es' => 'Escucha los libros del Rabino Amram Anidjar',
-                'en' => 'Listen to Rabbi Amram Anidjar\'s books'
+                'en' => 'Listen to Rabbi Amram Anidjar\'s books',
+                'pt' => 'Ouça os livros do Rabino Amram Anidjar'
             ),
             'audiobook_label' => array(
                 'es' => 'Audiolibro',
-                'en' => 'Audiobook'
+                'en' => 'Audiobook',
+                'pt' => 'Audiolivro'
             ),
             'chapters' => array(
                 'es' => 'capítulos',
-                'en' => 'chapters'
+                'en' => 'chapters',
+                'pt' => 'capítulos'
             ),
             'chapter' => array(
                 'es' => 'Capítulo',
-                'en' => 'Chapter'
+                'en' => 'Chapter',
+                'pt' => 'Capítulo'
             ),
             'minute' => array(
                 'es' => 'Minuto',
-                'en' => 'Minute'
+                'en' => 'Minute',
+                'pt' => 'Minuto'
             ),
             'listened' => array(
                 'es' => 'Escuchado',
-                'en' => 'Listened'
+                'en' => 'Listened',
+                'pt' => 'Ouvido'
             ),
             'continue_listening' => array(
                 'es' => 'Continuar',
-                'en' => 'Continue'
+                'en' => 'Continue',
+                'pt' => 'Continuar'
             ),
             'continue_from' => array(
                 'es' => 'Continuar desde',
-                'en' => 'Continue from'
+                'en' => 'Continue from',
+                'pt' => 'Continuar de'
             ),
             'by' => array(
                 'es' => 'por',
-                'en' => 'by'
+                'en' => 'by',
+                'pt' => 'por'
             ),
             'no_audiobooks' => array(
                 'es' => 'No hay audiolibros disponibles en este momento.',
-                'en' => 'No audiobooks available at this time.'
+                'en' => 'No audiobooks available at this time.',
+                'pt' => 'Não há audiolivros disponíveis no momento.'
             ),
             'audiobook_not_found' => array(
                 'es' => 'Audiolibro no encontrado',
-                'en' => 'Audiobook not found'
+                'en' => 'Audiobook not found',
+                'pt' => 'Audiolivro não encontrado'
             ),
             'audiobook_not_found_desc' => array(
                 'es' => 'El audiolibro que buscas no existe o ha sido movido.',
-                'en' => 'The audiobook you are looking for does not exist or has been moved.'
+                'en' => 'The audiobook you are looking for does not exist or has been moved.',
+                'pt' => 'O audiolivro que você procura não existe ou foi movido.'
             ),
             'back_to_audiobooks' => array(
                 'es' => 'Volver a Audio Libros',
-                'en' => 'Back to Audiobooks'
+                'en' => 'Back to Audiobooks',
+                'pt' => 'Voltar aos Audiolivros'
             )
         );
 
@@ -315,13 +347,11 @@ class ADC_Utils
     }
 
     /**
-     * Check if string is valid language code
-     * Verificación rápida de códigos de idioma
-     * Solo ES e EN
+     * Check if string is valid language code (ES / EN / PT)
      */
     public static function is_valid_language($language)
     {
-        return in_array($language, array('es', 'en'));
+        return in_array($language, array('es', 'en', 'pt'));
     }
 
     /**
@@ -404,11 +434,10 @@ class ADC_Utils
     }
 
     /**
-     * Get valid languages array
-     * Para uso en loops y validaciones
+     * Get valid languages array (ES / EN / PT)
      */
     public static function get_valid_languages()
     {
-        return array('es', 'en');
+        return array('es', 'en', 'pt');
     }
 }

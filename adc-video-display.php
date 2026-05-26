@@ -2,8 +2,8 @@
 
 /**
  * Plugin Name: ADC Video Display Radiant
- * Description: Muestra videos desde el sistema ADC en WordPress con Radiant Media Player – Multiidioma (ES/EN) con URLs Amigables
- * Version:     5.0.0
+ * Description: Muestra videos desde el sistema ADC en WordPress con Radiant Media Player – Multiidioma (ES/EN/PT) con URLs Amigables
+ * Version:     5.1.3
  * Author:      TuTorah Development Team
  */
 
@@ -11,8 +11,8 @@
 add_filter('redirect_canonical', function ($redirect_url) {
     $request_uri = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
     $uri = parse_url($request_uri, PHP_URL_PATH);
-    // Captura /programa/... y /en/program/... Y /buscar/... y /en/search/... Y /audiolibros/... Y /rabino-anidjar/ Y /festividad/...
-    if (preg_match('#^/(en/)?(programa|program|buscar|search|audiolibros|rabino-anidjar|festividad)/#', $uri) ||
+    // Captura /programa/... y /en/program/... y /pt/programa/... Y /buscar/... y /en/search/... y /pt/buscar/... Y /audiolibros/... Y /rabino-anidjar/ Y /festividad/...
+    if (preg_match('#^/(en/|pt/)?(programa|program|buscar|search|audiolibros|rabino-anidjar|festividad)/#', $uri) ||
         preg_match('#^/(audiolibros|rabino-anidjar)/?$#', $uri)) {
         return false;
     }
@@ -72,9 +72,10 @@ class ADC_Video_Display
         // Register hooks
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
 
-        // Register shortcodes for each language (only ES and EN)
+        // Register shortcodes for each language (ES / EN / PT)
         add_shortcode('adc_content', array($this, 'display_content_es'));
         add_shortcode('adc_content_en', array($this, 'display_content_en'));
+        add_shortcode('adc_content_pt', array($this, 'display_content_pt'));
 
         // AJAX handlers
         add_action('wp_ajax_adc_search', array($this, 'handle_ajax_search'));
@@ -109,9 +110,9 @@ class ADC_Video_Display
         add_filter('query_vars', array($this, 'add_query_vars'));
 
         // Check if rewrite rules need to be flushed
-        if (get_option('adc_rewrite_rules_flushed') !== '4.1') {
+        if (get_option('adc_rewrite_rules_flushed') !== '5.1') {
             flush_rewrite_rules();
-            update_option('adc_rewrite_rules_flushed', '4.1');
+            update_option('adc_rewrite_rules_flushed', '5.1');
         }
     }
 
@@ -156,6 +157,25 @@ class ADC_Video_Display
         add_rewrite_rule(
             '^en/search/([^/]+)/?$',
             'index.php?adc_language=en&adc_type=search&adc_search=$matches[1]',
+            'top'
+        );
+
+        // Portuguese URLs
+        add_rewrite_rule(
+            '^pt/programa/([^/]+)/([^/]+)/?$',
+            'index.php?adc_language=pt&adc_type=video&adc_program=$matches[1]&adc_video=$matches[2]',
+            'top'
+        );
+
+        add_rewrite_rule(
+            '^pt/programa/([^/]+)/?$',
+            'index.php?adc_language=pt&adc_type=program&adc_program=$matches[1]',
+            'top'
+        );
+
+        add_rewrite_rule(
+            '^pt/buscar/([^/]+)/?$',
+            'index.php?adc_language=pt&adc_type=search&adc_search=$matches[1]',
             'top'
         );
 
@@ -220,12 +240,12 @@ class ADC_Video_Display
      */
     private function handle_legacy_redirects()
     {
-        // Si la REQUEST_URI coincide con /programa/... o /en/program/... o /buscar/... o /audiolibros/...,
+        // Si la REQUEST_URI coincide con /programa/... o /en/program/... o /pt/programa/... o /buscar/... o /audiolibros/...,
         // es un friendly URL y no debemos redirigir:
         $uri = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
         if (
-            preg_match('#^/(en/)?(programa|program)/#', $uri) ||
-            preg_match('#^/(en/)?(buscar|search)/#',   $uri) ||
+            preg_match('#^/(en/|pt/)?(programa|program)/#', $uri) ||
+            preg_match('#^/(en/|pt/)?(buscar|search)/#',   $uri) ||
             preg_match('#^/audiolibros(/|$)#',         $uri) ||
             preg_match('#^/rabino-anidjar(/|$)#',      $uri) ||
             preg_match('#^/festividad(/|$)#',           $uri)
@@ -245,19 +265,29 @@ class ADC_Video_Display
 
         // Detectar idioma
         $lang   = ADC_Utils::detect_language();
-        $prefix = $lang === 'en' ? 'en/' : '';
+        if ($lang === 'en') {
+            $prefix = 'en/';
+            $kw_search = 'search';
+            $kw_program = 'program';
+        } elseif ($lang === 'pt') {
+            $prefix = 'pt/';
+            $kw_search = 'buscar';
+            $kw_program = 'programa';
+        } else {
+            $prefix = '';
+            $kw_search = 'buscar';
+            $kw_program = 'programa';
+        }
 
-        // Legacy search → friendly /buscar/ ó /en/search/
+        // Legacy search → friendly URL
         if ($adc_search) {
-            $keyword = $lang === 'en' ? 'search' : 'buscar';
-            wp_redirect(home_url("/{$prefix}{$keyword}/" . urlencode($adc_search) . "/"), 301);
+            wp_redirect(home_url("/{$prefix}{$kw_search}/" . urlencode($adc_search) . "/"), 301);
             exit;
         }
 
-        // Legacy program/video → friendly /programa/slug[/video]/ ó /en/program/.../
+        // Legacy program/video → friendly URL
         if ($categoria) {
-            $keyword = $lang === 'en' ? 'program' : 'programa';
-            $base    = home_url("/{$prefix}{$keyword}/{$categoria}/");
+            $base    = home_url("/{$prefix}{$kw_program}/{$categoria}/");
             $url     = $video ? "{$base}{$video}/" : $base;
             wp_redirect($url, 301);
             exit;
@@ -303,7 +333,14 @@ class ADC_Video_Display
             // Invalid parameters, redirect to home
             // 302 (no 301): la causa puede ser caché de plugin desactualizada al subir un video nuevo;
             // un 301 lo cachean los navegadores y deja la URL "pegada" al home aunque luego sí exista.
-            $home_url = $this->current_url_params['language'] === 'en' ? home_url('/en/') : home_url('/');
+            $lang = $this->current_url_params['language'];
+            if ($lang === 'en') {
+                $home_url = home_url('/en/');
+            } elseif ($lang === 'pt') {
+                $home_url = home_url('/pt/');
+            } else {
+                $home_url = home_url('/');
+            }
             wp_redirect($home_url, 302);
             exit;
         }
@@ -423,27 +460,33 @@ class ADC_Video_Display
             $redirect_url = home_url('/en/');
             $debug_info['reason'] = 'URL starts with /en';
 
-            // Verificar si es una URL válida del plugin que no debería redirigir
             if (preg_match('#^/en/(program|search)/#', $clean_uri)) {
-                // Es una URL del plugin pero dio 404, probablemente programa/video inexistente
-                // Redirigir al home inglés
                 $debug_info['reason'] = 'Invalid plugin URL in English';
             } elseif ($clean_uri === '/en') {
-                // /en exacto - no redirigir, dejar que WordPress maneje
                 $debug_info['reason'] = 'Exact /en - let WordPress handle';
                 $this->output_404_debug('ADC 404 Handler', $debug_info);
                 return;
             }
+        } elseif (strpos($clean_uri, '/pt') === 0) {
+            // URLs que empiezan con /pt
+            $detected_language = 'pt';
+            $redirect_url = home_url('/pt/');
+            $debug_info['reason'] = 'URL starts with /pt';
+
+            if (preg_match('#^/pt/(programa|buscar)/#', $clean_uri)) {
+                $debug_info['reason'] = 'Invalid plugin URL in Portuguese';
+            } elseif ($clean_uri === '/pt') {
+                $debug_info['reason'] = 'Exact /pt - let WordPress handle';
+                $this->output_404_debug('ADC 404 Handler', $debug_info);
+                return;
+            }
         } else {
-            // URLs en español (no empiezan con /en)
+            // URLs en español (no empiezan con /en ni /pt)
             $detected_language = 'es';
             $redirect_url = home_url('/');
             $debug_info['reason'] = 'Spanish URL or default';
 
-            // Verificar si es una URL válida del plugin que no debería redirigir
             if (preg_match('#^/(programa|buscar)/#', $clean_uri)) {
-                // Es una URL del plugin pero dio 404, probablemente programa/video inexistente
-                // Redirigir al home español
                 $debug_info['reason'] = 'Invalid plugin URL in Spanish';
             }
         }
@@ -467,8 +510,9 @@ class ADC_Video_Display
         // No redirigir si ya estamos en la página home
         $home_path = parse_url(home_url('/'), PHP_URL_PATH);
         $en_home_path = parse_url(home_url('/en/'), PHP_URL_PATH);
+        $pt_home_path = parse_url(home_url('/pt/'), PHP_URL_PATH);
 
-        if ($clean_uri === rtrim($home_path, '/') || $clean_uri === rtrim($en_home_path, '/')) {
+        if ($clean_uri === rtrim($home_path, '/') || $clean_uri === rtrim($en_home_path, '/') || $clean_uri === rtrim($pt_home_path, '/')) {
             $debug_info['reason'] = 'Already on home page - not redirecting';
             $this->output_404_debug('ADC 404 Handler', $debug_info);
             return;
@@ -546,7 +590,13 @@ class ADC_Video_Display
 
 
         // Determine which page to show based on language - CORREGIDO
-        $target_page_slug = $adc_language === 'en' ? 'en' : 'home';
+        if ($adc_language === 'en') {
+            $target_page_slug = 'en';
+        } elseif ($adc_language === 'pt') {
+            $target_page_slug = 'pt';
+        } else {
+            $target_page_slug = 'home';
+        }
 
         // Find the page with the appropriate shortcode
         $target_page = get_page_by_path($target_page_slug);
@@ -554,7 +604,13 @@ class ADC_Video_Display
 
         if (!$target_page) {
             // Fallback: find page by title
-            $page_title = $adc_language === 'en' ? 'Home Ingles' : 'Home';
+            if ($adc_language === 'en') {
+                $page_title = 'Home Ingles';
+            } elseif ($adc_language === 'pt') {
+                $page_title = 'Home Portugues';
+            } else {
+                $page_title = 'Home';
+            }
             $pages = get_pages(array(
                 'title' => $page_title,
                 'post_status' => 'publish'
@@ -585,14 +641,14 @@ class ADC_Video_Display
             'adc-style',
             ADC_PLUGIN_URL . 'style.css',
             array(),
-            '5.0.0'
+            '5.1.3'
         );
 
         wp_enqueue_script(
             'adc-script',
             ADC_PLUGIN_URL . 'script.js',
             array('jquery'),
-            '5.0.0',
+            '5.1.3',
             true
         );
 
@@ -612,7 +668,7 @@ class ADC_Video_Display
             'adc-radiant-bridge',
             ADC_PLUGIN_URL . 'assets/js/radiant-bridge.js',
             array(),
-            '5.0.0',
+            '5.1.3',
             true
         );
     }
@@ -688,8 +744,13 @@ class ADC_Video_Display
         $language = isset($_POST['language']) ? ADC_Utils::validate_language($_POST['language']) : 'es';
 
         if (empty($search_term)) {
+            $msgs = array(
+                'en' => 'No search term provided',
+                'pt' => 'Nenhum termo de busca fornecido',
+                'es' => 'No se proporcionó término de búsqueda'
+            );
             wp_send_json_error(array(
-                'message' => $language === 'en' ? 'No search term provided' : 'No se proporcionó término de búsqueda'
+                'message' => isset($msgs[$language]) ? $msgs[$language] : $msgs['es']
             ));
         }
 
@@ -716,8 +777,13 @@ class ADC_Video_Display
 
             // Verificar que la API esté configurada
             if (!$api->is_configured()) {
+                $msgs = array(
+                    'en' => 'API not configured',
+                    'pt' => 'API não configurada',
+                    'es' => 'API no configurada'
+                );
                 wp_send_json_error(array(
-                    'message' => $language === 'en' ? 'API not configured' : 'API no configurada'
+                    'message' => isset($msgs[$language]) ? $msgs[$language] : $msgs['es']
                 ));
                 return;
             }
@@ -734,8 +800,13 @@ class ADC_Video_Display
 
             wp_send_json_success($programs);
         } catch (Exception $e) {
+            $msgs = array(
+                'en' => 'Internal server error',
+                'pt' => 'Erro interno do servidor',
+                'es' => 'Error interno del servidor'
+            );
             wp_send_json_error(array(
-                'message' => $language === 'en' ? 'Internal server error' : 'Error interno del servidor'
+                'message' => isset($msgs[$language]) ? $msgs[$language] : $msgs['es']
             ));
         }
     }
@@ -765,6 +836,13 @@ class ADC_Video_Display
         return $this->display_content($atts);
     }
 
+    public function display_content_pt($atts)
+    {
+        $this->language = 'pt';
+        $this->api = new ADC_API('pt');
+        return $this->display_content($atts);
+    }
+
     /**
      * Main content display handler - UPDATED for friendly URLs
      */
@@ -786,7 +864,13 @@ class ADC_Video_Display
 
         // Check if API is configured
         if (!$this->api->is_configured()) {
-            return '<div class="adc-error">El plugin ADC Video Display no está configurado. Por favor configura la API en el panel de administración.</div>';
+            $cfg_msgs = array(
+                'es' => 'El plugin ADC Video Display no está configurado. Por favor configura la API en el panel de administración.',
+                'en' => 'The ADC Video Display plugin is not configured. Please configure the API in the admin panel.',
+                'pt' => 'O plugin ADC Video Display não está configurado. Por favor, configure a API no painel de administração.'
+            );
+            $msg = isset($cfg_msgs[$this->language]) ? $cfg_msgs[$this->language] : $cfg_msgs['es'];
+            return '<div class="adc-error">' . $msg . '</div>';
         }
 
         // Check for friendly URL parameters first
@@ -881,7 +965,13 @@ class ADC_Video_Display
         }
 
         if (empty($search_term)) {
-            return '<div class="adc-error">Por favor ingresa un término de búsqueda.</div>';
+            $empty_msgs = array(
+                'es' => 'Por favor ingresa un término de búsqueda.',
+                'en' => 'Please enter a search term.',
+                'pt' => 'Por favor, insira um termo de busca.'
+            );
+            $msg = isset($empty_msgs[$this->language]) ? $empty_msgs[$this->language] : $empty_msgs['es'];
+            return '<div class="adc-error">' . $msg . '</div>';
         }
 
         // Try to get actual search results first
@@ -926,10 +1016,14 @@ class ADC_Video_Display
             'en' => array(
                 'title' => 'No results found for',
                 'recommended_title' => 'You might be interested in these videos:'
+            ),
+            'pt' => array(
+                'title' => 'Não encontramos resultados para',
+                'recommended_title' => 'Talvez você se interesse por estes vídeos:'
             )
         );
 
-        $texts = $no_results_texts[$language];
+        $texts = isset($no_results_texts[$language]) ? $no_results_texts[$language] : $no_results_texts['es'];
 
         // Main "no results" message
         $output = '<div class="adc-no-results-section">';
@@ -954,7 +1048,13 @@ class ADC_Video_Display
         $programs = $this->api->get_programs();
 
         if (empty($programs)) {
-            return '<div class="adc-recommended-empty">No hay recomendaciones disponibles en este momento.</div>';
+            $empty_msgs = array(
+                'es' => 'No hay recomendaciones disponibles en este momento.',
+                'en' => 'No recommendations available at this time.',
+                'pt' => 'Não há recomendações disponíveis no momento.'
+            );
+            $msg = isset($empty_msgs[$this->language]) ? $empty_msgs[$this->language] : $empty_msgs['es'];
+            return '<div class="adc-recommended-empty">' . $msg . '</div>';
         }
 
         // Get videos from all programs
@@ -1001,6 +1101,8 @@ class ADC_Video_Display
 
         if ($this->language === 'en') {
             return $base_url . 'en/program/' . $program_slug . '/' . $video_slug . '/';
+        } elseif ($this->language === 'pt') {
+            return $base_url . 'pt/programa/' . $program_slug . '/' . $video_slug . '/';
         } else {
             return $base_url . 'programa/' . $program_slug . '/' . $video_slug . '/';
         }
@@ -1015,6 +1117,8 @@ class ADC_Video_Display
 
         if ($this->language === 'en') {
             return $base_url . 'en/program/' . $program_slug . '/';
+        } elseif ($this->language === 'pt') {
+            return $base_url . 'pt/programa/' . $program_slug . '/';
         } else {
             return $base_url . 'programa/' . $program_slug . '/';
         }
@@ -1055,7 +1159,13 @@ class ADC_Video_Display
      */
     private function render_festival_banner($festival)
     {
-        $texto = ($this->language === 'en') ? $festival['texto_en'] : $festival['texto_es'];
+        if ($this->language === 'en') {
+            $texto = $festival['texto_en'];
+        } elseif ($this->language === 'pt') {
+            $texto = isset($festival['texto_pt']) ? $festival['texto_pt'] : $festival['texto_es'];
+        } else {
+            $texto = $festival['texto_es'];
+        }
         $url = home_url('/festividad/' . $festival['slug'] . '/');
 
         $output = '<div class="adc-festival-banner">';
@@ -1082,21 +1192,40 @@ class ADC_Video_Display
         // Buscar videos por tags
         $videos = $this->api->search_by_tags($festival['tags']);
 
-        $texto = ($this->language === 'en') ? $festival['texto_en'] : $festival['texto_es'];
+        if ($this->language === 'en') {
+            $texto = $festival['texto_en'];
+        } elseif ($this->language === 'pt') {
+            $texto = isset($festival['texto_pt']) ? $festival['texto_pt'] : $festival['texto_es'];
+        } else {
+            $texto = $festival['texto_es'];
+        }
 
         $output = '<div class="adc-festival-page">';
 
         // Botón volver
-        $back_text = ($this->language === 'en') ? '&larr; Back' : '&larr; Volver';
-        $output .= '<a href="' . esc_url(home_url('/')) . '" class="adc-back-button">' . $back_text . '</a>';
+        if ($this->language === 'en') {
+            $back_text = '&larr; Back';
+            $back_url = home_url('/en/');
+        } elseif ($this->language === 'pt') {
+            $back_text = '&larr; Voltar';
+            $back_url = home_url('/pt/');
+        } else {
+            $back_text = '&larr; Volver';
+            $back_url = home_url('/');
+        }
+        $output .= '<a href="' . esc_url($back_url) . '" class="adc-back-button">' . $back_text . '</a>';
 
         // Título
         $output .= '<h1 class="adc-festival-title">' . esc_html($texto) . '</h1>';
 
         if (empty($videos)) {
-            $no_videos_text = ($this->language === 'en')
-                ? 'No videos available for this festival yet.'
-                : 'Aún no hay videos disponibles para esta festividad.';
+            if ($this->language === 'en') {
+                $no_videos_text = 'No videos available for this festival yet.';
+            } elseif ($this->language === 'pt') {
+                $no_videos_text = 'Ainda não há vídeos disponíveis para este feriado.';
+            } else {
+                $no_videos_text = 'Aún no hay videos disponibles para esta festividad.';
+            }
             $output .= '<div class="adc-error">' . $no_videos_text . '</div>';
         } else {
             $output .= '<div class="adc-recommended-videos">';
@@ -1662,6 +1791,7 @@ function adc_video_display_activate()
     // Initialize program order options for each language (only ES and EN now)
     add_option('adc_programs_order_es', array());
     add_option('adc_programs_order_en', array());
+    add_option('adc_programs_order_pt', array());
 
     // Force rewrite rules flush on activation
     update_option('adc_rewrite_rules_flushed', '0');
@@ -1731,7 +1861,46 @@ function adc_display_cache_clear_page()
 
     // Detectar idioma actual
     $current_language = ADC_Utils::detect_language();
-    $is_english = ($current_language === 'en');
+
+    $i18n = array(
+        'es' => array(
+            'title' => 'Caché Limpiado',
+            'success_title' => '¡Caché Limpiado Exitosamente!',
+            'success_msg' => 'El caché del sitio web ha sido limpiado exitosamente. Todo el contenido ahora mostrará las actualizaciones más recientes inmediatamente.',
+            'redirect' => 'Redirigiendo al inicio en',
+            'seconds' => 'segundos',
+            'go_home_now' => 'Ir al Inicio Ahora',
+            'error_title' => 'Error al Limpiar Caché',
+            'error_msg' => 'Hubo un error al limpiar el caché del sitio web. Por favor intenta nuevamente o contacta soporte.',
+            'error_details' => 'Detalles del Error:',
+            'go_home' => 'Ir al Inicio'
+        ),
+        'en' => array(
+            'title' => 'Cache Cleared',
+            'success_title' => 'Cache Cleared Successfully!',
+            'success_msg' => 'The website cache has been cleared successfully. All content will now display the latest updates immediately.',
+            'redirect' => 'Redirecting to home in',
+            'seconds' => 'seconds',
+            'go_home_now' => 'Go to Home Now',
+            'error_title' => 'Cache Clear Failed',
+            'error_msg' => 'There was an error clearing the website cache. Please try again or contact support.',
+            'error_details' => 'Error Details:',
+            'go_home' => 'Go to Home'
+        ),
+        'pt' => array(
+            'title' => 'Cache Limpo',
+            'success_title' => 'Cache Limpo com Sucesso!',
+            'success_msg' => 'O cache do site foi limpo com sucesso. Todo o conteúdo agora exibirá as atualizações mais recentes imediatamente.',
+            'redirect' => 'Redirecionando para o início em',
+            'seconds' => 'segundos',
+            'go_home_now' => 'Ir para o Início Agora',
+            'error_title' => 'Erro ao Limpar Cache',
+            'error_msg' => 'Houve um erro ao limpar o cache do site. Por favor, tente novamente ou entre em contato com o suporte.',
+            'error_details' => 'Detalhes do Erro:',
+            'go_home' => 'Ir para o Início'
+        )
+    );
+    $t = isset($i18n[$current_language]) ? $i18n[$current_language] : $i18n['es'];
 
 ?>
     <!DOCTYPE html>
@@ -1740,7 +1909,7 @@ function adc_display_cache_clear_page()
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title><?php echo $is_english ? 'Cache Cleared' : 'Caché Limpiado'; ?> - TuIA</title>
+        <title><?php echo $t['title']; ?> - TuIA</title>
         <link rel="stylesheet" href="<?php echo ADC_PLUGIN_URL; ?>cache-clear-styles.css">
     </head>
 
@@ -1749,22 +1918,20 @@ function adc_display_cache_clear_page()
             <?php if ($success): ?>
                 <div class="success-icon">✅</div>
                 <h1 class="title success-title">
-                    <?php echo $is_english ? 'Cache Cleared Successfully!' : '¡Caché Limpiado Exitosamente!'; ?>
+                    <?php echo $t['success_title']; ?>
                 </h1>
                 <p class="message">
-                    <?php echo $is_english
-                        ? 'The website cache has been cleared successfully. All content will now display the latest updates immediately.'
-                        : 'El caché del sitio web ha sido limpiado exitosamente. Todo el contenido ahora mostrará las actualizaciones más recientes inmediatamente.'; ?>
+                    <?php echo $t['success_msg']; ?>
                 </p>
 
                 <div class="countdown">
-                    <?php echo $is_english ? 'Redirecting to home in' : 'Redirigiendo al inicio en'; ?>
+                    <?php echo $t['redirect']; ?>
                     <span class="countdown-number" id="countdown">5</span>
-                    <?php echo $is_english ? 'seconds' : 'segundos'; ?>
+                    <?php echo $t['seconds']; ?>
                 </div>
 
                 <a href="<?php echo home_url('/'); ?>" class="home-button" id="homeButton">
-                    <?php echo $is_english ? 'Go to Home Now' : 'Ir al Inicio Ahora'; ?>
+                    <?php echo $t['go_home_now']; ?>
                 </a>
 
                 <script>
@@ -1782,7 +1949,6 @@ function adc_display_cache_clear_page()
                         }
                     }, 500);
 
-                    // Allow immediate redirect on button click
                     homeButton.addEventListener('click', () => {
                         clearInterval(timer);
                     });
@@ -1791,23 +1957,21 @@ function adc_display_cache_clear_page()
             <?php else: ?>
                 <div class="error-icon">❌</div>
                 <h1 class="title error-title">
-                    <?php echo $is_english ? 'Cache Clear Failed' : 'Error al Limpiar Caché'; ?>
+                    <?php echo $t['error_title']; ?>
                 </h1>
                 <p class="message">
-                    <?php echo $is_english
-                        ? 'There was an error clearing the website cache. Please try again or contact support.'
-                        : 'Hubo un error al limpiar el caché del sitio web. Por favor intenta nuevamente o contacta soporte.'; ?>
+                    <?php echo $t['error_msg']; ?>
                 </p>
 
                 <?php if ($error_message): ?>
                     <div class="error-details">
-                        <strong><?php echo $is_english ? 'Error Details:' : 'Detalles del Error:'; ?></strong><br>
+                        <strong><?php echo $t['error_details']; ?></strong><br>
                         <?php echo esc_html($error_message); ?>
                     </div>
                 <?php endif; ?>
 
                 <a href="<?php echo home_url('/'); ?>" class="home-button">
-                    <?php echo $is_english ? 'Go to Home' : 'Ir al Inicio'; ?>
+                    <?php echo $t['go_home']; ?>
                 </a>
             <?php endif; ?>
         </div>

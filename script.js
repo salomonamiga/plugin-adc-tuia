@@ -55,11 +55,14 @@
                     .replace(/-+$/, '');
             },
 
-            // Detect language from URL (only ES/EN)
+            // Detect language from URL (ES / EN / PT)
             detectLanguage: function () {
                 var path = window.location.pathname;
                 if (path.indexOf('/en/') !== -1 || path.startsWith('/en')) {
                     return 'en';
+                }
+                if (path.indexOf('/pt/') !== -1 || path.startsWith('/pt')) {
+                    return 'pt';
                 }
                 return 'es';
             },
@@ -68,6 +71,7 @@
             buildProgramUrl: function (programSlug, language) {
                 language = language || ADCVideo.state.currentLanguage;
                 var baseUrl = ADCVideo.utils.getBaseUrl(language);
+                // EN usa "program", ES y PT usan "programa"
                 var programKeyword = language === 'en' ? 'program' : 'programa';
 
                 return baseUrl + programKeyword + '/' + programSlug + '/';
@@ -86,6 +90,7 @@
             buildSearchUrl: function (searchTerm, language) {
                 language = language || ADCVideo.state.currentLanguage;
                 var baseUrl = ADCVideo.utils.getBaseUrl(language);
+                // EN usa "search", ES y PT usan "buscar"
                 var searchKeyword = language === 'en' ? 'search' : 'buscar';
 
                 return baseUrl + searchKeyword + '/' + encodeURIComponent(searchTerm) + '/';
@@ -108,6 +113,8 @@
                 var baseUrl = window.location.origin + '/';
                 if (language === 'en') {
                     baseUrl += 'en/';
+                } else if (language === 'pt') {
+                    baseUrl += 'pt/';
                 }
                 return baseUrl;
             },
@@ -269,7 +276,12 @@
                                 $dropdown.html(html);
                                 $dropdown.data('programs-loaded', true);
                             } else {
-                                var errorMsg = 'No hay programas disponibles';
+                                var fallbackMsgs = {
+                                    es: 'No hay programas disponibles',
+                                    en: 'No programs available',
+                                    pt: 'Não há programas disponíveis'
+                                };
+                                var errorMsg = fallbackMsgs[language] || fallbackMsgs.es;
                                 if (response.data && response.data.message) {
                                     errorMsg = response.data.message;
                                 }
@@ -309,7 +321,7 @@
                     }
                 }
 
-                // Configurar elementos existentes al inicializar - Solo ES/EN
+                // Configurar elementos existentes al inicializar - ES / EN / PT
                 // Español
                 $('a:contains("PROGRAMAS_ES"), .adc-programs-menu-trigger a').each(function () {
                     var $this = $(this);
@@ -328,17 +340,31 @@
                     }
                 });
 
+                // Portugués
+                $('a:contains("PROGRAMAS_PT"), .adc-programs-menu-trigger-pt a').each(function () {
+                    var $this = $(this);
+                    if ($this.text().trim() === 'PROGRAMAS_PT' || $this.hasClass('adc-programs-menu-trigger-pt')) {
+                        $this.text('PROGRAMAS');
+                        setupProgramsElement($this, 'pt');
+                    }
+                });
+
                 // Usar delegación de eventos para manejar clicks
                 $(document).on('click.programs-menu', 'a', function (e) {
                     var $this = $(this);
                     var text = $this.text().trim();
                     var language = null;
 
-                    // Detectar idioma por texto o clase - Solo ES/EN
-                    if (text === 'PROGRAMAS' || text === 'PROGRAMAS_ES' || $this.parent().hasClass('adc-programs-menu-trigger')) {
+                    // Detectar idioma por texto o clase - ES / EN / PT
+                    if (text === 'PROGRAMAS_ES' || $this.parent().hasClass('adc-programs-menu-trigger')) {
                         language = 'es';
                     } else if (text === 'PROGRAMS' || text === 'PROGRAMAS_EN' || $this.parent().hasClass('adc-programs-menu-trigger-en')) {
                         language = 'en';
+                    } else if (text === 'PROGRAMAS_PT' || $this.parent().hasClass('adc-programs-menu-trigger-pt')) {
+                        language = 'pt';
+                    } else if (text === 'PROGRAMAS') {
+                        // Disambiguación por URL si solo dice "PROGRAMAS" (ES o PT)
+                        language = ADCVideo.utils.detectLanguage() === 'pt' ? 'pt' : 'es';
                     }
 
                     if (language) {
@@ -436,13 +462,20 @@
                     var language = null;
                     var placeholderText = '';
 
-                    // Detectar idioma - Solo ES/EN
-                    if (text === 'BUSCADOR_ES' || text === 'BUSCADOR' || $searchLink.parent().hasClass('adc-search-menu-trigger')) {
+                    // Detectar idioma - ES / EN / PT
+                    if (text === 'BUSCADOR_ES' || $searchLink.parent().hasClass('adc-search-menu-trigger')) {
                         language = 'es';
                         placeholderText = 'Buscar...';
                     } else if (text === 'BUSCADOR_EN' || text === 'SEARCH' || $searchLink.parent().hasClass('adc-search-menu-trigger-en')) {
                         language = 'en';
                         placeholderText = 'Search...';
+                    } else if (text === 'BUSCADOR_PT' || $searchLink.parent().hasClass('adc-search-menu-trigger-pt')) {
+                        language = 'pt';
+                        placeholderText = 'Pesquisar...';
+                    } else if (text === 'BUSCADOR') {
+                        // Disambiguación por URL si solo dice "BUSCADOR" (ES o PT)
+                        language = ADCVideo.utils.detectLanguage() === 'pt' ? 'pt' : 'es';
+                        placeholderText = language === 'pt' ? 'Pesquisar...' : 'Buscar...';
                     }
 
                     if (!language) {

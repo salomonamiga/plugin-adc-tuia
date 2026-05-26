@@ -1,7 +1,25 @@
 # 🔌 Plugin ADC TUIA - WordPress Integration
 
 ## 📋 DESCRIPCIÓN
-Plugin de WordPress que integra el sistema ADC con el sitio TUIA.tv, mostrando videos de TuTorah con soporte multiidioma (ES/EN) y URLs amigables.
+Plugin de WordPress que integra el sistema ADC con el sitio TUIA.tv, mostrando videos de TuTorah con soporte multiidioma (ES / EN / PT) y URLs amigables.
+
+## 🚨🚨🚨 CRÍTICO: NOMBRE DEL PLUGIN EN SERVIDOR 🚨🚨🚨
+
+**EL PLUGIN ACTIVO EN PRODUCCIÓN SE LLAMA `ADC-Radiant`, NO `ADC`**.
+
+```
+/home/customer/www/tuia.tv/public_html/wp-content/plugins/ADC-Radiant/   ← ESTE es el activo
+/home/customer/www/tuia.tv/public_html/wp-content/plugins/ADC-Radiant/           ← INACTIVO (ignorar)
+```
+
+Verificable con:
+```bash
+ssh ... "wp plugin list --path=/home/customer/www/tuia.tv/public_html/ | grep -i adc"
+# ADC-Radiant   active     5.1.3
+# ADC           inactive   5.0.0
+```
+
+**SIEMPRE deployar a `ADC-Radiant/`**. Si subes a `ADC/` no pasa nada (porque está inactivo) y vas a perder horas debuggeando por qué los cambios no se ven. **Este error ya pasó el 2026-05-26**, por eso este warning.
 
 ## 🔐 CREDENCIALES Y SERVIDOR
 
@@ -18,7 +36,7 @@ Plugin de WordPress que integra el sistema ADC con el sitio TUIA.tv, mostrando v
 
 ### Path Remoto
 - **Directorio web:** `/home/customer/www/tuia.tv/public_html/`
-- **Plugin path:** `/home/customer/www/tuia.tv/public_html/wp-content/plugins/ADC/`
+- **Plugin path:** `/home/customer/www/tuia.tv/public_html/wp-content/plugins/ADC-Radiant/` ← **OJO: ADC-Radiant, NO ADC**
 - **URL Sitio:** `https://tuia.tv/`
 
 ## 💻 STACK TECNOLÓGICO
@@ -29,7 +47,7 @@ Plugin de WordPress que integra el sistema ADC con el sitio TUIA.tv, mostrando v
 - **API:** API TuTorah REST (`https://api.tutorah.tv/v2`)
 - **Arquitectura:** WordPress Plugin (OOP)
 - **Caché:** WordPress Transients + Object Cache
-- **Multiidioma:** Español/Inglés integrado
+- **Multiidioma:** Español / Inglés / Portugués integrado
 
 ## 📁 ESTRUCTURA DEL PLUGIN
 
@@ -72,12 +90,12 @@ git pull
 # Desde Mac Personal
 scp -i ~/.ssh/id_ed25519_tuia -P 18765 \
   adc-video-display.php \
-  u2551-h32rfkbi0mar@ssh.tuia.tv:/home/customer/www/tuia.tv/public_html/wp-content/plugins/ADC/
+  u2551-h32rfkbi0mar@ssh.tuia.tv:/home/customer/www/tuia.tv/public_html/wp-content/plugins/ADC-Radiant/
 
 # Desde Mac Oficina
 scp -i ~/.ssh/id_ed25519_tuia_mac_oficina -P 18765 \
   adc-video-display.php \
-  u2551-h32rfkbi0mar@ssh.tuia.tv:/home/customer/www/tuia.tv/public_html/wp-content/plugins/ADC/
+  u2551-h32rfkbi0mar@ssh.tuia.tv:/home/customer/www/tuia.tv/public_html/wp-content/plugins/ADC-Radiant/
 ```
 
 #### Opción B: Subir plugin completo
@@ -85,12 +103,12 @@ scp -i ~/.ssh/id_ed25519_tuia_mac_oficina -P 18765 \
 # Desde Mac Personal
 rsync -avz --exclude='.git' --exclude='*.log' --exclude='*.backup*' \
   -e "ssh -i ~/.ssh/id_ed25519_tuia -p 18765" \
-  ./ u2551-h32rfkbi0mar@ssh.tuia.tv:/home/customer/www/tuia.tv/public_html/wp-content/plugins/ADC/
+  ./ u2551-h32rfkbi0mar@ssh.tuia.tv:/home/customer/www/tuia.tv/public_html/wp-content/plugins/ADC-Radiant/
 
 # Desde Mac Oficina
 rsync -avz --exclude='.git' --exclude='*.log' --exclude='*.backup*' \
   -e "ssh -i ~/.ssh/id_ed25519_tuia_mac_oficina -p 18765" \
-  ./ u2551-h32rfkbi0mar@ssh.tuia.tv:/home/customer/www/tuia.tv/public_html/wp-content/plugins/ADC/
+  ./ u2551-h32rfkbi0mar@ssh.tuia.tv:/home/customer/www/tuia.tv/public_html/wp-content/plugins/ADC-Radiant/
 ```
 
 ### 4. Probar en TUIA.tv
@@ -156,7 +174,7 @@ ssh -i ~/.ssh/id_ed25519_tuia_mac_oficina -p 18765 u2551-h32rfkbi0mar@ssh.tuia.t
 # Backup completo
 rsync -avz --exclude='.git' \
   -e "ssh -i ~/.ssh/id_ed25519_tuia_mac_oficina -p 18765" \
-  u2551-h32rfkbi0mar@ssh.tuia.tv:/home/customer/www/tuia.tv/public_html/wp-content/plugins/ADC/ \
+  u2551-h32rfkbi0mar@ssh.tuia.tv:/home/customer/www/tuia.tv/public_html/wp-content/plugins/ADC-Radiant/ \
   ~/Dev/_backups/Plugin_TUIA_backup_$(date +%Y%m%d_%H%M%S)/
 ```
 
@@ -195,15 +213,26 @@ rsync -avz --exclude='.git' \
 // Contenido principal
 [adc_content]      // Español
 [adc_content_en]   // Inglés
+[adc_content_pt]   // Portugués
 
 // Menús de programas
 [adc_programs_menu text="PROGRAMAS"]        // Español
 [adc_programs_menu_en text="PROGRAMS"]      // Inglés
+[adc_programs_menu_pt text="PROGRAMAS"]     // Portugués
 
 // Búsqueda
 [adc_search_form]     // Español
 [adc_search_form_en]  // Inglés
+[adc_search_form_pt]  // Portugués
 ```
+
+### URLs friendly por idioma
+
+| Idioma | Home | Programa | Video | Búsqueda |
+|--------|------|----------|-------|----------|
+| ES | `/` | `/programa/<slug>/` | `/programa/<slug>/<video>/` | `/buscar/<termino>/` |
+| EN | `/en/` | `/en/program/<slug>/` | `/en/program/<slug>/<video>/` | `/en/search/<termino>/` |
+| PT | `/pt/` | `/pt/programa/<slug>/` | `/pt/programa/<slug>/<video>/` | `/pt/buscar/<termino>/` |
 
 Ver más en `DOCUMENTATION.md`
 
@@ -259,7 +288,28 @@ El plugin se integra con:
 
 ---
 
-**Última actualización:** 2025-11-13
-**Versión plugin:** 3.2
+## 🌐 Soporte multiidioma (ES / EN / PT)
+
+El plugin soporta 3 idiomas con secciones aisladas:
+
+| Idioma | Slug URL | Sección BD | Endpoint API | Sufijo imagen |
+|--------|----------|-----------|--------------|---------------|
+| Español | `/` | 5 (IA) | `/v2/ia/categories` | `_ia.png` |
+| Inglés | `/en/` | 6 (IA_en) | `/v2/ia_en/categories` | `_ia_en.png` |
+| Portugués | `/pt/` | 7 (IA_pt) | `/v2/ia_pt/categories` | `_ia_pt.png` |
+
+**Nombres de categoría:**
+- ES → columna `categorias.nombre`
+- EN → comparte `categorias.nombre` (no hay traducción de nombres a inglés)
+- PT → columna **`categorias.nombreIA_pt`** (sí tiene traducción propia)
+
+**Cache buster:** El plugin enqueue scripts/styles con `?ver=<version>`. SiteGround cachea estos archivos 10 años en el navegador del usuario. Al hacer cambios en `script.js` / `style.css`, **siempre bumpea la versión** en `adc-video-display.php`:
+- Header `Version: X.Y.Z`
+- 3 llamadas `wp_enqueue_*` con `'X.Y.Z'`
+
+---
+
+**Última actualización:** 2026-05-26
+**Versión plugin:** 5.1.3 (con soporte PT completo)
 **Repositorio:** https://github.com/salomonamiga/plugin-adc-tuia.git
 **Mantenedor:** Salomón Amiga
