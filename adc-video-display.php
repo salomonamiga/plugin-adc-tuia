@@ -228,9 +228,6 @@ class ADC_Video_Display
      */
     public function handle_url_routing()
     {
-        // Redirecciones 301 manuales para material RENOMBRADO (corre primero).
-        $this->handle_manual_redirects();
-
         // Check for old-style URLs and redirect to friendly URLs
         $this->handle_legacy_redirects();
 
@@ -239,33 +236,112 @@ class ADC_Video_Display
     }
 
     /**
-     * Redirecciones 301 manuales para videos/programas RENOMBRADOS.
-     * Al renombrar un material su slug cambia y la URL vieja queda muerta
-     * (cae al home con 302). Aquí se mapea el path viejo => path nuevo para no
-     * perder links compartidos/indexados (SEO). Se ejecuta antes del routing
-     * normal, así que gana sobre el 302-a-home de handle_friendly_url_routing().
+     * MOMENTO B — Redirección 301 automática para material RENOMBRADO.
      *
-     * Clave y valor: path absoluto con slash inicial y final, tal como lo genera
-     * build_friendly_video_url(). Agregar una línea por cada renombre.
+     * Cuando una URL de video no resuelve (el slug ya no coincide con ningún
+     * título actual, típicamente por un renombre), se busca ese slug en la tabla
+     * de aliases (wp_adc_slug_aliases). Si existe, se obtiene el material por su
+     * ID y se reconstruye su slug ACTUAL vía get_materials() (misma fuente que la
+     * validación, refleja el nombre nuevo). Si difiere, se hace 301 a la URL nueva.
+     *
+     * La tabla se llena sola en display_video() (MOMENTO A). Devuelve true si
+     * redirigió (y hace exit); false si no había alias o el slug ya era el actual.
      */
-    private function handle_manual_redirects()
+    private function try_alias_redirect($lang, $video_slug)
     {
-        $manual = array(
-            '/programa/peliculas-en-ia/viviendo-la-destruccion-de-los-templos/'
-                => '/programa/peliculas-en-ia/viviendo-la-destruccion-de-los-templos-para-ninos/',
-        );
+        if (empty($video_slug)) {
+            return false;
+        }
 
-        $uri  = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
-        $path = strtok($uri, '?');                // quitar query string si viene
-        if ($path === false || $path === '') {
+        global $wpdb;
+        $table = $wpdb->prefix . 'adc_slug_aliases';
+
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT material_id, category_slug FROM {$table} WHERE lang = %s AND video_slug = %s",
+            $lang,
+            $video_slug
+        ));
+        if (!$row) {
+            return false;
+        }
+
+        // Reconstruir el slug ACTUAL del material desde la API (fuente consistente
+        // con validate_friendly_url_params: get_programs + get_materials).
+        $api = new ADC_API($lang);
+        $programs = $api->get_programs();
+        $program_id = null;
+        foreach ($programs as $p) {
+            if (isset($p['name']) && ADC_Utils::slugify($p['name']) === $row->category_slug) {
+                $program_id = $p['id'];
+                break;
+            }
+        }
+        if (!$program_id) {
+            return false;
+        }
+
+        $materials = $api->get_materials($program_id);
+        foreach ($materials as $m) {
+            if (isset($m['id']) && (string) $m['id'] === (string) $row->material_id) {
+                $new_cat_slug   = ADC_Utils::slugify($m['category']);
+                $new_video_slug = ADC_Utils::slugify($m['title']);
+
+                // Solo redirigir si el slug realmente cambió (evita loops).
+                if ($new_video_slug !== $video_slug || $new_cat_slug !== $row->category_slug) {
+                    wp_redirect($this->alias_build_video_url($lang, $new_cat_slug, $new_video_slug), 301);
+                    exit;
+                }
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Construye una URL friendly de video para un idioma explícito (sin depender
+     * de $this->language). Usado por el fallback de aliases.
+     */
+    private function alias_build_video_url($lang, $program_slug, $video_slug)
+    {
+        $base = home_url('/');
+        if ($lang === 'en') {
+            return $base . 'en/program/' . $program_slug . '/' . $video_slug . '/';
+        } elseif ($lang === 'pt') {
+            return $base . 'pt/programa/' . $program_slug . '/' . $video_slug . '/';
+        }
+        return $base . 'programa/' . $program_slug . '/' . $video_slug . '/';
+    }
+
+    /**
+     * MOMENTO A — Registra/actualiza el slug de un video que SÍ existe, para poder
+     * redirigir si algún día se renombra. Upsert por (lang, video_slug). Un guard
+     * por transient evita escribir en cada pageview (solo ~1 vez al día por slug).
+     */
+    private function register_slug_alias($lang, $video_slug, $material_id, $category_slug)
+    {
+        if (empty($video_slug) || empty($material_id) || empty($category_slug)) {
             return;
         }
-        $path = '/' . trim($path, '/') . '/';     // normalizar a /.../ (con slashes)
 
-        if (isset($manual[$path])) {
-            wp_redirect(home_url($manual[$path]), 301);
-            exit;
+        $guard_key = 'adc_alias_' . $lang . '_' . md5($video_slug . '|' . $material_id);
+        if (get_transient($guard_key)) {
+            return;
         }
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'adc_slug_aliases';
+        $wpdb->query($wpdb->prepare(
+            "INSERT INTO {$table} (lang, video_slug, material_id, category_slug, updated_at)
+             VALUES (%s, %s, %d, %s, NOW())
+             ON DUPLICATE KEY UPDATE material_id = VALUES(material_id), category_slug = VALUES(category_slug), updated_at = NOW()",
+            $lang,
+            $video_slug,
+            $material_id,
+            $category_slug
+        ));
+
+        set_transient($guard_key, 1, DAY_IN_SECONDS);
     }
 
     /**
@@ -363,6 +439,15 @@ class ADC_Video_Display
 
         // Validate the friendly URL parameters
         if (!$this->validate_friendly_url_params()) {
+            // MOMENTO B: si es un video cuyo slug ya no existe (renombrado), intentar
+            // un 301 al slug nuevo vía la tabla de aliases ANTES de caer al home.
+            if (($this->current_url_params['type'] ?? '') === 'video') {
+                $this->try_alias_redirect(
+                    $this->current_url_params['language'],
+                    $this->current_url_params['video']
+                );
+            }
+
             // Invalid parameters, redirect to home
             // 302 (no 301): la causa puede ser caché de plugin desactualizada al subir un video nuevo;
             // un 301 lo cachean los navegadores y deja la URL "pegada" al home aunque luego sí exista.
@@ -1546,6 +1631,10 @@ class ADC_Video_Display
             return '<div class="adc-error">' . ADC_Utils::get_text('video_not_found', $this->language) . '</div>';
         }
 
+        // MOMENTO A: registrar el slug actual de este video para poder redirigir
+        // (301) si algún día se renombra. Se auto-alimenta con cada vista.
+        $this->register_slug_alias($this->language, $video_slug, $video['id'], $category_slug);
+
         // Find next video
         $next_video = null;
         $next_url = '';
@@ -1842,6 +1931,64 @@ function adc_video_display_activate()
 
     // Force rewrite rules flush on activation
     update_option('adc_rewrite_rules_flushed', '0');
+
+    // Asegurar la tabla de aliases de slug al activar.
+    adc_ensure_slug_aliases_table();
+}
+
+// ============================================================
+// Tabla de aliases de slug — redirección 301 de material RENOMBRADO.
+// Guarda slug_viejo => material_id (+ category_slug). Se llena sola desde
+// display_video() y se consulta en try_alias_redirect(). Creación idempotente.
+// ============================================================
+if (!defined('ADC_SLUG_ALIASES_DB_VERSION')) {
+    define('ADC_SLUG_ALIASES_DB_VERSION', '1.0');
+}
+
+add_action('plugins_loaded', 'adc_ensure_slug_aliases_table');
+function adc_ensure_slug_aliases_table()
+{
+    if (get_option('adc_slug_aliases_db_version') === ADC_SLUG_ALIASES_DB_VERSION) {
+        return;
+    }
+
+    global $wpdb;
+    $table   = $wpdb->prefix . 'adc_slug_aliases';
+    $charset = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE {$table} (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        lang VARCHAR(5) NOT NULL DEFAULT 'es',
+        video_slug VARCHAR(191) NOT NULL,
+        material_id BIGINT UNSIGNED NOT NULL,
+        category_slug VARCHAR(191) NOT NULL,
+        updated_at DATETIME NOT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_lang_slug (lang, video_slug),
+        KEY idx_material (material_id)
+    ) {$charset};";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+
+    // Seed: renombres previos al sistema de aliases (no se auto-aprendieron porque
+    // el nombre ya había cambiado). Idempotente por el UNIQUE KEY (lang, video_slug).
+    $seed = array(
+        // lang, slug_viejo, material_id, category_slug
+        array('es', 'viviendo-la-destruccion-de-los-templos', 5461512322, 'peliculas-en-ia'),
+    );
+    foreach ($seed as $s) {
+        $wpdb->query($wpdb->prepare(
+            "INSERT IGNORE INTO {$table} (lang, video_slug, material_id, category_slug, updated_at)
+             VALUES (%s, %s, %d, %s, NOW())",
+            $s[0],
+            $s[1],
+            $s[2],
+            $s[3]
+        ));
+    }
+
+    update_option('adc_slug_aliases_db_version', ADC_SLUG_ALIASES_DB_VERSION);
 }
 
 // Deactivation hook
