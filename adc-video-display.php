@@ -1192,6 +1192,20 @@ class ADC_Video_Display
         // Buscar videos por tags
         $videos = $this->api->search_by_tags($festival['tags']);
 
+        // Solo mostrar videos cuya categoría sea un PROGRAMA navegable en IA
+        // (categorías con portada IA). Evita que salgan videos que listan pero
+        // no abren (p.ej. clips sin portada, que redirigen a la home al hacer clic).
+        $programs = $this->api->get_programs();
+        $valid_category_slugs = array();
+        foreach ($programs as $p) {
+            if (isset($p['name'])) {
+                $valid_category_slugs[ADC_Utils::slugify($p['name'])] = true;
+            }
+        }
+        $videos = array_values(array_filter($videos, function ($v) use ($valid_category_slugs) {
+            return isset($v['category']) && isset($valid_category_slugs[ADC_Utils::slugify($v['category'])]);
+        }));
+
         if ($this->language === 'en') {
             $texto = $festival['texto_en'];
         } elseif ($this->language === 'pt') {
@@ -1852,6 +1866,16 @@ function adc_display_cache_clear_page()
         // Clear WordPress object cache
         if (function_exists('wp_cache_flush')) {
             wp_cache_flush();
+        }
+
+        // Limpiar también la tabla api_cache de la API (caché de lectura de 2h)
+        // para que los cambios de contenido se reflejen al instante desde aquí.
+        $opts = get_option('adc-video-display');
+        if (!empty($opts['api_url']) && !empty($opts['api_token'])) {
+            wp_remote_get(rtrim($opts['api_url'], '/') . '/cache/clear', array(
+                'headers' => array('Authorization' => $opts['api_token']),
+                'timeout' => 15,
+            ));
         }
 
         $success = true;
