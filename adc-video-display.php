@@ -228,11 +228,44 @@ class ADC_Video_Display
      */
     public function handle_url_routing()
     {
+        // Redirecciones 301 manuales para material RENOMBRADO (corre primero).
+        $this->handle_manual_redirects();
+
         // Check for old-style URLs and redirect to friendly URLs
         $this->handle_legacy_redirects();
 
         // Check for friendly URLs and set up proper page display
         $this->handle_friendly_url_routing();
+    }
+
+    /**
+     * Redirecciones 301 manuales para videos/programas RENOMBRADOS.
+     * Al renombrar un material su slug cambia y la URL vieja queda muerta
+     * (cae al home con 302). Aquí se mapea el path viejo => path nuevo para no
+     * perder links compartidos/indexados (SEO). Se ejecuta antes del routing
+     * normal, así que gana sobre el 302-a-home de handle_friendly_url_routing().
+     *
+     * Clave y valor: path absoluto con slash inicial y final, tal como lo genera
+     * build_friendly_video_url(). Agregar una línea por cada renombre.
+     */
+    private function handle_manual_redirects()
+    {
+        $manual = array(
+            '/programa/peliculas-en-ia/viviendo-la-destruccion-de-los-templos/'
+                => '/programa/peliculas-en-ia/viviendo-la-destruccion-de-los-templos-para-ninos/',
+        );
+
+        $uri  = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
+        $path = strtok($uri, '?');                // quitar query string si viene
+        if ($path === false || $path === '') {
+            return;
+        }
+        $path = '/' . trim($path, '/') . '/';     // normalizar a /.../ (con slashes)
+
+        if (isset($manual[$path])) {
+            wp_redirect(home_url($manual[$path]), 301);
+            exit;
+        }
     }
 
     /**
