@@ -1586,10 +1586,6 @@ class ADC_Video_Display
             return '<div class="adc-error">' . ADC_Utils::get_text('no_videos', $this->language) . '</div>';
         }
 
-        // Solo la página de "Películas en IA" (categoría 282) ordena por más nuevo
-        // y muestra badge NUEVO + fecha de publicación. Las demás quedan igual.
-        $is_peliculas = (isset($category['id']) && intval($category['id']) === 282);
-
         // Group by season
         $seasons = $this->api->group_materials_by_season($materials);
 
@@ -1609,12 +1605,10 @@ class ADC_Video_Display
         $videos_per_row = isset($this->options['videos_per_row']) ? $this->options['videos_per_row'] : '4';
 
         foreach ($seasons as $season_num => $season_videos) {
-            // Películas: más nuevo primero, y a igual fecha (mismo día) alfabético
-            if ($is_peliculas) {
-                usort($season_videos, function ($a, $b) {
-                    return $this->compare_videos_for_display($a, $b);
-                });
-            }
+            // Todas las páginas: más nuevo primero, y a igual fecha (mismo día) alfabético
+            usort($season_videos, function ($a, $b) {
+                return $this->compare_videos_for_display($a, $b);
+            });
             $season_name = $this->api->get_season_name($season_num);
             $output .= '<h2 class="adc-season-header"><span>' . esc_html($season_name) . '</span></h2>';
 
