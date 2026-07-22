@@ -310,13 +310,21 @@
    /* Video Info */
    .adc-video-info {
        padding: 12px;
+       display: flex;
+       flex-direction: column;
+       gap: 5px;
    }
-   
-   /* Video Title - Enhanced */
+
+   /* Video Title - altura fija 2 líneas para alinear todas las tarjetas */
    .adc-video-title {
        font-size: 16px;
-       margin: 0 0 8px;
+       margin: 0 0 7px; /* aire entre título y la meta (duración/fecha) */
        line-height: 1.3;
+       display: -webkit-box;
+       -webkit-line-clamp: 2;
+       -webkit-box-orient: vertical;
+       overflow: hidden;
+       height: 2.6em;
    }
    
    .adc-video-title a {
@@ -683,10 +691,9 @@
    /* La info debe tener altura fija para tarjetas uniformes */
    .adc-search-info {
        padding: 15px;
-       height: 140px; /* Altura suficiente para contenido */
        display: flex;
        flex-direction: column;
-       justify-content: space-between;
+       gap: 6px;
    }
    
    /* Título con altura fija para 2 líneas */
@@ -700,9 +707,7 @@
        display: -webkit-box;
        -webkit-line-clamp: 2;
        -webkit-box-orient: vertical;
-       min-height: 39px; /* SIEMPRE 2 líneas mínimo */
-       max-height: 45px !important; /* SIEMPRE 2 líneas máximo */
-       height: 45px; /* Forzar exactamente 2 líneas */
+       height: 2.6em; /* exactamente 2 líneas (sin que se asome la 3ª) */
        flex-shrink: 0;
    }
    
@@ -717,13 +722,10 @@
        display: -webkit-box;
        -webkit-line-clamp: 2;
        -webkit-box-orient: vertical;
-       min-height: 34px; /* SIEMPRE 2 líneas mínimo */
-       max-height: 34px; /* SIEMPRE 2 líneas máximo */
-       height: 34px; /* Forzar exactamente 2 líneas */
        flex-shrink: 0;
    }
-   
-   /* Duración siempre al fondo */
+
+   /* Duración */
    .adc-search-duration {
        font-size: 12px;
        color: #777;
@@ -731,7 +733,6 @@
        height: 18px; /* 1 línea fija */
        line-height: 18px;
        flex-shrink: 0;
-       margin-top: auto;
    }
    
    /**
@@ -1395,26 +1396,20 @@
            grid-template-columns: 1fr;
        }
    
-       /* Ajustar altura de tarjetas para pantallas muy pequeñas */
+       /* Ajustar padding de tarjetas para pantallas muy pequeñas */
        .adc-search-info {
-           height: 120px; /* Altura suficiente para pantallas pequeñas */
            padding: 12px; /* Menos padding */
        }
    
        /* Ajustar tamaños de fuente para mejor legibilidad */
        .adc-search-title {
            font-size: 14px;
-           min-height: 36px; /* SIEMPRE 2 líneas mínimo */
-           max-height: 36px; /* SIEMPRE 2 líneas máximo */
-           height: 45px !important; /* Forzar exactamente 2 líneas */
+           height: 2.6em !important; /* exactamente 2 líneas */
            line-height: 1.3;
        }
    
        .adc-search-program {
            font-size: 12px;
-           min-height: 31px; /* SIEMPRE 2 líneas mínimo */
-           max-height: 31px; /* SIEMPRE 2 líneas máximo */
-           height: 31px; /* Forzar exactamente 2 líneas */
            line-height: 1.3;
        }
        
@@ -1645,7 +1640,7 @@
    
 /* ================================================================
    Badge "NUEVO" + fecha de publicación
-   (solo festividades y página de Películas — v5.1.5)
+   (solo festividades y página de Películas — v5.1.8)
    ================================================================ */
 /* Recortar la cinta diagonal dentro de la miniatura */
 .adc-search-thumbnail,
@@ -1677,5 +1672,4 @@
     display: block;
     font-size: 12px;
     color: #888888;
-    margin-top: 4px;
 }

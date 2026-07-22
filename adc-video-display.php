@@ -3,7 +3,7 @@
 /**
  * Plugin Name: ADC Video Display Radiant
  * Description: Muestra videos desde el sistema ADC en WordPress con Radiant Media Player – Multiidioma (ES/EN/PT) con URLs Amigables
- * Version:     5.1.5
+ * Version:     5.1.8
  * Author:      TuTorah Development Team
  */
 
@@ -759,14 +759,14 @@ class ADC_Video_Display
             'adc-style',
             ADC_PLUGIN_URL . 'style.css',
             array(),
-            '5.1.5'
+            '5.1.8'
         );
 
         wp_enqueue_script(
             'adc-script',
             ADC_PLUGIN_URL . 'script.js',
             array('jquery'),
-            '5.1.5',
+            '5.1.8',
             true
         );
 
@@ -786,7 +786,7 @@ class ADC_Video_Display
             'adc-radiant-bridge',
             ADC_PLUGIN_URL . 'assets/js/radiant-bridge.js',
             array(),
-            '5.1.5',
+            '5.1.8',
             true
         );
     }
@@ -1314,7 +1314,7 @@ class ADC_Video_Display
         return strcasecmp($a['title'] ?? '', $b['title'] ?? '');       // alfabético asc
     }
 
-    private function render_video_card($video, $url, $show_meta = false)
+    private function render_video_card($video, $url, $show_meta = true)
     {
         $output = '<div class="adc-search-video-item">';
         $output .= '<a href="' . esc_url($url) . '" class="adc-search-video-link">';
@@ -1635,7 +1635,8 @@ class ADC_Video_Display
                 $output .= '<div class="adc-video-thumbnail">';
                 $output .= '<img src="' . esc_url($thumbnail_url) . '" alt="' . esc_attr($video['title']) . '" loading="lazy">';
                 $output .= '<div class="adc-video-play-icon"></div>';
-                if ($is_peliculas && $this->is_video_new($video)) {
+                // Badge NUEVO en TODOS los programas (videos de últimos 30 días)
+                if ($this->is_video_new($video)) {
                     $output .= '<span class="adc-new-badge">' . esc_html($this->get_new_badge_text()) . '</span>';
                 }
                 $output .= '</div>';
@@ -1643,11 +1644,10 @@ class ADC_Video_Display
                 $output .= '<div class="adc-video-info">';
                 $output .= '<h3 class="adc-video-title">' . esc_html($video['title']) . '</h3>';
                 $output .= '<span class="adc-video-duration">' . ADC_Utils::get_text('duration', $this->language) . ': ' . esc_html($video['duration']) . '</span>';
-                if ($is_peliculas) {
-                    $fecha = $this->format_publish_date($video);
-                    if ($fecha !== '') {
-                        $output .= '<span class="adc-video-published">' . esc_html($this->get_published_label()) . ': ' . esc_html($fecha) . '</span>';
-                    }
+                // Fecha de publicación en TODOS los programas
+                $fecha = $this->format_publish_date($video);
+                if ($fecha !== '') {
+                    $output .= '<span class="adc-video-published">' . esc_html($this->get_published_label()) . ': ' . esc_html($fecha) . '</span>';
                 }
                 $output .= '</div>';
                 $output .= '</a>';
