@@ -1643,3 +1643,39 @@
        }
    }
    
+/* ================================================================
+   Badge "NUEVO" + fecha de publicación
+   (solo festividades y página de Películas — v5.1.5)
+   ================================================================ */
+/* Recortar la cinta diagonal dentro de la miniatura */
+.adc-search-thumbnail,
+.adc-video-thumbnail {
+    overflow: hidden;
+}
+
+/* Cinta diagonal "NUEVO" en la esquina superior izquierda */
+.adc-new-badge {
+    position: absolute;
+    top: 16px;
+    left: -34px;
+    z-index: 3;
+    width: 130px;
+    transform: rotate(-45deg);
+    background: linear-gradient(135deg, #ff5b5b 0%, #d32f2f 100%);
+    color: #ffffff;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+.adc-search-published,
+.adc-video-published {
+    display: block;
+    font-size: 12px;
+    color: #888888;
+    margin-top: 4px;
+}

@@ -3,7 +3,7 @@
 /**
  * Plugin Name: ADC Video Display Radiant
  * Description: Muestra videos desde el sistema ADC en WordPress con Radiant Media Player – Multiidioma (ES/EN/PT) con URLs Amigables
- * Version:     5.1.3
+ * Version:     5.1.5
  * Author:      TuTorah Development Team
  */
 
@@ -759,14 +759,14 @@ class ADC_Video_Display
             'adc-style',
             ADC_PLUGIN_URL . 'style.css',
             array(),
-            '5.1.3'
+            '5.1.5'
         );
 
         wp_enqueue_script(
             'adc-script',
             ADC_PLUGIN_URL . 'script.js',
             array('jquery'),
-            '5.1.3',
+            '5.1.5',
             true
         );
 
@@ -786,7 +786,7 @@ class ADC_Video_Display
             'adc-radiant-bridge',
             ADC_PLUGIN_URL . 'assets/js/radiant-bridge.js',
             array(),
-            '5.1.3',
+            '5.1.5',
             true
         );
     }
@@ -1245,7 +1245,76 @@ class ADC_Video_Display
     /**
      * Render a single video card - UPDATED for friendly URLs
      */
-    private function render_video_card($video, $url)
+    /**
+     * ¿El video es "nuevo"? (publicado en los últimos $days días)
+     */
+    private function is_video_new($video, $days = 30)
+    {
+        if (empty($video['releaseDate'])) return false;
+        $ts = strtotime($video['releaseDate']);
+        if (!$ts) return false;
+        return $ts >= (current_time('timestamp') - ($days * DAY_IN_SECONDS));
+    }
+
+    /**
+     * Fecha de publicación en formato "21-julio-26" (día-mes-año), localizado.
+     */
+    private function format_publish_date($video)
+    {
+        if (empty($video['releaseDate'])) return '';
+        $ts = strtotime($video['releaseDate']);
+        if (!$ts) return '';
+
+        $meses_por_idioma = array(
+            'es' => array(1 => 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'),
+            'en' => array(1 => 'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'),
+            'pt' => array(1 => 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'),
+        );
+        $lang = isset($meses_por_idioma[$this->language]) ? $this->language : 'es';
+        $meses = $meses_por_idioma[$lang];
+
+        return intval(date('j', $ts)) . '-' . ucfirst($meses[intval(date('n', $ts))]) . '-' . date('y', $ts);
+    }
+
+    /**
+     * Texto del badge "NUEVO" localizado.
+     */
+    private function get_new_badge_text()
+    {
+        if ($this->language === 'en') return 'NEW';
+        if ($this->language === 'pt') return 'NOVO';
+        return 'NUEVO';
+    }
+
+    /**
+     * Etiqueta "Publicado" localizada.
+     */
+    private function get_published_label()
+    {
+        if ($this->language === 'en') return 'Published';
+        return 'Publicado';
+    }
+
+    /**
+     * Comparador de orden para listas de videos:
+     *   1) Si $pin_substr viene, el video cuyo título lo contenga va PRIMERO.
+     *   2) Por fecha de publicación (día) descendente — más nuevo primero.
+     *   3) A igual fecha (mismo día), orden alfabético por título.
+     */
+    private function compare_videos_for_display($a, $b, $pin_substr = null)
+    {
+        if (!empty($pin_substr)) {
+            $pa = (stripos($a['title'] ?? '', $pin_substr) !== false) ? 0 : 1;
+            $pb = (stripos($b['title'] ?? '', $pin_substr) !== false) ? 0 : 1;
+            if ($pa !== $pb) return $pa - $pb;
+        }
+        $fecha_a = substr($a['releaseDate'] ?? '', 0, 10); // Y-m-d
+        $fecha_b = substr($b['releaseDate'] ?? '', 0, 10);
+        if ($fecha_a !== $fecha_b) return strcmp($fecha_b, $fecha_a); // fecha desc
+        return strcasecmp($a['title'] ?? '', $b['title'] ?? '');       // alfabético asc
+    }
+
+    private function render_video_card($video, $url, $show_meta = false)
     {
         $output = '<div class="adc-search-video-item">';
         $output .= '<a href="' . esc_url($url) . '" class="adc-search-video-link">';
@@ -1255,12 +1324,21 @@ class ADC_Video_Display
         $thumbnail_url = ADC_Utils::get_thumbnail_url($video['thumbnail']);
         $output .= '<img src="' . esc_url($thumbnail_url) . '" alt="' . esc_attr($video['title']) . '" loading="lazy">';
         $output .= '<div class="adc-search-play-icon"></div>';
+        if ($show_meta && $this->is_video_new($video)) {
+            $output .= '<span class="adc-new-badge">' . esc_html($this->get_new_badge_text()) . '</span>';
+        }
         $output .= '</div>';
 
         $output .= '<div class="adc-search-info">';
         $output .= '<h3 class="adc-search-title">' . esc_html($video['title']) . '</h3>';
         $output .= '<div class="adc-search-program">' . ADC_Utils::get_text('program', $this->language) . ': ' . esc_html($video['category']) . '</div>';
         $output .= '<div class="adc-search-duration">' . ADC_Utils::get_text('duration', $this->language) . ': ' . esc_html($video['duration']) . '</div>';
+        if ($show_meta) {
+            $fecha = $this->format_publish_date($video);
+            if ($fecha !== '') {
+                $output .= '<div class="adc-search-published">' . esc_html($this->get_published_label()) . ': ' . esc_html($fecha) . '</div>';
+            }
+        }
         $output .= '</div>';
         $output .= '</a>';
         $output .= '</div>';
@@ -1324,6 +1402,12 @@ class ADC_Video_Display
             return isset($v['category']) && isset($valid_category_slugs[ADC_Utils::slugify($v['category'])]);
         }));
 
+        // Ordenar: "Viviendo la destruccion de los templos" primero, luego más
+        // nuevo primero, y a igual fecha (mismo día) en orden alfabético.
+        usort($videos, function ($a, $b) {
+            return $this->compare_videos_for_display($a, $b, 'Viviendo la destruccion de los templos');
+        });
+
         if ($this->language === 'en') {
             $texto = $festival['texto_en'];
         } elseif ($this->language === 'pt') {
@@ -1370,7 +1454,7 @@ class ADC_Video_Display
                 $category_slug = ADC_Utils::slugify($video['category']);
                 $video_slug = ADC_Utils::slugify($video['title']);
                 $url = $this->build_friendly_video_url($category_slug, $video_slug);
-                $output .= $this->render_video_card($video, $url);
+                $output .= $this->render_video_card($video, $url, true);
             }
 
             $output .= '</div>';
@@ -1502,6 +1586,10 @@ class ADC_Video_Display
             return '<div class="adc-error">' . ADC_Utils::get_text('no_videos', $this->language) . '</div>';
         }
 
+        // Solo la página de "Películas en IA" (categoría 282) ordena por más nuevo
+        // y muestra badge NUEVO + fecha de publicación. Las demás quedan igual.
+        $is_peliculas = (isset($category['id']) && intval($category['id']) === 282);
+
         // Group by season
         $seasons = $this->api->group_materials_by_season($materials);
 
@@ -1521,6 +1609,12 @@ class ADC_Video_Display
         $videos_per_row = isset($this->options['videos_per_row']) ? $this->options['videos_per_row'] : '4';
 
         foreach ($seasons as $season_num => $season_videos) {
+            // Películas: más nuevo primero, y a igual fecha (mismo día) alfabético
+            if ($is_peliculas) {
+                usort($season_videos, function ($a, $b) {
+                    return $this->compare_videos_for_display($a, $b);
+                });
+            }
             $season_name = $this->api->get_season_name($season_num);
             $output .= '<h2 class="adc-season-header"><span>' . esc_html($season_name) . '</span></h2>';
 
@@ -1541,11 +1635,20 @@ class ADC_Video_Display
                 $output .= '<div class="adc-video-thumbnail">';
                 $output .= '<img src="' . esc_url($thumbnail_url) . '" alt="' . esc_attr($video['title']) . '" loading="lazy">';
                 $output .= '<div class="adc-video-play-icon"></div>';
+                if ($is_peliculas && $this->is_video_new($video)) {
+                    $output .= '<span class="adc-new-badge">' . esc_html($this->get_new_badge_text()) . '</span>';
+                }
                 $output .= '</div>';
 
                 $output .= '<div class="adc-video-info">';
                 $output .= '<h3 class="adc-video-title">' . esc_html($video['title']) . '</h3>';
                 $output .= '<span class="adc-video-duration">' . ADC_Utils::get_text('duration', $this->language) . ': ' . esc_html($video['duration']) . '</span>';
+                if ($is_peliculas) {
+                    $fecha = $this->format_publish_date($video);
+                    if ($fecha !== '') {
+                        $output .= '<span class="adc-video-published">' . esc_html($this->get_published_label()) . ': ' . esc_html($fecha) . '</span>';
+                    }
+                }
                 $output .= '</div>';
                 $output .= '</a>';
                 $output .= '</div>';
