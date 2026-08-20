@@ -3,7 +3,7 @@
 /**
  * Plugin Name: ADC Video Display Radiant
  * Description: Muestra videos desde el sistema ADC en WordPress con Radiant Media Player – Multiidioma (ES/EN/PT) con URLs Amigables
- * Version:     5.1.8
+ * Version:     5.1.9
  * Author:      TuTorah Development Team
  */
 
@@ -759,14 +759,14 @@ class ADC_Video_Display
             'adc-style',
             ADC_PLUGIN_URL . 'style.css',
             array(),
-            '5.1.8'
+            '5.1.9'
         );
 
         wp_enqueue_script(
             'adc-script',
             ADC_PLUGIN_URL . 'script.js',
             array('jquery'),
-            '5.1.8',
+            '5.1.9',
             true
         );
 
@@ -786,7 +786,7 @@ class ADC_Video_Display
             'adc-radiant-bridge',
             ADC_PLUGIN_URL . 'assets/js/radiant-bridge.js',
             array(),
-            '5.1.8',
+            '5.1.9',
             true
         );
     }
@@ -1296,6 +1296,27 @@ class ADC_Video_Display
     }
 
     /**
+     * Programas cuyos videos van en ORDEN ALFABÉTICO por título, no por fecha.
+     *
+     * Motivo: sus títulos ya vienen numerados en el orden pedagógico correcto
+     * ("01 - Bereshit", "02 - Noaj"…), así que el orden por fecha de publicación
+     * los mostraba revueltos. Se comparan por SLUG para que no importen acentos,
+     * mayúsculas ni el idioma de la sección.
+     *
+     * Los títulos SIN número (p.ej. "Libro Bereshit Completo - IA - More") quedan
+     * al final, que es el resultado natural del alfabético (las letras van después
+     * de los dígitos). Decisión de Salo 2026-08-19.
+     */
+    private function is_alphabetical_program($category_name)
+    {
+        $alpha_slugs = array(
+            'conociendo-las-haftarot',
+            'la-perasha-en-ia-more',
+        );
+        return in_array(ADC_Utils::slugify($category_name), $alpha_slugs, true);
+    }
+
+    /**
      * Comparador de orden para listas de videos:
      *   1) Si $pin_substr viene, el video cuyo título lo contenga va PRIMERO.
      *   2) Por fecha de publicación (día) descendente — más nuevo primero.
@@ -1604,11 +1625,21 @@ class ADC_Video_Display
         // Videos per row setting
         $videos_per_row = isset($this->options['videos_per_row']) ? $this->options['videos_per_row'] : '4';
 
+        // Programas con títulos numerados (Haftarot, Perasha en IA More) van
+        // alfabético ascendente; el resto, más nuevo primero.
+        $alphabetical = $this->is_alphabetical_program($category['name']);
+
         foreach ($seasons as $season_num => $season_videos) {
-            // Todas las páginas: más nuevo primero, y a igual fecha (mismo día) alfabético
-            usort($season_videos, function ($a, $b) {
-                return $this->compare_videos_for_display($a, $b);
-            });
+            if ($alphabetical) {
+                usort($season_videos, function ($a, $b) {
+                    return strcasecmp($a['title'] ?? '', $b['title'] ?? '');
+                });
+            } else {
+                // Todas las demás páginas: más nuevo primero, y a igual fecha (mismo día) alfabético
+                usort($season_videos, function ($a, $b) {
+                    return $this->compare_videos_for_display($a, $b);
+                });
+            }
             $season_name = $this->api->get_season_name($season_num);
             $output .= '<h2 class="adc-season-header"><span>' . esc_html($season_name) . '</span></h2>';
 
