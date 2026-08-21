@@ -3,7 +3,7 @@
 /**
  * Plugin Name: ADC Video Display Radiant
  * Description: Muestra videos desde el sistema ADC en WordPress con Radiant Media Player – Multiidioma (ES/EN/PT) con URLs Amigables
- * Version:     5.1.9
+ * Version:     5.1.10
  * Author:      TuTorah Development Team
  */
 
@@ -759,14 +759,14 @@ class ADC_Video_Display
             'adc-style',
             ADC_PLUGIN_URL . 'style.css',
             array(),
-            '5.1.9'
+            '5.1.10'
         );
 
         wp_enqueue_script(
             'adc-script',
             ADC_PLUGIN_URL . 'script.js',
             array('jquery'),
-            '5.1.9',
+            '5.1.10',
             true
         );
 
@@ -786,7 +786,7 @@ class ADC_Video_Display
             'adc-radiant-bridge',
             ADC_PLUGIN_URL . 'assets/js/radiant-bridge.js',
             array(),
-            '5.1.9',
+            '5.1.10',
             true
         );
     }
@@ -1312,6 +1312,11 @@ class ADC_Video_Display
         $alpha_slugs = array(
             'conociendo-las-haftarot',
             'la-perasha-en-ia-more',
+            // Serie numerada por capitulo ("01 - ...", "02 - ..."): el orden por fecha
+            // de publicacion la revuelve. Se incluye el slug PT porque la categoria
+            // tiene visibilidadIA_pt=1, aunque su pagina aun no este publicada.
+            'operaciones-especiales',
+            'operacoes-especiais',
         );
         return in_array(ADC_Utils::slugify($category_name), $alpha_slugs, true);
     }
