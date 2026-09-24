@@ -482,6 +482,12 @@ class ADC_Video_Display
                     return false;
                 }
 
+                // Agrupador del inicio (p.ej. «Películas en IA»): solo existe como página de programa
+                if ($this->current_url_params['type'] === 'program'
+                    && ADC_Utils::find_program_group_by_slug($this->current_url_params['language'], $this->current_url_params['program'])) {
+                    return true;
+                }
+
                 // Check if program exists
                 $programs = $api->get_programs();
                 $program_found = false;
@@ -1519,13 +1525,78 @@ class ADC_Video_Display
         $output = '<div class="adc-categories-grid">';
         $output .= '<div class="adc-categories-row">';
 
+        // Los programas de un agrupador salen como UN círculo, en el lugar del primero de ellos
+        $groups_shown = array();
         foreach ($programs as $program) {
+            $group = ADC_Utils::find_program_group_for_program($this->language, $program['id']);
+            if ($group) {
+                if (!isset($groups_shown[$group['slug']])) {
+                    $groups_shown[$group['slug']] = true;
+                    $output .= $this->render_group_card($group);
+                }
+                continue;
+            }
             $output .= $this->render_category_card($program, $programs_with_videos);
         }
 
         $output .= '</div></div>';
 
         return $banner_html . $output;
+    }
+
+    /**
+     * Círculo de un agrupador en el inicio
+     */
+    private function render_group_card($group)
+    {
+        $output = '<div class="adc-category-card-wrapper">';
+        $output .= '<a class="adc-category-card" href="' . esc_url($this->build_friendly_program_url($group['slug'])) . '">';
+        $output .= '<div class="adc-category-image-circle">';
+        $output .= '<img src="' . esc_url($group['cover']) . '" alt="' . esc_attr($group['name']) . '" loading="lazy">';
+        $output .= '</div>';
+        $output .= '<div class="adc-category-name">' . esc_html($group['name']) . '</div>';
+        $output .= '</a></div>';
+
+        return $output;
+    }
+
+    /**
+     * Página de un agrupador: los círculos de sus programas, en el orden del agrupador
+     */
+    private function display_program_group($group)
+    {
+        $programs_by_id = array();
+        foreach ($this->api->get_programs_with_custom_order() as $program) {
+            $programs_by_id[(int) $program['id']] = $program;
+        }
+        $programs = array();
+        foreach ($group['children'] as $child_id) {
+            if (isset($programs_by_id[$child_id])) {
+                $programs[] = $programs_by_id[$child_id];
+            }
+        }
+
+        $home_url = ADC_Utils::get_base_url($this->language);
+
+        $output = '<div class="adc-category-header">';
+        $output .= '<h1 class="adc-category-title">' . esc_html($group['name']) . '</h1>';
+        $output .= '<a href="' . esc_url($home_url) . '" class="adc-back-button">' . ADC_Utils::get_text('back_to_programs', $this->language) . '</a>';
+        $output .= '</div>';
+
+        if (empty($programs)) {
+            return $output . '<div class="adc-error">' . ADC_Utils::get_text('no_programs', $this->language) . '</div>';
+        }
+
+        $programs_with_videos = $this->api->bulk_check_programs_with_videos($programs);
+
+        $output .= '<div class="adc-categories-grid">';
+        $output .= '<div class="adc-categories-row">';
+        foreach ($programs as $program) {
+            $output .= $this->render_category_card($program, $programs_with_videos);
+        }
+        $output .= '</div></div>';
+
+        return $output;
     }
 
     /**
@@ -1590,6 +1661,11 @@ class ADC_Video_Display
      */
     private function display_category_videos($category_slug)
     {
+        $group = ADC_Utils::find_program_group_by_slug($this->language, $category_slug);
+        if ($group) {
+            return $this->display_program_group($group);
+        }
+
         // Find category by slug
         $programs = $this->api->get_programs();
         $category = null;
@@ -1616,10 +1692,19 @@ class ADC_Video_Display
         $seasons = $this->api->group_materials_by_season($materials);
 
         $home_url = ADC_Utils::get_base_url($this->language);
+        $back_url = $home_url;
+        $back_text = ADC_Utils::get_text('back_to_programs', $this->language);
+
+        // Si el programa cuelga de un agrupador, «Volver» regresa al agrupador
+        $parent_group = ADC_Utils::find_program_group_for_program($this->language, $category['id']);
+        if ($parent_group) {
+            $back_url = $this->build_friendly_program_url($parent_group['slug']);
+            $back_text = ADC_Utils::get_text('back_to', $this->language) . ' ' . esc_html($parent_group['name']);
+        }
 
         $output = '<div class="adc-category-header">';
         $output .= '<h1 class="adc-category-title">' . esc_html($category['name']) . '</h1>';
-        $output .= '<a href="' . esc_url($home_url) . '" class="adc-back-button">' . ADC_Utils::get_text('back_to_programs', $this->language) . '</a>';
+        $output .= '<a href="' . esc_url($back_url) . '" class="adc-back-button">' . $back_text . '</a>';
         $output .= '</div>';
 
         // Show promotional clip if exists

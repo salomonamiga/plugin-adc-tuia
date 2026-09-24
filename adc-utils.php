@@ -36,6 +36,57 @@ class ADC_Utils
     }
 
     /**
+     * Agrupadores del inicio: un solo círculo que al entrar muestra varios programas.
+     * Los programas no cambian de categoría; solo cambia cómo se llega a ellos.
+     * El slug NO es el del nombre a propósito: /programa/peliculas-en-ia/ tiene un 301
+     * al inicio en el .htaccess (14-sep-2026) que los navegadores ya guardaron.
+     * Portada = la de la antigua categoría 282 «Películas en IA». (TT-035, 24-sep-2026)
+     */
+    public static function get_program_groups($language)
+    {
+        $groups = array(
+            'es' => array(
+                array(
+                    'slug' => 'peliculas',
+                    'name' => 'Películas en IA',
+                    'cover' => 'https://adc.tutorah.tv/img/categorias/portadas/282_ia.png',
+                    'children' => array(344, 345, 346),
+                ),
+            ),
+            'pt' => array(
+                array(
+                    'slug' => 'filmes',
+                    'name' => 'Filmes em IA',
+                    'cover' => 'https://adc.tutorah.tv/img/categorias/portadas/282_ia_pt.png',
+                    'children' => array(344, 345, 346),
+                ),
+            ),
+        );
+
+        return isset($groups[$language]) ? $groups[$language] : array();
+    }
+
+    public static function find_program_group_by_slug($language, $slug)
+    {
+        foreach (self::get_program_groups($language) as $group) {
+            if ($group['slug'] === $slug) {
+                return $group;
+            }
+        }
+        return null;
+    }
+
+    public static function find_program_group_for_program($language, $program_id)
+    {
+        foreach (self::get_program_groups($language) as $group) {
+            if (in_array((int) $program_id, $group['children'], true)) {
+                return $group;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Detect language from URL (ES / EN / PT)
      */
     public static function detect_language()
