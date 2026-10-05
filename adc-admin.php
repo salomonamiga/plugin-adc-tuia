@@ -910,7 +910,7 @@ class ADC_Admin
     private function display_program_order_page($language)
     {
         $api = new ADC_API($language);
-        $programs = $api->get_programs();
+        $programs = $api->get_top_level_programs();
         $saved_order = get_option('adc_programs_order_' . $language, array());
 
         // Apply saved order

@@ -24,6 +24,7 @@ class ADC_API
 
     private $api_token;
     private $api_url;
+    private $programs_memo = null;
     private $language;
     private $section;
     private $debug_mode = false;
@@ -236,15 +237,70 @@ class ADC_API
      */
     public function get_programs()
     {
+        // Memoria por petición: get_subcategories() lo llama por cada programa (aunque la caché esté apagada)
+        if ($this->programs_memo !== null) {
+            return $this->programs_memo;
+        }
+
         $cache_key = ADC_Utils::get_cache_key('programs_' . $this->section, $this->language);
         $endpoint = $this->get_endpoint_prefix() . '/categories';
         $data = $this->make_request($endpoint, array(), $cache_key);
 
         if (!$data || !isset($data['data'])) {
+            $this->programs_memo = array();
             return array();
         }
 
-        return $this->filter_programs_by_section($data['data']);
+        $this->programs_memo = $this->filter_programs_by_section($this->flatten_subcategories($data['data']));
+        return $this->programs_memo;
+    }
+
+    /**
+     * La API anida las subcategorías dentro de su categoría padre (idCategoriaPadre en el ADC).
+     * Se aplanan para que cualquier búsqueda por id o slug encuentre también a las hijas;
+     * cada hija lleva 'parent_id'. Las que se muestran en el inicio son solo las de primer nivel.
+     */
+    private function flatten_subcategories($programs)
+    {
+        $flat = array();
+        $seen = array();
+        foreach ($programs as $program) {
+            $seen[(int) $program['id']] = true;
+        }
+        foreach ($programs as $program) {
+            $children = (isset($program['subcategories']) && is_array($program['subcategories'])) ? $program['subcategories'] : array();
+            unset($program['subcategories']);
+            $flat[] = $program;
+            foreach ($children as $child) {
+                if (isset($seen[(int) $child['id']])) {
+                    continue;
+                }
+                $seen[(int) $child['id']] = true;
+                $child['parent_id'] = (int) $program['id'];
+                $flat[] = $child;
+            }
+        }
+        return $flat;
+    }
+
+    /**
+     * Programas de primer nivel (sin padre): inicio, menú y orden del admin
+     */
+    public function get_top_level_programs()
+    {
+        return array_values(array_filter($this->get_programs(), function ($program) {
+            return empty($program['parent_id']);
+        }));
+    }
+
+    /**
+     * Subcategorías (con videos) de un programa, en orden alfabético como las da la API
+     */
+    public function get_subcategories($program_id)
+    {
+        return array_values(array_filter($this->get_programs(), function ($program) use ($program_id) {
+            return !empty($program['parent_id']) && (int) $program['parent_id'] === (int) $program_id;
+        }));
     }
 
     /**
@@ -333,7 +389,8 @@ class ADC_API
 
         foreach ($programs as $program) {
             $materials = $this->get_materials($program['id']);
-            $programs_with_videos[$program['id']] = !empty($materials);
+            // Un padre sin videos propios cuenta como «con videos» si tiene subcategorías
+            $programs_with_videos[$program['id']] = !empty($materials) || !empty($this->get_subcategories($program['id']));
         }
 
         // Cache the bulk result with unified duration
@@ -498,7 +555,7 @@ class ADC_API
      */
     public function get_all_programs_for_menu()
     {
-        $programs = $this->get_programs();
+        $programs = $this->get_top_level_programs();
 
         // Sort programs alphabetically
         usort($programs, function ($a, $b) {
@@ -928,6 +985,7 @@ class ADC_API
     public function clear_all_cache()
     {
         global $wpdb;
+        $this->programs_memo = null;
 
         // Clear WordPress transients for this language
         $wpdb->query($wpdb->prepare(
@@ -953,6 +1011,7 @@ class ADC_API
     public function refresh_cache($cache_type)
     {
         global $wpdb;
+        $this->programs_memo = null;
 
         switch ($cache_type) {
             case 'programs':
