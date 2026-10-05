@@ -44,7 +44,7 @@ ssh ... "wp plugin list --path=/home/customer/www/tuia.tv/public_html/ | grep -i
 - **CMS:** WordPress 6.x
 - **Lenguaje:** PHP 7.4+
 - **Frontend:** JavaScript (ES6), CSS3
-- **API:** API TuTorah REST (`https://api.tutorah.tv/v2`)
+- **API:** API TuTorah REST **v2** (`https://api.tutorah.tv/v2`; comprobado 2026-10-05 en la opción WP `adc-video-display` → `api_url`)
 - **Arquitectura:** WordPress Plugin (OOP)
 - **Caché:** WordPress Transients + Object Cache
 - **Multiidioma:** Español / Inglés / Portugués integrado
@@ -65,6 +65,13 @@ ADC/
 ├── DOCUMENTATION.md         # Documentación técnica completa
 └── CLAUDE.md               # Este archivo (instrucciones operacionales)
 ```
+
+## 🗂️ Subcategorías (desde 2026-10-05, commit 28d719a)
+- Jerarquía = `categorias.idCategoriaPadre` del ADC. La API anida las hijas en `subcategories`; `ADC_API::get_programs()` las **aplana** (cada hija con `parent_id`) para que páginas, videos, buscador y alias las encuentren por slug/id.
+- Inicio (`/categories/all`), menú y orden del admin = solo primer nivel (`get_top_level_programs()`). Un padre sin videos propios no sale «Próximamente» si tiene hijas.
+- Página del padre: círculos de las hijas (`get_subcategories()`) y luego sus videos propios si tiene. En una hija, «Volver» lleva al padre.
+- Para agrupar programas en otro caso: poner `idCategoriaPadre` en el ADC (y el padre con `visibilidadIA*`=1 + portada). **No** volver a listas fijas en código (la de TT-035 se retiró).
+- Caso real: «Películas en IA» (282) padre de 344/345/346. URL `/programa/peliculas-en-ia/` (pt `/pt/programa/filmes-em-ia/`); `/programa/peliculas/` y `/pt/programa/filmes/` → 301 en el `.htaccess` del sitio.
 
 ## 🔄 FLUJO DE TRABAJO
 
