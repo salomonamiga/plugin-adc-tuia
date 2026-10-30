@@ -7,6 +7,16 @@
  * Author:      TuTorah Development Team
  */
 
+// TT-053: alias puntual del programa, antes de resolver las URLs.
+add_action('init', function () {
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
+    $path = wp_parse_url($request_uri, PHP_URL_PATH);
+    if ($path === '/programa/siguendo-la-parasha/' || $path === '/programa/siguendo-la-parasha') {
+        wp_safe_redirect(home_url('/programa/siguiendo-la-parasha/'), 301);
+        exit;
+    }
+}, 1);
+
 // Evita el canonical redirect **antes** de todo
 add_filter('redirect_canonical', function ($redirect_url) {
     $request_uri = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
