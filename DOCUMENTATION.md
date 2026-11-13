@@ -26,6 +26,12 @@ plugin-adc-tuia/
 └── CLAUDE.md             # Esta documentación
 ```
 
+## Orden de Siguiendo la parasha
+- [HERMES] 2026-11-12, CDMX: revisión de Claude aprobada. Se conserva la agrupación y el orden de temporadas del ADC; dentro de cada temporada se aplica la regla existente de títulos ascendentes para `siguiendo-la-parasha`.
+- Nuevas clases: mantener prefijos de dos dígitos (`01 - …`, `02 - …`); las fechas de publicación no determinan su posición dentro de la temporada. No se modifican fechas ni BD.
+- Regresión: `python -m unittest discover -s tests -v`; prueba render PHP, altas 07/08, otra temporada y programa ajeno por fecha.
+- Estado de este paso: código aprobado y guardado; despliegue, limpieza de caché y comprobación pública en navegador pendientes. El push no equivale a publicación web.
+
 ## Funcionalidades Principales
 
 ### 1. Sistema de Videos Multiidioma

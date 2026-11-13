@@ -1322,6 +1322,7 @@ class ADC_Video_Display
         $alpha_slugs = array(
             'conociendo-las-haftarot',
             'la-perasha-en-ia-more',
+            'siguiendo-la-parasha',
             // Serie numerada por capitulo ("01 - ...", "02 - ..."): el orden por fecha
             // de publicacion la revuelve. Se incluye el slug PT porque la categoria
             // tiene visibilidadIA_pt=1, aunque su pagina aun no este publicada.
