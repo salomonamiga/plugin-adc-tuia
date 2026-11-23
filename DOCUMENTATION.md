@@ -46,6 +46,8 @@ plugin-adc-tuia/
 - `/programa/nombre-programa/nombre-video/` - Video específico
 - `/buscar/termino/` - Resultados de búsqueda
 
+**Banner interior de programa (TT-056):** se gestiona en el ADC y es independiente de la portada exterior. El plugin usa el campo opcional `banner` de la API solo en páginas de programa que ya pasan los filtros existentes; cargar un banner no publica la categoría ni reemplaza su portada.
+
 **Inglés:**
 - `/en/program/program-name/` - Program video list
 - `/en/program/program-name/video-name/` - Specific video

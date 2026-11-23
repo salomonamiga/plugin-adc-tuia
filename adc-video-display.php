@@ -1643,6 +1643,14 @@ class ADC_Video_Display
         $output .= '<a href="' . esc_url($back_url) . '" class="adc-back-button">' . $back_text . '</a>';
         $output .= '</div>';
 
+        if (!empty($category['banner'])) {
+            $banner_url = esc_url($category['banner']);
+            if ($banner_url !== '') {
+                $output .= '<img class="adc-category-banner" src="' . $banner_url . '" alt="' . esc_attr($category['name']) . '"'
+                    . ' style="display:block;max-width:100%;height:auto;margin:0 auto 2rem">';
+            }
+        }
+
         // Show promotional clip if exists
         if (isset($category['clip']) && !empty($category['clip'])) {
             $output .= $this->render_promotional_clip($category);
